@@ -21,6 +21,7 @@ local currentData: Types.PlayerData? = nil
 -- References for reactive updates
 local upgradeRowRefs: { [string]: { LevelLabel: TextLabel, BuyButton: TextButton, Row: Frame } } = {}
 local gearsPerkRowRefs: { [string]: { BuyButton: TextButton, StatusLabel: TextLabel } } = {}
+local teleportRowRefs: { [number]: { WarpButton: TextButton, StatusLabel: TextLabel } } = {}
 local petListScroll: ScrollingFrame
 local rebirthInfoLabel: TextLabel
 local rebirthButton: TextButton
@@ -160,7 +161,7 @@ function MenuController.openPanel(name: string)
 	end
 end
 
--- 1. Upgrades Panel Builder
+-- 1. Upgrades Panel Builder (Clean, uniform cards with no confusing text)
 function MenuController.buildUpgradesPanel()
 	local panel, body = createStyledPanel("🛒 UPGRADES WORKSHOP")
 	panels["Upgrades"] = panel
@@ -249,7 +250,7 @@ function MenuController.buildUpgradesPanel()
 	end
 end
 
--- 2. Gears Prestige Shop Builder (True purpose for Gears!)
+-- 2. Gears Prestige Shop Builder
 function MenuController.buildGearsShopPanel()
 	local panel, body = createStyledPanel("⚙️ GEARS PRESTIGE SHOP")
 	panels["GearsShop"] = panel
@@ -351,12 +352,11 @@ function MenuController.buildGearsShopPanel()
 	end
 end
 
--- 3. Drones Panel Builder (Pure Inventory & Loadout - Drones hatched in Hub!)
+-- 3. Drones Panel Builder
 function MenuController.buildDronesPanel()
 	local panel, body = createStyledPanel("🤖 DRONE HANGAR")
 	panels["Drones"] = panel
 
-	-- Guide banner pointing to physical egg pods in Hub
 	local banner = Instance.new("Frame")
 	banner.Name = "EggGuideBanner"
 	banner.Size = UDim2.new(1, 0, 0, 52)
@@ -418,7 +418,119 @@ function MenuController.buildDronesPanel()
 	list.Parent = petListScroll
 end
 
--- 4. Rebirth Panel Builder
+-- 4. Fast-Travel / World Map Panel Builder (Instant warp to any unlocked zone!)
+function MenuController.buildTeleportPanel()
+	local panel, body = createStyledPanel("🗺️ WORLD MAP & FAST TRAVEL")
+	panels["Teleport"] = panel
+
+	-- Quick Hub Warp Button (Sell Cargo Fast!)
+	local hubWarpBtn = Instance.new("TextButton")
+	hubWarpBtn.Name = "WarpHubButton"
+	hubWarpBtn.Size = UDim2.new(1, 0, 0, 54)
+	hubWarpBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 90)
+	hubWarpBtn.Font = Enum.Font.GothamBlack
+	hubWarpBtn.TextSize = 16
+	hubWarpBtn.TextColor3 = Color3.new(1, 1, 1)
+	hubWarpBtn.Text = "⚡ WARP TO CENTRAL HUB & RECYCLER"
+	hubWarpBtn.Parent = body
+
+	local hCorner = Instance.new("UICorner")
+	hCorner.CornerRadius = UDim.new(0, 10)
+	hCorner.Parent = hubWarpBtn
+
+	local hStroke = Instance.new("UIStroke")
+	hStroke.Color = Color3.fromRGB(100, 255, 140)
+	hStroke.Thickness = 1.5
+	hStroke.Parent = hubWarpBtn
+
+	hubWarpBtn.MouseButton1Click:Connect(function()
+		playSound("rbxassetid://6895079853", 1.2)
+		local teleportRemote = Remotes.getEvent("TeleportZone")
+		teleportRemote:FireServer(1)
+		MenuController.closeActivePanel()
+	end)
+
+	local scroll = Instance.new("ScrollingFrame")
+	scroll.Size = UDim2.new(1, 0, 1, -66)
+	scroll.Position = UDim2.new(0, 0, 0, 64)
+	scroll.BackgroundTransparency = 1
+	scroll.ScrollBarThickness = 6
+	scroll.Parent = body
+
+	local list = Instance.new("UIListLayout")
+	list.Padding = UDim.new(0, 10)
+	list.Parent = scroll
+
+	for _, zone in ipairs(Config.Zones) do
+		local row = Instance.new("Frame")
+		row.Name = "ZoneRow_" .. tostring(zone.Id)
+		row.Size = UDim2.new(1, -10, 0, 72)
+		row.BackgroundColor3 = Color3.fromRGB(26, 30, 42)
+		row.BorderSizePixel = 0
+		row.Parent = scroll
+
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 10)
+		corner.Parent = row
+
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = zone.Color
+		stroke.Thickness = 1.5
+		stroke.Parent = row
+
+		local nameLbl = Instance.new("TextLabel")
+		nameLbl.Size = UDim2.new(0.62, 0, 0, 24)
+		nameLbl.Position = UDim2.new(0, 14, 0, 10)
+		nameLbl.BackgroundTransparency = 1
+		nameLbl.Font = Enum.Font.GothamBlack
+		nameLbl.TextSize = 15
+		nameLbl.TextColor3 = zone.Color
+		nameLbl.TextXAlignment = Enum.TextXAlignment.Left
+		nameLbl.Text = string.format("ZONE %d: %s", zone.Id, zone.Name:upper())
+		nameLbl.Parent = row
+
+		local descLbl = Instance.new("TextLabel")
+		descLbl.Size = UDim2.new(0.62, 0, 0, 28)
+		descLbl.Position = UDim2.new(0, 14, 0, 34)
+		descLbl.BackgroundTransparency = 1
+		descLbl.Font = Enum.Font.Gotham
+		descLbl.TextSize = 12
+		descLbl.TextColor3 = Color3.fromRGB(180, 190, 210)
+		descLbl.TextXAlignment = Enum.TextXAlignment.Left
+		descLbl.Text = string.format("Base Yield: %d 🔩 • %s", zone.BaseYield, zone.Description)
+		descLbl.Parent = row
+
+		local warpBtn = Instance.new("TextButton")
+		warpBtn.Name = "WarpButton"
+		warpBtn.Size = UDim2.new(0, 115, 0, 44)
+		warpBtn.Position = UDim2.new(1, -125, 0.5, -22)
+		warpBtn.BackgroundColor3 = (zone.Id == 1) and Color3.fromRGB(40, 180, 90) or Color3.fromRGB(90, 95, 110)
+		warpBtn.Font = Enum.Font.GothamBlack
+		warpBtn.TextSize = 14
+		warpBtn.TextColor3 = Color3.new(1, 1, 1)
+		warpBtn.Text = (zone.Id == 1) and "WARP ⚡" or string.format("LOCKED 🔒\n(%s 🔩)", formatNumber(zone.UnlockCost))
+		warpBtn.Parent = row
+
+		local bCorner = Instance.new("UICorner")
+		bCorner.CornerRadius = UDim.new(0, 8)
+		bCorner.Parent = warpBtn
+
+		local zId = zone.Id
+		warpBtn.MouseButton1Click:Connect(function()
+			playSound("rbxassetid://6895079853", 1.2)
+			local teleportRemote = Remotes.getEvent("TeleportZone")
+			teleportRemote:FireServer(zId)
+			MenuController.closeActivePanel()
+		end)
+
+		teleportRowRefs[zone.Id] = {
+			WarpButton = warpBtn,
+			StatusLabel = nameLbl,
+		}
+	end
+end
+
+-- 5. Rebirth Panel Builder
 function MenuController.buildRebirthPanel()
 	local panel, body = createStyledPanel("🌀 PRESTIGE & REBIRTH")
 	panels["Rebirth"] = panel
@@ -478,7 +590,7 @@ function MenuController.buildRebirthPanel()
 	end)
 end
 
--- 5. Rewards Panel Builder
+-- 6. Rewards Panel Builder
 function MenuController.buildRewardsPanel()
 	local panel, body = createStyledPanel("🎁 DAILY REWARDS & CODES")
 	panels["Rewards"] = panel
@@ -557,22 +669,12 @@ end
 function MenuController.updateUI(data: Types.PlayerData)
 	currentData = data
 
-	-- 1. Update Upgrades
+	-- 1. Update Upgrades (Strictly clean Level %d / %d with NO trailing cargo string)
 	for key, conf in pairs(Config.Upgrades) do
 		local refs = upgradeRowRefs[key]
 		if refs then
 			local currentLevel = (data.Upgrades and data.Upgrades[key]) or 1
-			if key == "BackpackCapacity" then
-				local curCap = Config.getBackpackCapacity(currentLevel)
-				local nxtCap = Config.getBackpackCapacity(currentLevel + 1)
-				if currentLevel >= conf.MaxLevel then
-					refs.LevelLabel.Text = string.format("Level %d / %d • Max Cargo: %d 🔩", currentLevel, conf.MaxLevel, curCap)
-				else
-					refs.LevelLabel.Text = string.format("Level %d / %d • Cargo: %d ➔ %d 🔩", currentLevel, conf.MaxLevel, curCap, nxtCap)
-				end
-			else
-				refs.LevelLabel.Text = string.format("Level %d / %d", currentLevel, conf.MaxLevel)
-			end
+			refs.LevelLabel.Text = string.format("Level %d / %d", currentLevel, conf.MaxLevel)
 
 			if currentLevel >= conf.MaxLevel then
 				refs.BuyButton.Text = "MAXED"
@@ -610,7 +712,22 @@ function MenuController.updateUI(data: Types.PlayerData)
 		end
 	end
 
-	-- 3. Update Drones list
+	-- 3. Update Fast-Travel Map Rows
+	local maxZone = data.MaxZoneReached or 1
+	for zoneId, refs in pairs(teleportRowRefs) do
+		local zone = Config.Zones[zoneId]
+		if zone then
+			if zoneId <= maxZone then
+				refs.WarpButton.Text = "WARP ⚡"
+				refs.WarpButton.BackgroundColor3 = Color3.fromRGB(40, 190, 80)
+			else
+				refs.WarpButton.Text = string.format("LOCKED 🔒\n(%s 🔩)", formatNumber(zone.UnlockCost))
+				refs.WarpButton.BackgroundColor3 = Color3.fromRGB(90, 95, 110)
+			end
+		end
+	end
+
+	-- 4. Update Drones list
 	if petListScroll then
 		for _, child in ipairs(petListScroll:GetChildren()) do
 			if child:IsA("Frame") then child:Destroy() end
@@ -685,7 +802,7 @@ function MenuController.updateUI(data: Types.PlayerData)
 		end
 	end
 
-	-- 4. Update Rebirth Panel
+	-- 5. Update Rebirth Panel
 	if rebirthInfoLabel then
 		local rebirths = data.Rebirths or 0
 		local cost = math.floor(Config.Rebirth.BaseCost * (Config.Rebirth.CostMultiplier ^ rebirths))
@@ -806,12 +923,12 @@ function MenuController.showHatchReveal(info: any)
 	end)
 end
 
--- Side Navigation Bar with 5 icons
+-- Side Navigation Bar with 6 100% Reliable, Vibrant Emoji Icons
 function MenuController.buildIconBar()
 	local bar = Instance.new("Frame")
 	bar.Name = "SideIconBar"
-	bar.Size = UDim2.new(0, 64, 0, 330)
-	bar.Position = UDim2.new(0, 20, 0.5, -165)
+	bar.Size = UDim2.new(0, 64, 0, 390)
+	bar.Position = UDim2.new(0, 20, 0.5, -195)
 	bar.BackgroundColor3 = Color3.fromRGB(18, 20, 26)
 	bar.BackgroundTransparency = 0.15
 	bar.BorderSizePixel = 0
@@ -833,11 +950,12 @@ function MenuController.buildIconBar()
 	list.Parent = bar
 
 	local buttons = {
-		{ Name = "Upgrades", Label = "UPGRADES", IconId = "rbxassetid://10734950309", Emoji = "🛒", Color = Color3.fromRGB(40, 200, 90) },
-		{ Name = "GearsShop", Label = "PRESTIGE SHOP", IconId = "rbxassetid://10734919335", Emoji = "⚙️", Color = Color3.fromRGB(50, 180, 255) },
-		{ Name = "Drones", Label = "DRONE HANGAR", IconId = "rbxassetid://10734924724", Emoji = "🤖", Color = Color3.fromRGB(255, 160, 20) },
-		{ Name = "Rebirth", Label = "REBIRTH", IconId = "rbxassetid://10734940381", Emoji = "🌀", Color = Color3.fromRGB(90, 140, 255) },
-		{ Name = "Rewards", Label = "DAILY REWARDS", IconId = "rbxassetid://10734938676", Emoji = "🎁", Color = Color3.fromRGB(240, 70, 130) },
+		{ Name = "Upgrades", Label = "UPGRADES", Emoji = "🛒", Color = Color3.fromRGB(40, 200, 90) },
+		{ Name = "GearsShop", Label = "PRESTIGE SHOP", Emoji = "⚙️", Color = Color3.fromRGB(50, 180, 255) },
+		{ Name = "Drones", Label = "DRONE HANGAR", Emoji = "🤖", Color = Color3.fromRGB(255, 160, 20) },
+		{ Name = "Teleport", Label = "FAST TRAVEL", Emoji = "🗺️", Color = Color3.fromRGB(180, 70, 255) },
+		{ Name = "Rebirth", Label = "REBIRTH", Emoji = "🌀", Color = Color3.fromRGB(90, 140, 255) },
+		{ Name = "Rewards", Label = "DAILY REWARDS", Emoji = "🎁", Color = Color3.fromRGB(240, 70, 130) },
 	}
 
 	for _, info in ipairs(buttons) do
@@ -858,29 +976,17 @@ function MenuController.buildIconBar()
 		stroke.Thickness = 1.8
 		stroke.Parent = btn
 
-		-- Vector Asset Icon
-		local iconImg = Instance.new("ImageLabel")
-		iconImg.Name = "IconImg"
-		iconImg.Size = UDim2.new(0, 28, 0, 28)
-		iconImg.Position = UDim2.new(0.5, -14, 0.5, -14)
-		iconImg.BackgroundTransparency = 1
-		iconImg.Image = info.IconId
-		iconImg.ImageColor3 = info.Color
-		iconImg.ScaleType = Enum.ScaleType.Fit
-		iconImg.ZIndex = 2
-		iconImg.Parent = btn
-
-		-- Fallback Emoji Label
-		local fallback = Instance.new("TextLabel")
-		fallback.Name = "FallbackEmoji"
-		fallback.Size = UDim2.new(1, 0, 1, 0)
-		fallback.BackgroundTransparency = 1
-		fallback.Font = Enum.Font.GothamBold
-		fallback.TextSize = 22
-		fallback.Text = info.Emoji
-		fallback.Visible = false
-		fallback.ZIndex = 1
-		fallback.Parent = btn
+		-- 100% Reliable Emoji Icon (Visible on all platforms, zero asset loading failures!)
+		local iconLbl = Instance.new("TextLabel")
+		iconLbl.Name = "EmojiIcon"
+		iconLbl.Size = UDim2.new(1, 0, 1, 0)
+		iconLbl.BackgroundTransparency = 1
+		iconLbl.Font = Enum.Font.GothamBlack
+		iconLbl.TextSize = 24
+		iconLbl.TextColor3 = Color3.new(1, 1, 1)
+		iconLbl.Text = info.Emoji
+		iconLbl.ZIndex = 2
+		iconLbl.Parent = btn
 
 		-- Hover Tooltip Label
 		local tooltip = Instance.new("Frame")
@@ -939,7 +1045,6 @@ function MenuController.buildIconBar()
 
 		btn.MouseButton1Click:Connect(function()
 			playSound("rbxassetid://6895079853", 1.1)
-			-- Click bounce
 			TweenService:Create(btn, TweenInfo.new(0.08, Enum.EasingStyle.Back, Enum.EasingDirection.Out, 0, true), {
 				Size = UDim2.new(0, 42, 0, 42),
 			}):Play()
@@ -955,6 +1060,7 @@ function MenuController.init()
 	MenuController.buildUpgradesPanel()
 	MenuController.buildGearsShopPanel()
 	MenuController.buildDronesPanel()
+	MenuController.buildTeleportPanel()
 	MenuController.buildRebirthPanel()
 	MenuController.buildRewardsPanel()
 
@@ -973,13 +1079,21 @@ function MenuController.init()
 		end
 	end)
 
+	-- In-world teleport pad listener (signals from server pad to open map)
+	local teleportEvent = Remotes.getEvent("TeleportZone")
+	teleportEvent.OnClientEvent:Connect(function(zoneId)
+		if zoneId == -1 then
+			MenuController.openPanel("Teleport")
+		end
+	end)
+
 	-- Notification Toast (Spacious, multi-line, animated slide-in)
 	local notifEvent = Remotes.getEvent("ShowNotification")
 	notifEvent.OnClientEvent:Connect(function(title, message, color)
 		playSound("rbxassetid://5153734608", 1.4)
 		local toast = Instance.new("Frame")
 		toast.Size = UDim2.new(0, 480, 0, 76)
-		toast.Position = UDim2.new(0.5, -240, 0, -90) -- Start above screen for slide-in
+		toast.Position = UDim2.new(0.5, -240, 0, -90)
 		toast.BackgroundColor3 = Color3.fromRGB(18, 20, 28)
 		toast.BackgroundTransparency = 0.05
 		toast.ZIndex = 99
@@ -1020,7 +1134,6 @@ function MenuController.init()
 		tMsg.ZIndex = 100
 		tMsg.Parent = toast
 
-		-- Slide-in tween
 		TweenService:Create(toast, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
 			Position = UDim2.new(0.5, -240, 0, 24),
 		}):Play()
@@ -1044,7 +1157,7 @@ function MenuController.init()
 		MenuController.showHatchReveal(info)
 	end)
 
-	print("[MenuController] Initialized with Gears Prestige Shop and Real-Time Sync.")
+	print("[MenuController] Initialized with 6-Icon Navigation and World Map Fast Travel.")
 end
 
 return MenuController

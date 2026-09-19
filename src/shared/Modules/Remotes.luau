@@ -29,23 +29,27 @@ local REMOTE_FUNCTIONS = {
 	"GetPlayerData",
 }
 
+local function isServerOrEdit(): boolean
+	return RunService:IsServer() or RunService:IsEdit()
+end
+
 local function getOrCreateFolder(): Folder
-	local folder = ReplicatedStorage:FindFirstChild("Remotes") :: Folder
+	local folder = ReplicatedStorage:FindFirstChild("Remotes") :: Folder?
 	if not folder then
-		if RunService:IsServer() then
+		if isServerOrEdit() then
 			folder = Instance.new("Folder")
 			folder.Name = "Remotes"
 			folder.Parent = ReplicatedStorage
 		else
-			folder = ReplicatedStorage:WaitForChild("Remotes") :: Folder
+			folder = ReplicatedStorage:WaitForChild("Remotes", 10) :: Folder?
 		end
 	end
-	return folder
+	return folder or ReplicatedStorage:WaitForChild("Remotes") :: Folder
 end
 
 function Remotes.init()
 	local folder = getOrCreateFolder()
-	if RunService:IsServer() then
+	if isServerOrEdit() then
 		for _, name in ipairs(REMOTE_EVENTS) do
 			if not folder:FindFirstChild(name) then
 				local remote = Instance.new("RemoteEvent")
@@ -66,24 +70,32 @@ end
 
 function Remotes.getEvent(name: string): RemoteEvent
 	local folder = getOrCreateFolder()
-	local remote = folder:WaitForChild(name, 5) :: RemoteEvent
-	if not remote and RunService:IsServer() then
-		remote = Instance.new("RemoteEvent")
-		remote.Name = name
-		remote.Parent = folder
+	local remote = folder:FindFirstChild(name) :: RemoteEvent?
+	if not remote then
+		if isServerOrEdit() then
+			remote = Instance.new("RemoteEvent")
+			remote.Name = name
+			remote.Parent = folder
+		else
+			remote = folder:WaitForChild(name, 8) :: RemoteEvent?
+		end
 	end
-	return remote
+	return remote :: RemoteEvent
 end
 
 function Remotes.getFunction(name: string): RemoteFunction
 	local folder = getOrCreateFolder()
-	local remote = folder:WaitForChild(name, 5) :: RemoteFunction
-	if not remote and RunService:IsServer() then
-		remote = Instance.new("RemoteFunction")
-		remote.Name = name
-		remote.Parent = folder
+	local remote = folder:FindFirstChild(name) :: RemoteFunction?
+	if not remote then
+		if isServerOrEdit() then
+			remote = Instance.new("RemoteFunction")
+			remote.Name = name
+			remote.Parent = folder
+		else
+			remote = folder:WaitForChild(name, 8) :: RemoteFunction?
+		end
 	end
-	return remote
+	return remote :: RemoteFunction
 end
 
 return Remotes

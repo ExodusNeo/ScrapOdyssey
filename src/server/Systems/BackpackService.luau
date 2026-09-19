@@ -32,8 +32,16 @@ function BackpackService.updateCharacterBackpack(player: Player)
 	local character = player.Character
 	if not character then return end
 
-	local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
-	if not torso or not torso:IsA("BasePart") then return end
+	local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso") or character:FindFirstChild("HumanoidRootPart")
+	if not torso or not torso:IsA("BasePart") then
+		task.spawn(function()
+			local found = character:WaitForChild("UpperTorso", 5) or character:WaitForChild("Torso", 5) or character:WaitForChild("HumanoidRootPart", 5)
+			if found and found:IsA("BasePart") and character.Parent then
+				BackpackService.updateCharacterBackpack(player)
+			end
+		end)
+		return
+	end
 
 	local data = DataService.get(player)
 	local bagLevel = (data and data.Upgrades and data.Upgrades["BackpackCapacity"]) or 1
@@ -215,26 +223,27 @@ function BackpackService.updateCoreColor(player: Player)
 end
 
 function BackpackService.init()
-	Players.PlayerAdded:Connect(function(player)
-		player.CharacterAdded:Connect(function(character)
-			task.delay(0.25, function()
-				BackpackService.updateCharacterBackpack(player)
-			end)
-		end)
-
-		if player.Character then
-			task.delay(0.25, function()
-				BackpackService.updateCharacterBackpack(player)
+	local function setupPlayer(player: Player)
+		local function onCharacter(character: Model)
+			task.spawn(function()
+				character:WaitForChild("Humanoid", 10)
+				local torso = character:WaitForChild("UpperTorso", 5) or character:WaitForChild("Torso", 5) or character:WaitForChild("HumanoidRootPart", 5)
+				if torso and character.Parent then
+					task.wait(0.15)
+					BackpackService.updateCharacterBackpack(player)
+				end
 			end)
 		end
-	end)
 
+		player.CharacterAdded:Connect(onCharacter)
+		if player.Character then
+			onCharacter(player.Character)
+		end
+	end
+
+	Players.PlayerAdded:Connect(setupPlayer)
 	for _, player in ipairs(Players:GetPlayers()) do
-		if player.Character then
-			task.delay(0.25, function()
-				BackpackService.updateCharacterBackpack(player)
-			end)
-		end
+		setupPlayer(player)
 	end
 
 	print("[BackpackService] Initialized with dynamic scaling character backpacks.")
