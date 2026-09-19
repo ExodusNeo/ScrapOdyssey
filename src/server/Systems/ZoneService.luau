@@ -469,12 +469,12 @@ function ZoneService.constructCentralHub()
 	-- Fast-Travel Portal Pad in Hub
 	createPortalPad(hubFolder, Vector3.new(-18, 0.3, 25), 1)
 
-	-- 4 Scrap Nodes in Hub (Zone 1)
+	-- 4 Scrap Nodes in Hub (Zone 1) - Evenly spaced with >16 studs clearance
 	local zone1Offsets = {
-		Vector3.new(22, 0, -25),
-		Vector3.new(38, 0, -25),
-		Vector3.new(22, 0, 25),
-		Vector3.new(38, 0, 25),
+		Vector3.new(22, 0, -22),
+		Vector3.new(38, 0, -22),
+		Vector3.new(22, 0, 22),
+		Vector3.new(38, 0, 22),
 	}
 	for i, off in ipairs(zone1Offsets) do
 		local pile = ZoneService.createScrapPile(Config.Zones[1], off, i)
@@ -484,6 +484,9 @@ function ZoneService.constructCentralHub()
 
 	-- Thematic Environmental Sci-Fi Props for Zone 1 (Rusty Outpost)
 	ZoneService.buildZone1Props(hubFolder, Vector3.new(0, 0, 0))
+
+	-- Towering Gantry Billboard for Zone 1
+	ZoneService.constructZoneSign(hubFolder, Vector3.new(0, 0, 0), Config.Zones[1])
 end
 
 -- 3. Create Multi-Part High Detail Scrap Nodes with Health
@@ -638,9 +641,9 @@ function ZoneService.buildZone1Props(folder: Instance, center: Vector3)
 	createPropPart(props, "ContA_Rib1", Vector3.new(12.4, 8.2, 1), CFrame.new(c1Pos + c1Rot * Vector3.new(0, 0, -9.5)) * c1Rot, Color3.fromRGB(50, 45, 45), Enum.Material.Metal)
 	createPropPart(props, "ContA_Rib2", Vector3.new(12.4, 8.2, 1), CFrame.new(c1Pos + c1Rot * Vector3.new(0, 0, 9.5)) * c1Rot, Color3.fromRGB(50, 45, 45), Enum.Material.Metal)
 
-	-- 2. Heavy Shipping Container B (North-East, Weathered Industrial Olive)
-	local c2Pos = center + Vector3.new(36, 4, -36)
-	local c2Rot = CFrame.Angles(0, math.rad(-15), 0)
+	-- 2. Heavy Shipping Container B (Double-Stacked on Container A in North-West, Weathered Industrial Olive)
+	local c2Pos = center + Vector3.new(-35.5, 12, -35.5)
+	local c2Rot = CFrame.Angles(0, math.rad(24), 0)
 	createPropPart(props, "ShippingContainer_B", Vector3.new(12, 8, 20), CFrame.new(c2Pos) * c2Rot, Color3.fromRGB(80, 95, 75), Enum.Material.Metal)
 	createPropPart(props, "ContB_Rib1", Vector3.new(12.4, 8.2, 1), CFrame.new(c2Pos + c2Rot * Vector3.new(0, 0, -9.5)) * c2Rot, Color3.fromRGB(45, 50, 45), Enum.Material.Metal)
 	createPropPart(props, "ContB_Rib2", Vector3.new(12.4, 8.2, 1), CFrame.new(c2Pos + c2Rot * Vector3.new(0, 0, 9.5)) * c2Rot, Color3.fromRGB(45, 50, 45), Enum.Material.Metal)
@@ -837,6 +840,276 @@ function ZoneService.buildZone5Props(folder: Instance, center: Vector3)
 	end
 end
 
+-- Helper to construct an Industrial High-Definition Sci-Fi Gantry Billboard for a zone
+function ZoneService.constructZoneSign(parent: Instance, centerPos: Vector3, zone: Types.ZoneConfig): Model
+	local model = Instance.new("Model")
+	model.Name = "SignGantry_Zone" .. tostring(zone.Id)
+
+	local signPos = centerPos + Vector3.new(0, 21, -45)
+	local signWidth = 28
+	local signHeight = 8.5
+	local signDepth = 1.6
+
+	-- 1. Dual Heavy Structural Support Columns (Left & Right I-Beams grounded on concrete footings)
+	local colXOffsets = { -15, 15 }
+	for _, colX in ipairs(colXOffsets) do
+		local footing = Instance.new("Part")
+		footing.Name = "Footing"
+		footing.Size = Vector3.new(3.6, 1.2, 3.6)
+		footing.Position = centerPos + Vector3.new(colX, 0.6, -45)
+		footing.Anchored = true
+		footing.Material = Enum.Material.Concrete
+		footing.Color = Color3.fromRGB(45, 48, 55)
+		footing.Parent = model
+
+		local col = Instance.new("Part")
+		col.Name = "TrussColumn"
+		col.Size = Vector3.new(2.0, 25, 2.0)
+		col.Position = centerPos + Vector3.new(colX, 12.5, -45)
+		col.Anchored = true
+		col.Material = Enum.Material.Metal
+		col.Color = Color3.fromRGB(32, 35, 44)
+		col.Parent = model
+
+		-- Diagonal Support Strut
+		local strut = Instance.new("Part")
+		strut.Name = "DiagonalStrut"
+		strut.Size = Vector3.new(1.0, 10, 1.0)
+		local strutSign = colX > 0 and -1 or 1
+		strut.Position = centerPos + Vector3.new(colX + strutSign * 3.5, 18, -45.2)
+		strut.Orientation = Vector3.new(0, 0, strutSign * 35)
+		strut.Anchored = true
+		strut.Material = Enum.Material.Metal
+		strut.Color = Color3.fromRGB(38, 42, 52)
+		strut.Parent = model
+	end
+
+	-- 2. Heavy Steel Cross-Truss Backing
+	local trussBack = Instance.new("Part")
+	trussBack.Name = "TrussBacking"
+	trussBack.Size = Vector3.new(signWidth + 4, 2.2, 1.2)
+	trussBack.Position = signPos + Vector3.new(0, 0, -1.2)
+	trussBack.Anchored = true
+	trussBack.Material = Enum.Material.DiamondPlate
+	trussBack.Color = Color3.fromRGB(28, 30, 38)
+	trussBack.Parent = model
+
+	-- 3. Main Billboard Display Board
+	local board = Instance.new("Part")
+	board.Name = "BillboardBoard"
+	board.Size = Vector3.new(signWidth, signHeight, signDepth)
+	board.Position = signPos
+	board.Anchored = true
+	board.Material = Enum.Material.SmoothPlastic
+	board.Color = Color3.fromRGB(15, 17, 24)
+	board.Parent = model
+
+	-- Top & Bottom Beveled Metal Bezel Trim
+	local trimTop = Instance.new("Part")
+	trimTop.Name = "BezelTop"
+	trimTop.Size = Vector3.new(signWidth + 0.6, 0.6, signDepth + 0.4)
+	trimTop.Position = signPos + Vector3.new(0, (signHeight / 2) + 0.3, 0)
+	trimTop.Anchored = true
+	trimTop.Material = Enum.Material.SmoothPlastic
+	trimTop.Color = zone.Color
+	trimTop.Parent = model
+
+	local trimBottom = trimTop:Clone()
+	trimBottom.Name = "BezelBottom"
+	trimBottom.Position = signPos + Vector3.new(0, -(signHeight / 2) - 0.3, 0)
+	trimBottom.Parent = model
+
+	-- 4. Overhead Industrial Down-Lamps
+	local lampOffsets = { -8, 8 }
+	for _, lx in ipairs(lampOffsets) do
+		local lampArm = Instance.new("Part")
+		lampArm.Size = Vector3.new(0.6, 0.6, 2.8)
+		lampArm.Position = signPos + Vector3.new(lx, (signHeight / 2) + 0.8, 1.2)
+		lampArm.Anchored = true
+		lampArm.Material = Enum.Material.Metal
+		lampArm.Color = Color3.fromRGB(40, 42, 50)
+		lampArm.Parent = model
+
+		local lampHead = Instance.new("Part")
+		lampHead.Size = Vector3.new(1.8, 0.8, 1.2)
+		lampHead.Position = signPos + Vector3.new(lx, (signHeight / 2) + 0.5, 2.4)
+		lampHead.Anchored = true
+		lampHead.Material = Enum.Material.SmoothPlastic
+		lampHead.Color = Color3.fromRGB(240, 235, 210)
+		lampHead.Parent = model
+
+		local spot = Instance.new("PointLight")
+		spot.Color = Color3.fromRGB(255, 245, 220)
+		spot.Brightness = 0.35
+		spot.Range = 12
+		spot.Parent = lampHead
+	end
+
+	-- 5. High-Definition Sci-Fi SurfaceGui (Front & Back Face)
+	local function createDisplayFace(normal: Enum.NormalId)
+		local sgui = Instance.new("SurfaceGui")
+		sgui.Name = "DisplayGui_" .. normal.Name
+		sgui.Face = normal
+		sgui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		sgui.PixelsPerStud = 40
+		sgui.AlwaysOnTop = false
+		sgui.LightInfluence = 0.2
+		sgui.Parent = board
+
+		local rootFrame = Instance.new("Frame")
+		rootFrame.Size = UDim2.new(1, 0, 1, 0)
+		rootFrame.BackgroundColor3 = Color3.fromRGB(14, 16, 22)
+		rootFrame.BorderSizePixel = 0
+		rootFrame.Parent = sgui
+
+		local bgStroke = Instance.new("UIStroke")
+		bgStroke.Color = Color3.fromRGB(45, 52, 68)
+		bgStroke.Thickness = 2
+		bgStroke.Parent = rootFrame
+
+		-- Top Header Strip: Sector Pill Tag & Multiplier
+		local headerBar = Instance.new("Frame")
+		headerBar.Size = UDim2.new(1, -40, 0, 42)
+		headerBar.Position = UDim2.new(0, 20, 0, 16)
+		headerBar.BackgroundTransparency = 1
+		headerBar.Parent = rootFrame
+
+		local sectorTag = Instance.new("Frame")
+		sectorTag.Size = UDim2.new(0, 260, 1, 0)
+		sectorTag.Position = UDim2.new(0, 0, 0, 0)
+		sectorTag.BackgroundColor3 = Color3.fromRGB(22, 26, 36)
+		sectorTag.Parent = headerBar
+
+		local stCorner = Instance.new("UICorner")
+		stCorner.CornerRadius = UDim.new(0, 8)
+		stCorner.Parent = sectorTag
+
+		local stStroke = Instance.new("UIStroke")
+		stStroke.Color = zone.Color
+		stStroke.Thickness = 1.5
+		stStroke.Parent = sectorTag
+
+		local stText = Instance.new("TextLabel")
+		stText.Size = UDim2.new(1, 0, 1, 0)
+		stText.BackgroundTransparency = 1
+		stText.Font = Enum.Font.GothamBlack
+		stText.TextSize = 16
+		stText.TextColor3 = zone.Color
+		stText.Text = string.format("● SECTOR 0%d // DEPLOYMENT", zone.Id)
+		stText.Parent = sectorTag
+
+		local multTag = Instance.new("Frame")
+		multTag.Size = UDim2.new(0, 220, 1, 0)
+		multTag.Position = UDim2.new(1, -220, 0, 0)
+		multTag.BackgroundColor3 = Color3.fromRGB(22, 26, 36)
+		multTag.Parent = headerBar
+
+		local mtCorner = Instance.new("UICorner")
+		mtCorner.CornerRadius = UDim.new(0, 8)
+		mtCorner.Parent = multTag
+
+		local mtStroke = Instance.new("UIStroke")
+		mtStroke.Color = Color3.fromRGB(255, 200, 50)
+		mtStroke.Thickness = 1.5
+		mtStroke.Parent = multTag
+
+		local mtText = Instance.new("TextLabel")
+		mtText.Size = UDim2.new(1, 0, 1, 0)
+		mtText.BackgroundTransparency = 1
+		mtText.Font = Enum.Font.GothamBlack
+		mtText.TextSize = 16
+		mtText.TextColor3 = Color3.fromRGB(255, 200, 50)
+		mtText.Text = string.format("🔩 %dx SCRAP MULTIPLIER", zone.BaseYield)
+		mtText.Parent = multTag
+
+		-- Main Zone Title
+		local title = Instance.new("TextLabel")
+		title.Size = UDim2.new(1, -40, 0, 80)
+		title.Position = UDim2.new(0, 20, 0, 68)
+		title.BackgroundTransparency = 1
+		title.Font = Enum.Font.GothamBlack
+		title.TextSize = 44
+		title.TextColor3 = Color3.new(1, 1, 1)
+		title.TextXAlignment = Enum.TextXAlignment.Center
+		title.Text = zone.Name:upper()
+		title.Parent = rootFrame
+
+		local tStroke = Instance.new("UIStroke")
+		tStroke.Color = zone.Color
+		tStroke.Thickness = 2
+		tStroke.Parent = title
+
+		-- Glowing Divider Line
+		local divider = Instance.new("Frame")
+		divider.Size = UDim2.new(1, -120, 0, 3)
+		divider.Position = UDim2.new(0, 60, 0, 155)
+		divider.BackgroundColor3 = zone.Color
+		divider.BorderSizePixel = 0
+		divider.Parent = rootFrame
+
+		-- Badges Row
+		local badges = Instance.new("Frame")
+		badges.Size = UDim2.new(1, -40, 0, 36)
+		badges.Position = UDim2.new(0, 20, 0, 168)
+		badges.BackgroundTransparency = 1
+		badges.Parent = rootFrame
+
+		local badgeList = Instance.new("UIListLayout")
+		badgeList.FillDirection = Enum.FillDirection.Horizontal
+		badgeList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+		badgeList.Padding = UDim.new(0, 16)
+		badgeList.Parent = badges
+
+		local badgeData = {
+			string.format("🗺️ FAST TRAVEL: ZONE %d", zone.Id),
+			string.format("⚡ BASE VALUE: +%d", zone.BaseYield),
+			string.format("🛡️ HAZARD TIER: %d", zone.Id),
+		}
+		for _, bText in ipairs(badgeData) do
+			local bg = Instance.new("Frame")
+			bg.Size = UDim2.new(0, 210, 1, 0)
+			bg.BackgroundColor3 = Color3.fromRGB(24, 28, 38)
+			bg.Parent = badges
+
+			local c = Instance.new("UICorner")
+			c.CornerRadius = UDim.new(0, 6)
+			c.Parent = bg
+
+			local s = Instance.new("UIStroke")
+			s.Color = Color3.fromRGB(55, 65, 85)
+			s.Thickness = 1
+			s.Parent = bg
+
+			local lbl = Instance.new("TextLabel")
+			lbl.Size = UDim2.new(1, 0, 1, 0)
+			lbl.BackgroundTransparency = 1
+			lbl.Font = Enum.Font.GothamBold
+			lbl.TextSize = 13
+			lbl.TextColor3 = Color3.fromRGB(200, 215, 235)
+			lbl.Text = bText
+			lbl.Parent = bg
+		end
+
+		-- Zone Description / Lore Quote
+		local desc = Instance.new("TextLabel")
+		desc.Size = UDim2.new(1, -60, 0, 50)
+		desc.Position = UDim2.new(0, 30, 0, 212)
+		desc.BackgroundTransparency = 1
+		desc.Font = Enum.Font.GothamMedium
+		desc.TextSize = 15
+		desc.TextColor3 = Color3.fromRGB(160, 175, 195)
+		desc.TextWrapped = true
+		desc.Text = string.format("“%s”", zone.Description)
+		desc.Parent = rootFrame
+	end
+
+	createDisplayFace(Enum.NormalId.Front)
+	createDisplayFace(Enum.NormalId.Back)
+
+	model.Parent = parent
+	return model
+end
+
 -- 4. Construct Progressive Zones (Zones 2 to 5) with seamless wide bridges and guardrails
 function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Vector3)
 	local folder = Workspace:FindFirstChild("Zone_" .. tostring(zone.Id)) :: Folder
@@ -860,8 +1133,36 @@ function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Ve
 	platform.Color = Color3.fromRGB(42, 45, 54)
 	platform.Parent = folder
 
-	-- Elevated border trims (SmoothPlastic matte finish, no eye-straining glow)
+	-- Perimeter Safety Curb Barrier
+	local curbThickness = 2
+	local curbHeight = 0.6
+
+	local curbE = Instance.new("Part")
+	curbE.Name = "CurbE"
+	curbE.Size = Vector3.new(curbThickness, curbHeight, 100)
+	curbE.Position = centerPos + Vector3.new(49, 0.3, 0)
+	curbE.Anchored = true
+	curbE.Material = Enum.Material.SmoothPlastic
+	curbE.Color = zone.Color
+	curbE.Parent = folder
+
+	local curbN = Instance.new("Part")
+	curbN.Name = "CurbN"
+	curbN.Size = Vector3.new(100, curbHeight, curbThickness)
+	curbN.Position = centerPos + Vector3.new(0, 0.3, -49)
+	curbN.Anchored = true
+	curbN.Material = Enum.Material.SmoothPlastic
+	curbN.Color = zone.Color
+	curbN.Parent = folder
+
+	local curbS = curbN:Clone()
+	curbS.Name = "CurbS"
+	curbS.Position = centerPos + Vector3.new(0, 0.3, 49)
+	curbS.Parent = folder
+
+	-- Outer Safety Border Trim
 	local trimN = Instance.new("Part")
+	trimN.Name = "TrimN"
 	trimN.Size = Vector3.new(100, 0.6, 2)
 	trimN.Position = centerPos + Vector3.new(0, 0.3, -49)
 	trimN.Anchored = true
@@ -886,34 +1187,8 @@ function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Ve
 	curbWS.Position = centerPos + Vector3.new(-49, 0.3, 30.5)
 	curbWS.Parent = folder
 
-	-- Zone Signboard (Elevated above the zone recycler)
-	local sign = Instance.new("Part")
-	sign.Name = "ZoneSign"
-	sign.Size = Vector3.new(24, 8, 1.5)
-	sign.Position = centerPos + Vector3.new(0, 13, -46)
-	sign.Anchored = true
-	sign.Color = Color3.fromRGB(18, 20, 28)
-	sign.Material = Enum.Material.SmoothPlastic
-	sign.Parent = folder
-
-	local sgui = Instance.new("SurfaceGui")
-	sgui.Face = Enum.NormalId.Front
-	sgui.Parent = sign
-
-	local signBox = Instance.new("Frame")
-	signBox.Size = UDim2.new(1, 0, 1, 0)
-	signBox.BackgroundColor3 = Color3.fromRGB(16, 18, 26)
-	signBox.Parent = sgui
-
-	local signText = Instance.new("TextLabel")
-	signText.Size = UDim2.new(1, -20, 1, 0)
-	signText.Position = UDim2.new(0, 10, 0, 0)
-	signText.BackgroundTransparency = 1
-	signText.Font = Enum.Font.GothamBlack
-	signText.TextSize = 34
-	signText.TextColor3 = zone.Color
-	signText.Text = string.format("ZONE %d: %s\n%s", zone.Id, zone.Name:upper(), zone.Description)
-	signText.Parent = signBox
+	-- Towering High-Definition Sci-Fi Gantry Billboard for this zone
+	ZoneService.constructZoneSign(folder, centerPos, zone)
 
 	-- Scrap Recycler Machine & Deposit Sell Pad on this zone platform
 	ZoneService.constructRecycler(folder, centerPos + Vector3.new(0, 0, -36), zone.Id)
@@ -1039,6 +1314,58 @@ function ZoneService.constructBridge(zoneId: number)
 	top.Color = Color3.fromRGB(25, 28, 38)
 	top.Material = Enum.Material.Metal
 	top.Parent = gateModel
+
+	-- Overhead Highway Gateway Arch Sign
+	local archSign = Instance.new("Part")
+	archSign.Name = "GatewaySign"
+	archSign.Size = Vector3.new(1.8, 3.2, 18)
+	archSign.Position = Vector3.new(bridgeX, 18.6, 0)
+	archSign.Anchored = true
+	archSign.Material = Enum.Material.SmoothPlastic
+	archSign.Color = Color3.fromRGB(16, 18, 26)
+	archSign.Parent = gateModel
+
+	local archTrim = Instance.new("Part")
+	archTrim.Name = "GatewayTrim"
+	archTrim.Size = Vector3.new(2.0, 0.4, 18.4)
+	archTrim.Position = Vector3.new(bridgeX, 20.3, 0)
+	archTrim.Anchored = true
+	archTrim.Material = Enum.Material.SmoothPlastic
+	archTrim.Color = targetZone.Color
+	archTrim.Parent = gateModel
+
+	-- Sign facing West (towards approaching players from previous zone)
+	local asgui = Instance.new("SurfaceGui")
+	asgui.Face = Enum.NormalId.Left -- Facing -X towards approaching player
+	asgui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	asgui.PixelsPerStud = 35
+	asgui.LightInfluence = 0.2
+	asgui.Parent = archSign
+
+	local asBox = Instance.new("Frame")
+	asBox.Size = UDim2.new(1, 0, 1, 0)
+	asBox.BackgroundColor3 = Color3.fromRGB(14, 16, 24)
+	asBox.BorderSizePixel = 0
+	asBox.Parent = asgui
+
+	local asStroke = Instance.new("UIStroke")
+	asStroke.Color = targetZone.Color
+	asStroke.Thickness = 2
+	asStroke.Parent = asBox
+
+	local asTitle = Instance.new("TextLabel")
+	asTitle.Size = UDim2.new(1, 0, 1, 0)
+	asTitle.BackgroundTransparency = 1
+	asTitle.Font = Enum.Font.GothamBlack
+	asTitle.TextSize = 22
+	asTitle.TextColor3 = Color3.new(1, 1, 1)
+	asTitle.Text = string.format("▶ ZONE %d: %s ◀", targetZone.Id, targetZone.Name:upper())
+	asTitle.Parent = asBox
+
+	local asTStroke = Instance.new("UIStroke")
+	asTStroke.Color = targetZone.Color
+	asTStroke.Thickness = 1.5
+	asTStroke.Parent = asTitle
 
 	local barrier = Instance.new("Part")
 	barrier.Name = "Forcefield"
