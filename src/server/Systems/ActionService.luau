@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local SoundService = game:GetService("SoundService")
 
 local Config = require(ReplicatedStorage.Modules.Config)
 local Types = require(ReplicatedStorage.Modules.Types)
@@ -14,7 +15,84 @@ local ActionService = {}
 local playerLastActionTime: { [Player]: number } = {}
 local nodeBusyState: { [Model]: boolean } = {}
 
--- Weighted RNG roll for reward tier
+-- Create physical Dismantler Tool for player
+local function giveScrapperTool(player: Player)
+	local backpack = player:WaitForChild("Backpack")
+	if backpack:FindFirstChild("PlasmaDismantler") then return end
+
+	local tool = Instance.new("Tool")
+	tool.Name = "PlasmaDismantler"
+	tool.ToolTip = "Left-Click to dismantle scrap piles!"
+	tool.RequiresHandle = true
+	tool.CanBeDropped = false
+
+	local handle = Instance.new("Part")
+	handle.Name = "Handle"
+	handle.Size = Vector3.new(0.8, 3.2, 0.8)
+	handle.Material = Enum.Material.Metal
+	handle.Color = Color3.fromRGB(40, 42, 50)
+	handle.Parent = tool
+
+	local tip = Instance.new("Part")
+	tip.Name = "Tip"
+	tip.Size = Vector3.new(1.2, 1.2, 1.2)
+	tip.Position = handle.Position + Vector3.new(0, 1.8, 0)
+	tip.Material = Enum.Material.Neon
+	tip.Color = Color3.fromRGB(255, 170, 0)
+	tip.Parent = tool
+
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = handle
+	weld.Part1 = tip
+	weld.Parent = handle
+
+	local light = Instance.new("PointLight")
+	light.Color = Color3.fromRGB(255, 180, 50)
+	light.Brightness = 1.5
+	light.Range = 8
+	light.Parent = tip
+
+	-- Local script inside tool for click activation
+	local toolScript = Instance.new("LocalScript")
+	toolScript.Name = "ToolController"
+	toolScript.Source = [=[
+		local tool = script.Parent
+		local player = game.Players.LocalPlayer
+		local Remotes = require(game.ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
+		local requestAction = Remotes.getEvent("RequestAction")
+
+		tool.Activated:Connect(function()
+			local character = player.Character
+			if not character then return end
+			local root = character:FindFirstChild("HumanoidRootPart")
+			if not root then return end
+
+			-- Find closest scrap pile
+			local closestModel = nil
+			local closestDist = 22
+
+			for _, desc in ipairs(workspace:GetDescendants()) do
+				if desc:IsA("Model") and string.sub(desc.Name, 1, 10) == "ScrapPile_" then
+					local hitbox = desc:FindFirstChild("Hitbox")
+					if hitbox and hitbox:IsA("BasePart") then
+						local dist = (root.Position - hitbox.Position).Magnitude
+						if dist < closestDist then
+							closestDist = dist
+							closestModel = desc
+						end
+					end
+				end
+			end
+
+			if closestModel then
+				requestAction:FireServer(closestModel)
+			end
+		end)
+	]=]
+	toolScript.Parent = tool
+	tool.Parent = backpack
+end
+
 function ActionService.rollRewardTier(): Types.RewardTier
 	local totalWeight = 0
 	for _, tier in ipairs(Config.RewardTiers) do
@@ -43,10 +121,9 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 	local nodeHitbox = nodeModel:FindFirstChild("Hitbox") :: BasePart
 	if not nodeHitbox then return end
 
-	-- 1. Distance Sanity Check (Max 25 studs)
+	-- 1. Distance Sanity Check (Max 26 studs)
 	local distance = (rootPart.Position - nodeHitbox.Position).Magnitude
-	if distance > 25 then
-		warn(string.format("[ActionService] %s failed distance check (%.1f studs)", player.Name, distance))
+	if distance > 26 then
 		return
 	end
 
@@ -64,21 +141,26 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 
 	local now = os.clock()
 	local lastTime = playerLastActionTime[player] or 0
-	if now - lastTime < (finalActionDelay * 0.85) then
-		-- Trying to action faster than server allows
+	if now - lastTime < (finalActionDelay * 0.82) then
 		return
 	end
 	playerLastActionTime[player] = now
 
-	-- 3. Check node busy state
-	if nodeBusyState[nodeModel] then return end
-	nodeBusyState[nodeModel] = true
-
-	-- Visual "hit" feedback on scrap pile
+	-- 3. Visual "Punch" Feedback on Scrap Pile (Squash & Flash)
+	local corePart = nodeModel:FindFirstChild("Core") :: BasePart
 	local basePart = nodeModel:FindFirstChild("Base") :: BasePart
+
+	if corePart then
+		local origSize = corePart.Size
+		local squashTween = TweenService:Create(corePart, TweenInfo.new(0.08, Enum.EasingStyle.Back, Enum.EasingDirection.Out, 0, true), {
+			Size = origSize * 1.4,
+		})
+		squashTween:Play()
+	end
+
 	if basePart then
 		local origColor = basePart.Color
-		basePart.Color = Color3.new(1, 1, 1)
+		basePart.Color = Color3.fromRGB(255, 255, 255)
 		task.delay(0.12, function()
 			if basePart and basePart.Parent then
 				basePart.Color = origColor
@@ -98,13 +180,8 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 		TierColor = tier.Color,
 		ScrapEarned = earnedScrap,
 		SoundPitch = tier.SoundPitch,
-		Position = nodeHitbox.Position + Vector3.new(0, 3, 0),
+		Position = nodeHitbox.Position + Vector3.new(0, 4, 0),
 	})
-
-	-- Node brief cooldown
-	task.delay(0.4, function()
-		nodeBusyState[nodeModel] = false
-	end)
 end
 
 function ActionService.init()
@@ -130,7 +207,7 @@ function ActionService.init()
 		end
 	end
 
-	-- Also listen to direct RequestAction RemoteEvent (for mobile tap / button press)
+	-- Direct RequestAction RemoteEvent
 	local requestActionEvent = Remotes.getEvent("RequestAction")
 	requestActionEvent.OnServerEvent:Connect(function(player, targetModel)
 		if typeof(targetModel) == "Instance" and targetModel:IsA("Model") then
@@ -138,11 +215,27 @@ function ActionService.init()
 		end
 	end)
 
+	-- Give Scrapper Tool on character spawn
+	Players.PlayerAdded:Connect(function(player)
+		player.CharacterAdded:Connect(function()
+			giveScrapperTool(player)
+		end)
+		if player.Character then
+			giveScrapperTool(player)
+		end
+	end)
+
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player.Character then
+			giveScrapperTool(player)
+		end
+	end
+
 	Players.PlayerRemoving:Connect(function(player)
 		playerLastActionTime[player] = nil
 	end)
 
-	print("[ActionService] Initialized.")
+	print("[ActionService] Initialized with Scrapper Tool distribution and squash effects.")
 end
 
 return ActionService

@@ -2,6 +2,7 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SoundService = game:GetService("SoundService")
 
 local Config = require(ReplicatedStorage.Modules.Config)
 local Types = require(ReplicatedStorage.Modules.Types)
@@ -17,12 +18,51 @@ local activePanel: Frame? = nil
 local panels: { [string]: Frame } = {}
 local currentData: Types.PlayerData? = nil
 
+-- UI References for reactive updating
+local upgradeRowRefs: {
+	[string]: {
+		LevelLabel: TextLabel,
+		BuyButton: TextButton,
+		Row: Frame,
+	}
+} = {}
+
+local petListScroll: ScrollingFrame
+local rebirthInfoLabel: TextLabel
+local rebirthButton: TextButton
+
+local function playSound(soundId: string, pitch: number?)
+	task.spawn(function()
+		local sound = Instance.new("Sound")
+		sound.SoundId = soundId
+		sound.Pitch = pitch or 1.0
+		sound.Volume = 0.5
+		sound.Parent = SoundService
+		sound:Play()
+		sound.Ended:Connect(function()
+			sound:Destroy()
+		end)
+	end)
+end
+
+local function formatNumber(n: number): string
+	if n >= 1e9 then
+		return string.format("%.2fB", n / 1e9)
+	elseif n >= 1e6 then
+		return string.format("%.2fM", n / 1e6)
+	elseif n >= 1e3 then
+		return string.format("%.1fK", n / 1e3)
+	else
+		return tostring(math.floor(n))
+	end
+end
+
 local function createStyledPanel(titleText: string): (Frame, Frame)
 	local panel = Instance.new("Frame")
 	panel.Name = titleText .. "Panel"
-	panel.Size = UDim2.new(0, 480, 0, 420)
-	panel.Position = UDim2.new(0.5, -240, 0.5, -210)
-	panel.BackgroundColor3 = Color3.fromRGB(24, 24, 32)
+	panel.Size = UDim2.new(0, 520, 0, 460)
+	panel.Position = UDim2.new(0.5, -260, 0.5, -230)
+	panel.BackgroundColor3 = Color3.fromRGB(18, 20, 26)
 	panel.BorderSizePixel = 0
 	panel.Visible = false
 	panel.Parent = mainGui
@@ -32,15 +72,15 @@ local function createStyledPanel(titleText: string): (Frame, Frame)
 	corner.Parent = panel
 
 	local stroke = Instance.new("UIStroke")
-	stroke.Color = Color3.fromRGB(70, 70, 85)
+	stroke.Color = Color3.fromRGB(50, 60, 80)
 	stroke.Thickness = 2
 	stroke.Parent = panel
 
 	-- Header
 	local header = Instance.new("Frame")
 	header.Name = "Header"
-	header.Size = UDim2.new(1, 0, 0, 50)
-	header.BackgroundColor3 = Color3.fromRGB(32, 32, 42)
+	header.Size = UDim2.new(1, 0, 0, 55)
+	header.BackgroundColor3 = Color3.fromRGB(25, 28, 38)
 	header.BorderSizePixel = 0
 	header.Parent = panel
 
@@ -50,11 +90,11 @@ local function createStyledPanel(titleText: string): (Frame, Frame)
 
 	local title = Instance.new("TextLabel")
 	title.Name = "Title"
-	title.Size = UDim2.new(1, -60, 1, 0)
+	title.Size = UDim2.new(1, -70, 1, 0)
 	title.Position = UDim2.new(0, 20, 0, 0)
 	title.BackgroundTransparency = 1
 	title.Font = Enum.Font.GothamBlack
-	title.TextSize = 20
+	title.TextSize = 22
 	title.TextColor3 = Color3.fromRGB(255, 215, 0)
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.Text = titleText
@@ -63,7 +103,7 @@ local function createStyledPanel(titleText: string): (Frame, Frame)
 	local closeBtn = Instance.new("TextButton")
 	closeBtn.Name = "CloseButton"
 	closeBtn.Size = UDim2.new(0, 36, 0, 36)
-	closeBtn.Position = UDim2.new(1, -44, 0, 7)
+	closeBtn.Position = UDim2.new(1, -46, 0, 9)
 	closeBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
 	closeBtn.Font = Enum.Font.GothamBold
 	closeBtn.TextSize = 18
@@ -76,13 +116,14 @@ local function createStyledPanel(titleText: string): (Frame, Frame)
 	btnCorner.Parent = closeBtn
 
 	closeBtn.MouseButton1Click:Connect(function()
+		playSound("rbxassetid://6895079853", 0.9)
 		MenuController.closeActivePanel()
 	end)
 
 	local body = Instance.new("Frame")
 	body.Name = "Body"
-	body.Size = UDim2.new(1, -24, 1, -70)
-	body.Position = UDim2.new(0, 12, 0, 60)
+	body.Size = UDim2.new(1, -28, 1, -75)
+	body.Position = UDim2.new(0, 14, 0, 65)
 	body.BackgroundTransparency = 1
 	body.Parent = panel
 
@@ -100,6 +141,8 @@ function MenuController.openPanel(name: string)
 	local target = panels[name]
 	if not target then return end
 
+	playSound("rbxassetid://6895079853", 1.1)
+
 	if activePanel == target then
 		MenuController.closeActivePanel()
 		return
@@ -112,64 +155,74 @@ function MenuController.openPanel(name: string)
 	target.Visible = true
 	activePanel = target
 
-	-- Little bounce tween
-	target.Size = UDim2.new(0, 460, 0, 400)
-	local tween = TweenService:Create(target, TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-		Size = UDim2.new(0, 480, 0, 420),
+	-- Pop-in bounce animation
+	target.Size = UDim2.new(0, 490, 0, 430)
+	local tween = TweenService:Create(target, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Size = UDim2.new(0, 520, 0, 460),
 	})
 	tween:Play()
+
+	-- Refresh active panel data
+	if currentData then
+		MenuController.updateUI(currentData)
+	end
 end
 
--- 1. Upgrades Panel
+-- 1. Upgrades Panel Builder
 function MenuController.buildUpgradesPanel()
-	local panel, body = createStyledPanel("🛒 UPGRADES")
+	local panel, body = createStyledPanel("🛒 UPGRADES WORKSHOP")
 	panels["Upgrades"] = panel
 
 	local list = Instance.new("UIListLayout")
-	list.Padding = UDim.new(0, 10)
+	list.Padding = UDim.new(0, 12)
 	list.Parent = body
 
 	for key, conf in pairs(Config.Upgrades) do
 		local row = Instance.new("Frame")
 		row.Name = key
-		row.Size = UDim2.new(1, 0, 0, 80)
-		row.BackgroundColor3 = Color3.fromRGB(32, 32, 44)
+		row.Size = UDim2.new(1, 0, 0, 95)
+		row.BackgroundColor3 = Color3.fromRGB(26, 30, 42)
 		row.BorderSizePixel = 0
 		row.Parent = body
 
 		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(0, 10)
+		corner.CornerRadius = UDim.new(0, 12)
 		corner.Parent = row
+
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Color3.fromRGB(45, 52, 70)
+		stroke.Thickness = 1.5
+		stroke.Parent = row
 
 		local nameLabel = Instance.new("TextLabel")
 		nameLabel.Size = UDim2.new(0.65, 0, 0, 26)
-		nameLabel.Position = UDim2.new(0, 12, 0, 8)
+		nameLabel.Position = UDim2.new(0, 14, 0, 10)
 		nameLabel.BackgroundTransparency = 1
-		nameLabel.Font = Enum.Font.GothamBold
-		nameLabel.TextSize = 16
-		nameLabel.TextColor3 = Color3.new(1, 1, 1)
+		nameLabel.Font = Enum.Font.GothamBlack
+		nameLabel.TextSize = 17
+		nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 		nameLabel.TextXAlignment = Enum.TextXAlignment.Left
 		nameLabel.Text = conf.Name
 		nameLabel.Parent = row
 
 		local descLabel = Instance.new("TextLabel")
-		descLabel.Size = UDim2.new(0.65, 0, 0, 20)
-		descLabel.Position = UDim2.new(0, 12, 0, 36)
+		descLabel.Size = UDim2.new(0.65, 0, 0, 22)
+		descLabel.Position = UDim2.new(0, 14, 0, 36)
 		descLabel.BackgroundTransparency = 1
 		descLabel.Font = Enum.Font.Gotham
-		descLabel.TextSize = 12
-		descLabel.TextColor3 = Color3.fromRGB(160, 160, 175)
+		descLabel.TextSize = 13
+		descLabel.TextColor3 = Color3.fromRGB(170, 180, 200)
 		descLabel.TextXAlignment = Enum.TextXAlignment.Left
 		descLabel.Text = conf.Description
 		descLabel.Parent = row
 
 		local levelLabel = Instance.new("TextLabel")
 		levelLabel.Name = "LevelLabel"
-		levelLabel.Size = UDim2.new(0.65, 0, 0, 18)
-		levelLabel.Position = UDim2.new(0, 12, 0, 56)
+		levelLabel.Size = UDim2.new(0.65, 0, 0, 22)
+		levelLabel.Position = UDim2.new(0, 14, 0, 62)
 		levelLabel.BackgroundTransparency = 1
 		levelLabel.Font = Enum.Font.GothamBold
-		levelLabel.TextSize = 12
+		levelLabel.TextSize = 14
 		levelLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
 		levelLabel.TextXAlignment = Enum.TextXAlignment.Left
 		levelLabel.Text = "Level 1 / " .. tostring(conf.MaxLevel)
@@ -177,56 +230,68 @@ function MenuController.buildUpgradesPanel()
 
 		local buyBtn = Instance.new("TextButton")
 		buyBtn.Name = "BuyButton"
-		buyBtn.Size = UDim2.new(0, 120, 0, 44)
-		buyBtn.Position = UDim2.new(1, -132, 0.5, -22)
-		buyBtn.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
+		buyBtn.Size = UDim2.new(0, 130, 0, 48)
+		buyBtn.Position = UDim2.new(1, -145, 0.5, -24)
+		buyBtn.BackgroundColor3 = Color3.fromRGB(40, 190, 80)
 		buyBtn.Font = Enum.Font.GothamBlack
-		buyBtn.TextSize = 14
+		buyBtn.TextSize = 15
 		buyBtn.TextColor3 = Color3.new(1, 1, 1)
 		buyBtn.Text = "25 🔩"
 		buyBtn.Parent = row
 
 		local btnCorner = Instance.new("UICorner")
-		btnCorner.CornerRadius = UDim.new(0, 8)
+		btnCorner.CornerRadius = UDim.new(0, 10)
 		btnCorner.Parent = buyBtn
 
+		local btnStroke = Instance.new("UIStroke")
+		btnStroke.Color = Color3.fromRGB(30, 140, 60)
+		btnStroke.Thickness = 2
+		btnStroke.Parent = buyBtn
+
 		buyBtn.MouseButton1Click:Connect(function()
+			playSound("rbxassetid://5153734608", 1.2)
 			local purchaseRemote = Remotes.getEvent("PurchaseUpgrade")
 			purchaseRemote:FireServer(key)
 		end)
+
+		upgradeRowRefs[key] = {
+			LevelLabel = levelLabel,
+			BuyButton = buyBtn,
+			Row = row,
+		}
 	end
 end
 
--- 2. Drones Panel (Hatching + Equipping)
+-- 2. Drones Panel Builder
 function MenuController.buildDronesPanel()
 	local panel, body = createStyledPanel("🥚 SCRAPPER DRONES")
 	panels["Drones"] = panel
 
 	-- Top section: Hatch Button
 	local hatchBar = Instance.new("Frame")
-	hatchBar.Size = UDim2.new(1, 0, 0, 60)
-	hatchBar.BackgroundColor3 = Color3.fromRGB(35, 35, 48)
+	hatchBar.Size = UDim2.new(1, 0, 0, 70)
+	hatchBar.BackgroundColor3 = Color3.fromRGB(28, 32, 45)
 	hatchBar.BorderSizePixel = 0
 	hatchBar.Parent = body
 
 	local hCorner = Instance.new("UICorner")
-	hCorner.CornerRadius = UDim.new(0, 10)
+	hCorner.CornerRadius = UDim.new(0, 12)
 	hCorner.Parent = hatchBar
 
 	local hatchLabel = Instance.new("TextLabel")
 	hatchLabel.Size = UDim2.new(0.6, 0, 1, 0)
-	hatchLabel.Position = UDim2.new(0, 12, 0, 0)
+	hatchLabel.Position = UDim2.new(0, 14, 0, 0)
 	hatchLabel.BackgroundTransparency = 1
 	hatchLabel.Font = Enum.Font.GothamBold
 	hatchLabel.TextSize = 15
 	hatchLabel.TextColor3 = Color3.new(1, 1, 1)
 	hatchLabel.TextXAlignment = Enum.TextXAlignment.Left
-	hatchLabel.Text = "Hatch Random Drone\nCost: 250 🔩"
+	hatchLabel.Text = string.format("Hatch Scrapper Drone\nCost: %d 🔩", Config.Pets.EggCost)
 	hatchLabel.Parent = hatchBar
 
 	local hatchBtn = Instance.new("TextButton")
-	hatchBtn.Size = UDim2.new(0, 120, 0, 42)
-	hatchBtn.Position = UDim2.new(1, -132, 0.5, -21)
+	hatchBtn.Size = UDim2.new(0, 130, 0, 48)
+	hatchBtn.Position = UDim2.new(1, -145, 0.5, -24)
 	hatchBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 0)
 	hatchBtn.Font = Enum.Font.GothamBlack
 	hatchBtn.TextSize = 16
@@ -235,94 +300,110 @@ function MenuController.buildDronesPanel()
 	hatchBtn.Parent = hatchBar
 
 	local hbCorner = Instance.new("UICorner")
-	hbCorner.CornerRadius = UDim.new(0, 8)
+	hbCorner.CornerRadius = UDim.new(0, 10)
 	hbCorner.Parent = hatchBtn
 
 	hatchBtn.MouseButton1Click:Connect(function()
+		playSound("rbxassetid://5153734608", 1.0)
 		local hatchRemote = Remotes.getEvent("HatchEgg")
 		hatchRemote:FireServer()
 	end)
 
+	-- Pet Inventory Title
+	local invTitle = Instance.new("TextLabel")
+	invTitle.Name = "InvTitle"
+	invTitle.Size = UDim2.new(1, 0, 0, 24)
+	invTitle.Position = UDim2.new(0, 0, 0, 80)
+	invTitle.BackgroundTransparency = 1
+	invTitle.Font = Enum.Font.GothamBold
+	invTitle.TextSize = 14
+	invTitle.TextColor3 = Color3.fromRGB(180, 190, 210)
+	invTitle.TextXAlignment = Enum.TextXAlignment.Left
+	invTitle.Text = "YOUR DRONES (EQUIPPED: 0/3):"
+	invTitle.Parent = body
+
 	-- Scroll section for owned pets
-	local scroll = Instance.new("ScrollingFrame")
-	scroll.Name = "PetList"
-	scroll.Size = UDim2.new(1, 0, 1, -75)
-	scroll.Position = UDim2.new(0, 0, 0, 70)
-	scroll.BackgroundTransparency = 1
-	scroll.ScrollBarThickness = 6
-	scroll.Parent = body
+	petListScroll = Instance.new("ScrollingFrame")
+	petListScroll.Name = "PetList"
+	petListScroll.Size = UDim2.new(1, 0, 1, -110)
+	petListScroll.Position = UDim2.new(0, 0, 0, 108)
+	petListScroll.BackgroundTransparency = 1
+	petListScroll.ScrollBarThickness = 6
+	petListScroll.Parent = body
 
 	local list = Instance.new("UIListLayout")
 	list.Padding = UDim.new(0, 8)
-	list.Parent = scroll
+	list.Parent = petListScroll
 end
 
--- 3. Rebirth Panel
+-- 3. Rebirth Panel Builder
 function MenuController.buildRebirthPanel()
-	local panel, body = createStyledPanel("🌀 REBIRTH")
+	local panel, body = createStyledPanel("🌀 PRESTIGE & REBIRTH")
 	panels["Rebirth"] = panel
 
 	local desc = Instance.new("TextLabel")
-	desc.Size = UDim2.new(1, 0, 0, 80)
+	desc.Size = UDim2.new(1, 0, 0, 75)
 	desc.BackgroundTransparency = 1
 	desc.Font = Enum.Font.Gotham
 	desc.TextSize = 15
-	desc.TextColor3 = Color3.fromRGB(200, 200, 210)
+	desc.TextColor3 = Color3.fromRGB(200, 210, 230)
 	desc.TextWrapped = true
-	desc.Text = "Reset all your Scrap to gain a permanent +50% multiplier and earn Gears (⚙️) for exclusive perks!"
+	desc.Text = "Rebirth resets your current Scrap in exchange for permanent stat multipliers (+50% per Rebirth) and exclusive Gears (⚙️)!"
 	desc.Parent = body
 
 	local statFrame = Instance.new("Frame")
-	statFrame.Size = UDim2.new(1, 0, 0, 100)
+	statFrame.Size = UDim2.new(1, 0, 0, 130)
 	statFrame.Position = UDim2.new(0, 0, 0, 90)
-	statFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 48)
+	statFrame.BackgroundColor3 = Color3.fromRGB(26, 30, 42)
 	statFrame.BorderSizePixel = 0
 	statFrame.Parent = body
 
 	local sCorner = Instance.new("UICorner")
-	sCorner.CornerRadius = UDim.new(0, 10)
+	sCorner.CornerRadius = UDim.new(0, 12)
 	sCorner.Parent = statFrame
 
-	local infoLabel = Instance.new("TextLabel")
-	infoLabel.Name = "RebirthInfoLabel"
-	infoLabel.Size = UDim2.new(1, -20, 1, -20)
-	infoLabel.Position = UDim2.new(0, 10, 0, 10)
-	infoLabel.BackgroundTransparency = 1
-	infoLabel.Font = Enum.Font.GothamBold
-	infoLabel.TextSize = 16
-	infoLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
-	infoLabel.Text = "Required: 100K 🔩\nReward: +1 ⚙️ Gears\nCurrent Multiplier: +0%"
-	infoLabel.Parent = statFrame
+	rebirthInfoLabel = Instance.new("TextLabel")
+	rebirthInfoLabel.Name = "RebirthInfoLabel"
+	rebirthInfoLabel.Size = UDim2.new(1, -24, 1, -20)
+	rebirthInfoLabel.Position = UDim2.new(0, 12, 0, 10)
+	rebirthInfoLabel.BackgroundTransparency = 1
+	rebirthInfoLabel.Font = Enum.Font.GothamBold
+	rebirthInfoLabel.TextSize = 16
+	rebirthInfoLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+	rebirthInfoLabel.TextXAlignment = Enum.TextXAlignment.Left
+	rebirthInfoLabel.Text = "Required Scrap: 100K 🔩\nReward: +1 Gears ⚙️\nCurrent Multiplier: +0%"
+	rebirthInfoLabel.Parent = statFrame
 
-	local rebirthBtn = Instance.new("TextButton")
-	rebirthBtn.Name = "RebirthButton"
-	rebirthBtn.Size = UDim2.new(1, 0, 0, 55)
-	rebirthBtn.Position = UDim2.new(0, 0, 0, 210)
-	rebirthBtn.BackgroundColor3 = Color3.fromRGB(80, 120, 255)
-	rebirthBtn.Font = Enum.Font.GothamBlack
-	rebirthBtn.TextSize = 20
-	rebirthBtn.TextColor3 = Color3.new(1, 1, 1)
-	rebirthBtn.Text = "REBIRTH NOW 🌀"
-	rebirthBtn.Parent = body
+	rebirthButton = Instance.new("TextButton")
+	rebirthButton.Name = "RebirthButton"
+	rebirthButton.Size = UDim2.new(1, 0, 0, 60)
+	rebirthButton.Position = UDim2.new(0, 0, 0, 240)
+	rebirthButton.BackgroundColor3 = Color3.fromRGB(80, 130, 255)
+	rebirthButton.Font = Enum.Font.GothamBlack
+	rebirthButton.TextSize = 20
+	rebirthButton.TextColor3 = Color3.new(1, 1, 1)
+	rebirthButton.Text = "REBIRTH NOW 🌀"
+	rebirthButton.Parent = body
 
 	local rCorner = Instance.new("UICorner")
-	rCorner.CornerRadius = UDim.new(0, 10)
-	rCorner.Parent = rebirthBtn
+	rCorner.CornerRadius = UDim.new(0, 12)
+	rCorner.Parent = rebirthButton
 
-	rebirthBtn.MouseButton1Click:Connect(function()
+	rebirthButton.MouseButton1Click:Connect(function()
+		playSound("rbxassetid://743521656", 1.0)
 		local rebirthRemote = Remotes.getEvent("RequestRebirth")
 		rebirthRemote:FireServer()
 	end)
 end
 
--- 4. Codes & Daily Rewards Panel
+-- 4. Rewards Panel Builder
 function MenuController.buildRewardsPanel()
-	local panel, body = createStyledPanel("🎁 REWARDS & CODES")
+	local panel, body = createStyledPanel("🎁 DAILY REWARDS & CODES")
 	panels["Rewards"] = panel
 
 	-- Daily Reward Button
 	local dailyBtn = Instance.new("TextButton")
-	dailyBtn.Size = UDim2.new(1, 0, 0, 60)
+	dailyBtn.Size = UDim2.new(1, 0, 0, 65)
 	dailyBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
 	dailyBtn.Font = Enum.Font.GothamBlack
 	dailyBtn.TextSize = 18
@@ -331,10 +412,11 @@ function MenuController.buildRewardsPanel()
 	dailyBtn.Parent = body
 
 	local dCorner = Instance.new("UICorner")
-	dCorner.CornerRadius = UDim.new(0, 10)
+	dCorner.CornerRadius = UDim.new(0, 12)
 	dCorner.Parent = dailyBtn
 
 	dailyBtn.MouseButton1Click:Connect(function()
+		playSound("rbxassetid://5153734608", 1.3)
 		local claimRemote = Remotes.getEvent("ClaimDailyReward")
 		claimRemote:FireServer()
 	end)
@@ -342,34 +424,34 @@ function MenuController.buildRewardsPanel()
 	-- Promo Code input
 	local codeLabel = Instance.new("TextLabel")
 	codeLabel.Size = UDim2.new(1, 0, 0, 30)
-	codeLabel.Position = UDim2.new(0, 0, 0, 85)
+	codeLabel.Position = UDim2.new(0, 0, 0, 95)
 	codeLabel.BackgroundTransparency = 1
 	codeLabel.Font = Enum.Font.GothamBold
 	codeLabel.TextSize = 15
 	codeLabel.TextColor3 = Color3.new(1, 1, 1)
 	codeLabel.TextXAlignment = Enum.TextXAlignment.Left
-	codeLabel.Text = "Redeem Promo Code:"
+	codeLabel.Text = "Redeem Promo Code (Try RELEASE or SCRAPPER):"
 	codeLabel.Parent = body
 
 	local codeBox = Instance.new("TextBox")
-	codeBox.Size = UDim2.new(0.68, 0, 0, 48)
-	codeBox.Position = UDim2.new(0, 0, 0, 120)
-	codeBox.BackgroundColor3 = Color3.fromRGB(35, 35, 48)
+	codeBox.Size = UDim2.new(0.68, 0, 0, 50)
+	codeBox.Position = UDim2.new(0, 0, 0, 130)
+	codeBox.BackgroundColor3 = Color3.fromRGB(28, 32, 45)
 	codeBox.Font = Enum.Font.GothamBold
 	codeBox.TextSize = 16
 	codeBox.TextColor3 = Color3.new(1, 1, 1)
-	codeBox.PlaceholderText = "Enter code (e.g. RELEASE)"
+	codeBox.PlaceholderText = "Enter code..."
 	codeBox.ClearTextOnFocus = false
 	codeBox.Parent = body
 
 	local cbCorner = Instance.new("UICorner")
-	cbCorner.CornerRadius = UDim.new(0, 8)
+	cbCorner.CornerRadius = UDim.new(0, 10)
 	cbCorner.Parent = codeBox
 
 	local redeemBtn = Instance.new("TextButton")
-	redeemBtn.Size = UDim2.new(0.28, 0, 0, 48)
-	redeemBtn.Position = UDim2.new(0.72, 0, 0, 120)
-	redeemBtn.BackgroundColor3 = Color3.fromRGB(60, 180, 80)
+	redeemBtn.Size = UDim2.new(0.28, 0, 0, 50)
+	redeemBtn.Position = UDim2.new(0.72, 0, 0, 130)
+	redeemBtn.BackgroundColor3 = Color3.fromRGB(40, 190, 80)
 	redeemBtn.Font = Enum.Font.GothamBlack
 	redeemBtn.TextSize = 16
 	redeemBtn.TextColor3 = Color3.new(1, 1, 1)
@@ -377,12 +459,13 @@ function MenuController.buildRewardsPanel()
 	redeemBtn.Parent = body
 
 	local rbCorner = Instance.new("UICorner")
-	rbCorner.CornerRadius = UDim.new(0, 8)
+	rbCorner.CornerRadius = UDim.new(0, 10)
 	rbCorner.Parent = redeemBtn
 
 	redeemBtn.MouseButton1Click:Connect(function()
 		local text = codeBox.Text
 		if #text > 0 then
+			playSound("rbxassetid://5153734608", 1.1)
 			local redeemRemote = Remotes.getEvent("RedeemCode")
 			redeemRemote:FireServer(text)
 			codeBox.Text = ""
@@ -390,10 +473,140 @@ function MenuController.buildRewardsPanel()
 	end)
 end
 
--- Egg Hatch Reveal Modal Animation
+-- Reactive Data Updating: Updates all active UI elements when data arrives from server!
+function MenuController.updateUI(data: Types.PlayerData)
+	currentData = data
+
+	-- 1. Update Upgrades
+	for key, conf in pairs(Config.Upgrades) do
+		local refs = upgradeRowRefs[key]
+		if refs then
+			local currentLevel = (data.Upgrades and data.Upgrades[key]) or 1
+			refs.LevelLabel.Text = string.format("Level %d / %d", currentLevel, conf.MaxLevel)
+
+			if currentLevel >= conf.MaxLevel then
+				refs.BuyButton.Text = "MAXED"
+				refs.BuyButton.BackgroundColor3 = Color3.fromRGB(100, 100, 110)
+			else
+				local nextCost = math.floor(conf.BaseCost * (conf.CostMultiplier ^ (currentLevel - 1)))
+				refs.BuyButton.Text = string.format("%s 🔩", formatNumber(nextCost))
+				if data.Scrap >= nextCost then
+					refs.BuyButton.BackgroundColor3 = Color3.fromRGB(40, 190, 80)
+				else
+					refs.BuyButton.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+				end
+			end
+		end
+	end
+
+	-- 2. Update Drones list
+	if petListScroll then
+		for _, child in ipairs(petListScroll:GetChildren()) do
+			if child:IsA("Frame") then child:Destroy() end
+		end
+
+		local equippedCount = 0
+		for _, pet in ipairs(data.Pets or {}) do
+			if pet.Equipped then equippedCount = equippedCount + 1 end
+		end
+
+		local invTitle = panels["Drones"] and panels["Drones"]:FindFirstChild("Body", true) and panels["Drones"].Body:FindFirstChild("InvTitle") :: TextLabel
+		if invTitle then
+			invTitle.Text = string.format("YOUR DRONES (EQUIPPED: %d/%d):", equippedCount, Config.Defaults.MaxEquippedPets)
+		end
+
+		for _, pet in ipairs(data.Pets or {}) do
+			local template: Types.PetTemplate? = nil
+			for _, t in ipairs(Config.Pets.List) do
+				if t.Id == pet.Id then
+					template = t
+					break
+				end
+			end
+
+			local row = Instance.new("Frame")
+			row.Name = pet.UUID
+			row.Size = UDim2.new(1, -10, 0, 52)
+			row.BackgroundColor3 = Color3.fromRGB(30, 35, 48)
+			row.BorderSizePixel = 0
+			row.Parent = petListScroll
+
+			local rCorner = Instance.new("UICorner")
+			rCorner.CornerRadius = UDim.new(0, 8)
+			rCorner.Parent = row
+
+			local rStroke = Instance.new("UIStroke")
+			rStroke.Color = template and template.Color or Color3.fromRGB(100, 100, 100)
+			rStroke.Thickness = 1.5
+			rStroke.Parent = row
+
+			local nameLabel = Instance.new("TextLabel")
+			nameLabel.Size = UDim2.new(0.65, 0, 1, 0)
+			nameLabel.Position = UDim2.new(0, 12, 0, 0)
+			nameLabel.BackgroundTransparency = 1
+			nameLabel.Font = Enum.Font.GothamBold
+			nameLabel.TextSize = 14
+			nameLabel.TextColor3 = template and template.Color or Color3.new(1, 1, 1)
+			nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+			nameLabel.Text = string.format("%s (+%.1fx Scrap)", template and template.Name or "Drone", template and template.Multiplier or 1.0)
+			nameLabel.Parent = row
+
+			local toggleBtn = Instance.new("TextButton")
+			toggleBtn.Size = UDim2.new(0, 100, 0, 36)
+			toggleBtn.Position = UDim2.new(1, -108, 0.5, -18)
+			toggleBtn.BackgroundColor3 = pet.Equipped and Color3.fromRGB(220, 60, 60) or Color3.fromRGB(40, 180, 80)
+			toggleBtn.Font = Enum.Font.GothamBlack
+			toggleBtn.TextSize = 13
+			toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+			toggleBtn.Text = pet.Equipped and "UNEQUIP" or "EQUIP"
+			toggleBtn.Parent = row
+
+			local tbCorner = Instance.new("UICorner")
+			tbCorner.CornerRadius = UDim.new(0, 6)
+			tbCorner.Parent = toggleBtn
+
+			local petUuid = pet.UUID
+			toggleBtn.MouseButton1Click:Connect(function()
+				playSound("rbxassetid://6895079853", 1.2)
+				local equipRemote = Remotes.getEvent("EquipPet")
+				equipRemote:FireServer(petUuid)
+			end)
+		end
+	end
+
+	-- 3. Update Rebirth Panel
+	if rebirthInfoLabel then
+		local rebirths = data.Rebirths or 0
+		local cost = math.floor(Config.Rebirth.BaseCost * (Config.Rebirth.CostMultiplier ^ rebirths))
+		local gearsEarned = Config.Rebirth.GearsRewardFormula(rebirths)
+		local multPercent = math.floor(rebirths * Config.Rebirth.MultiplierPerRebirth * 100)
+
+		rebirthInfoLabel.Text = string.format(
+			"Current Rebirths: %d\nPermanent Multiplier: +%d%%\nRequired Scrap: %s 🔩\nRebirth Reward: +%d Gears ⚙️",
+			rebirths,
+			multPercent,
+			formatNumber(cost),
+			gearsEarned
+		)
+
+		if rebirthButton then
+			if data.Scrap >= cost then
+				rebirthButton.BackgroundColor3 = Color3.fromRGB(80, 140, 255)
+				rebirthButton.Text = "REBIRTH NOW 🌀"
+			else
+				rebirthButton.BackgroundColor3 = Color3.fromRGB(90, 95, 110)
+				rebirthButton.Text = string.format("NEED %s 🔩", formatNumber(cost))
+			end
+		end
+	end
+end
+
+-- Egg Hatch Reveal Modal
 function MenuController.showHatchReveal(info: any)
 	local template = info.Template
 	if not template then return end
+
+	playSound("rbxassetid://743521656", 1.0)
 
 	local overlay = Instance.new("Frame")
 	overlay.Name = "HatchRevealOverlay"
@@ -406,7 +619,7 @@ function MenuController.showHatchReveal(info: any)
 	local card = Instance.new("Frame")
 	card.Size = UDim2.new(0, 320, 0, 380)
 	card.Position = UDim2.new(0.5, -160, 0.5, -190)
-	card.BackgroundColor3 = Color3.fromRGB(24, 24, 32)
+	card.BackgroundColor3 = Color3.fromRGB(20, 22, 30)
 	card.ZIndex = 51
 	card.Parent = overlay
 
@@ -486,48 +699,53 @@ end
 function MenuController.buildIconBar()
 	local bar = Instance.new("Frame")
 	bar.Name = "SideIconBar"
-	bar.Size = UDim2.new(0, 60, 0, 260)
-	bar.Position = UDim2.new(0, 20, 0.5, -130)
-	bar.BackgroundColor3 = Color3.fromRGB(24, 24, 32)
-	bar.BackgroundTransparency = 0.2
+	bar.Size = UDim2.new(0, 64, 0, 280)
+	bar.Position = UDim2.new(0, 20, 0.5, -140)
+	bar.BackgroundColor3 = Color3.fromRGB(18, 20, 26)
+	bar.BackgroundTransparency = 0.15
 	bar.BorderSizePixel = 0
 	bar.Parent = mainGui
 
 	local bCorner = Instance.new("UICorner")
-	bCorner.CornerRadius = UDim.new(0, 14)
+	bCorner.CornerRadius = UDim.new(0, 16)
 	bCorner.Parent = bar
 
 	local bStroke = Instance.new("UIStroke")
-	bStroke.Color = Color3.fromRGB(70, 70, 85)
+	bStroke.Color = Color3.fromRGB(50, 60, 80)
 	bStroke.Thickness = 2
 	bStroke.Parent = bar
 
 	local list = Instance.new("UIListLayout")
-	list.Padding = UDim.new(0, 8)
+	list.Padding = UDim.new(0, 10)
 	list.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	list.VerticalAlignment = Enum.VerticalAlignment.Center
 	list.Parent = bar
 
 	local buttons = {
-		{ Name = "Upgrades", Icon = "🛒", Tooltip = "Upgrades" },
-		{ Name = "Drones", Icon = "🥚", Tooltip = "Drones" },
-		{ Name = "Rebirth", Icon = "🌀", Tooltip = "Rebirth" },
-		{ Name = "Rewards", Icon = "🎁", Tooltip = "Rewards" },
+		{ Name = "Upgrades", Icon = "🛒", Color = Color3.fromRGB(40, 190, 80) },
+		{ Name = "Drones", Icon = "🥚", Color = Color3.fromRGB(255, 150, 0) },
+		{ Name = "Rebirth", Icon = "🌀", Color = Color3.fromRGB(80, 130, 255) },
+		{ Name = "Rewards", Icon = "🎁", Color = Color3.fromRGB(240, 70, 120) },
 	}
 
 	for _, info in ipairs(buttons) do
 		local btn = Instance.new("TextButton")
 		btn.Name = info.Name .. "Btn"
-		btn.Size = UDim2.new(0, 46, 0, 46)
-		btn.BackgroundColor3 = Color3.fromRGB(35, 35, 48)
+		btn.Size = UDim2.new(0, 48, 0, 48)
+		btn.BackgroundColor3 = Color3.fromRGB(28, 32, 44)
 		btn.Font = Enum.Font.GothamBold
-		btn.TextSize = 22
+		btn.TextSize = 24
 		btn.Text = info.Icon
 		btn.Parent = bar
 
 		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(0, 10)
+		corner.CornerRadius = UDim.new(0, 12)
 		corner.Parent = btn
+
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = info.Color
+		stroke.Thickness = 1.5
+		stroke.Parent = btn
 
 		btn.MouseButton1Click:Connect(function()
 			MenuController.openPanel(info.Name)
@@ -544,19 +762,34 @@ function MenuController.init()
 	MenuController.buildRebirthPanel()
 	MenuController.buildRewardsPanel()
 
-	-- Notification handler
+	-- 1. Sync Data Listener: Fixes upgrade levels not updating!
+	local syncEvent = Remotes.getEvent("SyncData")
+	syncEvent.OnClientEvent:Connect(function(data)
+		MenuController.updateUI(data)
+	end)
+
+	-- 2. Initial fetch
+	local getFunction = Remotes.getFunction("GetPlayerData")
+	task.spawn(function()
+		local initialData = getFunction:InvokeServer()
+		if initialData then
+			MenuController.updateUI(initialData)
+		end
+	end)
+
+	-- 3. Notifications Toast
 	local notifEvent = Remotes.getEvent("ShowNotification")
 	notifEvent.OnClientEvent:Connect(function(title, message, color)
-		-- Spawn notification toast at top center
+		playSound("rbxassetid://5153734608", 1.4)
 		local toast = Instance.new("Frame")
-		toast.Size = UDim2.new(0, 320, 0, 55)
-		toast.Position = UDim2.new(0.5, -160, 0, 20)
-		toast.BackgroundColor3 = Color3.fromRGB(24, 24, 32)
+		toast.Size = UDim2.new(0, 340, 0, 58)
+		toast.Position = UDim2.new(0.5, -170, 0, 20)
+		toast.BackgroundColor3 = Color3.fromRGB(20, 22, 30)
 		toast.ZIndex = 99
 		toast.Parent = mainGui
 
 		local tCorner = Instance.new("UICorner")
-		tCorner.CornerRadius = UDim.new(0, 10)
+		tCorner.CornerRadius = UDim.new(0, 12)
 		tCorner.Parent = toast
 
 		local tStroke = Instance.new("UIStroke")
@@ -565,11 +798,11 @@ function MenuController.init()
 		tStroke.Parent = toast
 
 		local tTitle = Instance.new("TextLabel")
-		tTitle.Size = UDim2.new(1, -20, 0, 22)
-		tTitle.Position = UDim2.new(0, 10, 0, 6)
+		tTitle.Size = UDim2.new(1, -20, 0, 24)
+		tTitle.Position = UDim2.new(0, 12, 0, 6)
 		tTitle.BackgroundTransparency = 1
 		tTitle.Font = Enum.Font.GothamBlack
-		tTitle.TextSize = 14
+		tTitle.TextSize = 15
 		tTitle.TextColor3 = color or Color3.fromRGB(255, 215, 0)
 		tTitle.TextXAlignment = Enum.TextXAlignment.Left
 		tTitle.Text = title
@@ -577,29 +810,29 @@ function MenuController.init()
 
 		local tMsg = Instance.new("TextLabel")
 		tMsg.Size = UDim2.new(1, -20, 0, 20)
-		tMsg.Position = UDim2.new(0, 10, 0, 28)
+		tMsg.Position = UDim2.new(0, 12, 0, 30)
 		tMsg.BackgroundTransparency = 1
 		tMsg.Font = Enum.Font.Gotham
-		tMsg.TextSize = 12
-		tMsg.TextColor3 = Color3.fromRGB(220, 220, 220)
+		tMsg.TextSize = 13
+		tMsg.TextColor3 = Color3.fromRGB(220, 225, 235)
 		tMsg.TextXAlignment = Enum.TextXAlignment.Left
 		tMsg.Text = message
 		tMsg.Parent = toast
 
-		task.delay(3, function()
+		task.delay(3.5, function()
 			if toast and toast.Parent then
 				toast:Destroy()
 			end
 		end)
 	end)
 
-	-- Hatch reveal handler
+	-- 4. Hatch Reveal Listener
 	local hatchResultEvent = Remotes.getEvent("HatchResult")
 	hatchResultEvent.OnClientEvent:Connect(function(info)
 		MenuController.showHatchReveal(info)
 	end)
 
-	print("[MenuController] Initialized.")
+	print("[MenuController] Initialized with real-time UI synchronization.")
 end
 
 return MenuController

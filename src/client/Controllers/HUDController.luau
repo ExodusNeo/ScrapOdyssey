@@ -2,6 +2,7 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SoundService = game:GetService("SoundService")
 
 local Remotes = require(ReplicatedStorage.Modules.Remotes)
 local Types = require(ReplicatedStorage.Modules.Types)
@@ -14,9 +15,23 @@ local HUDController = {}
 local mainGui: ScreenGui
 local scrapLabel: TextLabel
 local gearsLabel: TextLabel
-local multiplierLabel: TextLabel
+local multLabel: TextLabel
 local currentScrap = 0
 local currentGears = 0
+
+local function playSound(soundId: string, pitch: number?, volume: number?)
+	task.spawn(function()
+		local sound = Instance.new("Sound")
+		sound.SoundId = soundId
+		sound.Pitch = pitch or 1.0
+		sound.Volume = volume or 0.5
+		sound.Parent = SoundService
+		sound:Play()
+		sound.Ended:Connect(function()
+			sound:Destroy()
+		end)
+	end)
+end
 
 local function formatNumber(n: number): string
 	if n >= 1e9 then
@@ -37,36 +52,40 @@ function HUDController.createHUD()
 	mainGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	mainGui.Parent = playerGui
 
-	-- Top Bar Container (Left aligned or Center)
+	-- Top Left Currency Card
 	local topBar = Instance.new("Frame")
 	topBar.Name = "TopBar"
-	topBar.Size = UDim2.new(0, 360, 0, 70)
-	topBar.Position = UDim2.new(0, 20, 0, 20)
-	topBar.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-	topBar.BackgroundTransparency = 0.2
+	topBar.Size = UDim2.new(0, 380, 0, 75)
+	topBar.Position = UDim2.new(0, 24, 0, 24)
+	topBar.BackgroundColor3 = Color3.fromRGB(18, 20, 26)
+	topBar.BackgroundTransparency = 0.15
 	topBar.BorderSizePixel = 0
 	topBar.Parent = mainGui
 
 	local topCorner = Instance.new("UICorner")
-	topCorner.CornerRadius = UDim.new(0, 12)
+	topCorner.CornerRadius = UDim.new(0, 14)
 	topCorner.Parent = topBar
 
 	local topStroke = Instance.new("UIStroke")
-	topStroke.Color = Color3.fromRGB(60, 60, 70)
+	topStroke.Color = Color3.fromRGB(50, 60, 80)
 	topStroke.Thickness = 2
 	topStroke.Parent = topBar
 
-	-- Scrap Icon & Label
+	-- Scrap Section (Left half)
 	local scrapContainer = Instance.new("Frame")
 	scrapContainer.Name = "ScrapContainer"
-	scrapContainer.Size = UDim2.new(0.5, -10, 1, -12)
+	scrapContainer.Size = UDim2.new(0.5, -12, 1, -12)
 	scrapContainer.Position = UDim2.new(0, 10, 0, 6)
-	scrapContainer.BackgroundTransparency = 1
+	scrapContainer.BackgroundColor3 = Color3.fromRGB(26, 30, 40)
 	scrapContainer.Parent = topBar
+
+	local scCorner = Instance.new("UICorner")
+	scCorner.CornerRadius = UDim.new(0, 10)
+	scCorner.Parent = scrapContainer
 
 	local scrapIcon = Instance.new("TextLabel")
 	scrapIcon.Name = "Icon"
-	scrapIcon.Size = UDim2.new(0, 32, 1, 0)
+	scrapIcon.Size = UDim2.new(0, 36, 1, 0)
 	scrapIcon.BackgroundTransparency = 1
 	scrapIcon.Text = "🔩"
 	scrapIcon.TextSize = 24
@@ -74,27 +93,31 @@ function HUDController.createHUD()
 
 	scrapLabel = Instance.new("TextLabel")
 	scrapLabel.Name = "Value"
-	scrapLabel.Size = UDim2.new(1, -38, 1, 0)
-	scrapLabel.Position = UDim2.new(0, 36, 0, 0)
+	scrapLabel.Size = UDim2.new(1, -40, 1, 0)
+	scrapLabel.Position = UDim2.new(0, 38, 0, 0)
 	scrapLabel.BackgroundTransparency = 1
 	scrapLabel.Font = Enum.Font.GothamBlack
 	scrapLabel.TextSize = 20
-	scrapLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+	scrapLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
 	scrapLabel.TextXAlignment = Enum.TextXAlignment.Left
 	scrapLabel.Text = "0"
 	scrapLabel.Parent = scrapContainer
 
-	-- Gears (Prestige) Icon & Label
+	-- Gears Section (Right half)
 	local gearsContainer = Instance.new("Frame")
 	gearsContainer.Name = "GearsContainer"
-	gearsContainer.Size = UDim2.new(0.5, -10, 1, -12)
-	gearsContainer.Position = UDim2.new(0.5, 5, 0, 6)
-	gearsContainer.BackgroundTransparency = 1
+	gearsContainer.Size = UDim2.new(0.5, -12, 1, -12)
+	gearsContainer.Position = UDim2.new(0.5, 2, 0, 6)
+	gearsContainer.BackgroundColor3 = Color3.fromRGB(26, 30, 40)
 	gearsContainer.Parent = topBar
+
+	local gcCorner = Instance.new("UICorner")
+	gcCorner.CornerRadius = UDim.new(0, 10)
+	gcCorner.Parent = gearsContainer
 
 	local gearsIcon = Instance.new("TextLabel")
 	gearsIcon.Name = "Icon"
-	gearsIcon.Size = UDim2.new(0, 32, 1, 0)
+	gearsIcon.Size = UDim2.new(0, 36, 1, 0)
 	gearsIcon.BackgroundTransparency = 1
 	gearsIcon.Text = "⚙️"
 	gearsIcon.TextSize = 24
@@ -102,8 +125,8 @@ function HUDController.createHUD()
 
 	gearsLabel = Instance.new("TextLabel")
 	gearsLabel.Name = "Value"
-	gearsLabel.Size = UDim2.new(1, -38, 1, 0)
-	gearsLabel.Position = UDim2.new(0, 36, 0, 0)
+	gearsLabel.Size = UDim2.new(1, -40, 1, 0)
+	gearsLabel.Position = UDim2.new(0, 38, 0, 0)
 	gearsLabel.BackgroundTransparency = 1
 	gearsLabel.Font = Enum.Font.GothamBlack
 	gearsLabel.TextSize = 20
@@ -111,6 +134,33 @@ function HUDController.createHUD()
 	gearsLabel.TextXAlignment = Enum.TextXAlignment.Left
 	gearsLabel.Text = "0"
 	gearsLabel.Parent = gearsContainer
+
+	-- Multiplier Badge below top bar
+	local badge = Instance.new("Frame")
+	badge.Name = "MultiplierBadge"
+	badge.Size = UDim2.new(0, 140, 0, 28)
+	badge.Position = UDim2.new(0, 24, 0, 106)
+	badge.BackgroundColor3 = Color3.fromRGB(18, 20, 26)
+	badge.BackgroundTransparency = 0.2
+	badge.Parent = mainGui
+
+	local bCorner = Instance.new("UICorner")
+	bCorner.CornerRadius = UDim.new(0, 8)
+	bCorner.Parent = badge
+
+	local bStroke = Instance.new("UIStroke")
+	bStroke.Color = Color3.fromRGB(80, 140, 255)
+	bStroke.Thickness = 1.5
+	bStroke.Parent = badge
+
+	multLabel = Instance.new("TextLabel")
+	multLabel.Size = UDim2.new(1, 0, 1, 0)
+	multLabel.BackgroundTransparency = 1
+	multLabel.Font = Enum.Font.GothamBold
+	multLabel.TextSize = 13
+	multLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+	multLabel.Text = "⚡ MULT: 1.0x"
+	multLabel.Parent = badge
 end
 
 function HUDController.updateCurrencies(data: Types.PlayerData)
@@ -123,30 +173,50 @@ function HUDController.updateCurrencies(data: Types.PlayerData)
 	if targetScrap ~= currentScrap then
 		currentScrap = targetScrap
 		scrapLabel.Text = formatNumber(targetScrap)
-		local tween = TweenService:Create(scrapLabel, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true), {
-			TextSize = 24,
+		local tween = TweenService:Create(scrapLabel, TweenInfo.new(0.12, Enum.EasingStyle.Back, Enum.EasingDirection.Out, 0, true), {
+			TextSize = 25,
+			TextColor3 = Color3.fromRGB(255, 255, 255),
 		})
 		tween:Play()
+		task.delay(0.12, function()
+			if scrapLabel then
+				scrapLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+			end
+		end)
 	end
 
 	-- Pop animation for gears
 	if targetGears ~= currentGears then
 		currentGears = targetGears
 		gearsLabel.Text = formatNumber(targetGears)
-		local tween = TweenService:Create(gearsLabel, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true), {
-			TextSize = 24,
+		local tween = TweenService:Create(gearsLabel, TweenInfo.new(0.12, Enum.EasingStyle.Back, Enum.EasingDirection.Out, 0, true), {
+			TextSize = 25,
 		})
 		tween:Play()
 	end
+
+	-- Calculate approx multiplier display
+	if multLabel then
+		local rebirthMult = 1 + (data.Rebirths * 0.5)
+		multLabel.Text = string.format("⚡ MULT: %.1fx", rebirthMult)
+	end
 end
 
--- Spawn floating "+10 Scrap (Rare!)" text in 3D world
+-- Spawn floating "+25 Scrap [Rare]" text in 3D world with sound and particle burst
 function HUDController.spawnRewardPopup(info: any)
 	local worldPos = info.Position or Vector3.new(0, 10, 0)
-	local text = string.format("+%s Scrap [%s]", formatNumber(info.ScrapEarned), info.TierName)
+	local text = string.format("+%s Scrap\n[%s]", formatNumber(info.ScrapEarned), info.TierName)
+
+	-- Play hit sound with pitch according to rarity
+	playSound("rbxassetid://9114223175", info.SoundPitch or 1.0, 0.6)
+
+	-- If Rare/Epic/Legendary/Mythic, also play chime
+	if info.TierName ~= "Common" then
+		playSound("rbxassetid://5153734608", 1.0 + (info.SoundPitch or 1.0) * 0.2, 0.4)
+	end
 
 	local billboard = Instance.new("BillboardGui")
-	billboard.Size = UDim2.new(0, 200, 0, 45)
+	billboard.Size = UDim2.new(0, 180, 0, 50)
 	billboard.StudsOffsetWorldSpace = worldPos
 	billboard.AlwaysOnTop = true
 	billboard.Parent = mainGui
@@ -155,20 +225,21 @@ function HUDController.spawnRewardPopup(info: any)
 	label.Size = UDim2.new(1, 0, 1, 0)
 	label.BackgroundTransparency = 1
 	label.Font = Enum.Font.GothamBlack
-	label.TextSize = 22
+	label.TextSize = 24
 	label.TextColor3 = info.TierColor or Color3.fromRGB(255, 215, 0)
-	label.TextStrokeTransparency = 0.2
+	label.TextStrokeTransparency = 0.15
 	label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 	label.Text = text
 	label.Parent = billboard
 
 	-- Float up and fade out
-	local floatTween = TweenService:Create(billboard, TweenInfo.new(1.2, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {
-		StudsOffsetWorldSpace = worldPos + Vector3.new(0, 5, 0),
+	local floatTween = TweenService:Create(billboard, TweenInfo.new(1.3, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {
+		StudsOffsetWorldSpace = worldPos + Vector3.new(0, 6, 0),
 	})
-	local fadeTween = TweenService:Create(label, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+	local fadeTween = TweenService:Create(label, TweenInfo.new(1.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
 		TextTransparency = 1,
 		TextStrokeTransparency = 1,
+		TextSize = 28,
 	})
 
 	floatTween:Play()
@@ -203,7 +274,7 @@ function HUDController.init()
 		end
 	end)
 
-	print("[HUDController] Initialized.")
+	print("[HUDController] Initialized with audio feedback and popups.")
 end
 
 return HUDController

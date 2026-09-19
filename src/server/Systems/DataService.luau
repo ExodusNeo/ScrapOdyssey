@@ -12,7 +12,7 @@ local DATA_VERSION = 1
 local DATASTORE_NAME = "ScrapOdyssey_PlayerData_v" .. tostring(DATA_VERSION)
 
 local DataService = {}
-local sessionData: { [Player]: Types.PlayerData } = {}
+local sessionData: { [number]: Types.PlayerData } = {}
 local dataStore = nil
 
 -- Attempt to connect to DataStoreService safely
@@ -67,18 +67,6 @@ local function getDefaultData(): Types.PlayerData
 	}
 end
 
-function DataService.get(player: Player): Types.PlayerData?
-	return sessionData[player]
-end
-
-function DataService.sync(player: Player)
-	local data = sessionData[player]
-	if data then
-		local syncEvent = Remotes.getEvent("SyncData")
-		syncEvent:FireClient(player, data)
-	end
-end
-
 function DataService.loadData(player: Player): Types.PlayerData
 	local data: Types.PlayerData? = nil
 	if isDataStoreAvailable and dataStore then
@@ -98,9 +86,26 @@ function DataService.loadData(player: Player): Types.PlayerData
 		print(string.format("[DataService] Created fresh profile for %s", player.Name))
 	end
 
-	sessionData[player] = data
+	sessionData[player.UserId] = data
 	DataService.sync(player)
 	return data
+end
+
+function DataService.get(player: Player): Types.PlayerData?
+	if not player or typeof(player) ~= "Instance" or not player:IsA("Player") then return nil end
+	local data = sessionData[player.UserId]
+	if not data then
+		data = DataService.loadData(player)
+	end
+	return data
+end
+
+function DataService.sync(player: Player)
+	local data = sessionData[player.UserId]
+	if data then
+		local syncEvent = Remotes.getEvent("SyncData")
+		syncEvent:FireClient(player, data)
+	end
 end
 
 function DataService.saveData(player: Player): boolean
@@ -131,7 +136,7 @@ function DataService.init()
 
 	Players.PlayerRemoving:Connect(function(player)
 		DataService.saveData(player)
-		sessionData[player] = nil
+		sessionData[player.UserId] = nil
 	end)
 
 	game:BindToClose(function()
