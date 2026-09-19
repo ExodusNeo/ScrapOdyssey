@@ -25,9 +25,12 @@ def deploy():
         ("src/server/Systems/LeaderboardService.luau", "ServerScriptService", "Systems", "LeaderboardService", "ModuleScript"),
         ("src/server/Systems/MonetizationService.luau", "ServerScriptService", "Systems", "MonetizationService", "ModuleScript"),
         ("src/server/Systems/DebugService.luau", "ServerScriptService", "Systems", "DebugService", "ModuleScript"),
+        ("src/server/Systems/EventService.luau", "ServerScriptService", "Systems", "EventService", "ModuleScript"),
 
         ("src/server/Main.server.luau", "ServerScriptService", "", "Main", "Script"),
 
+        ("src/client/Controllers/SoundController.luau", "StarterPlayer/StarterPlayerScripts", "Controllers", "SoundController", "ModuleScript"),
+        ("src/client/Controllers/VFXController.luau", "StarterPlayer/StarterPlayerScripts", "Controllers", "VFXController", "ModuleScript"),
         ("src/client/Controllers/HUDController.luau", "StarterPlayer/StarterPlayerScripts", "Controllers", "HUDController", "ModuleScript"),
         ("src/client/Controllers/ActionController.luau", "StarterPlayer/StarterPlayerScripts", "Controllers", "ActionController", "ModuleScript"),
         ("src/client/Controllers/MenuController.luau", "StarterPlayer/StarterPlayerScripts", "Controllers", "MenuController", "ModuleScript"),

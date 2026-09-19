@@ -14,13 +14,14 @@ local EventService = {}
 local activePodModel: Model? = nil
 local nextEventTimer = 0
 
--- Zone center coordinates for landing zones (Zone 1 to 5)
+-- Zone center coordinates on the X-axis matching ZoneService platforms
+-- Platforms are at X = (zoneId - 1) * 160, Y = 1.0 (top surface), Z = 0
 local ZONE_LANDING_CENTERS: { [number]: Vector3 } = {
-	[1] = Vector3.new(0, 1.5, 75),
-	[2] = Vector3.new(0, 1.5, 195),
-	[3] = Vector3.new(0, 1.5, 315),
-	[4] = Vector3.new(0, 1.5, 435),
-	[5] = Vector3.new(0, 1.5, 555),
+	[1] = Vector3.new(0, 1.0, 0),
+	[2] = Vector3.new(160, 1.0, 0),
+	[3] = Vector3.new(320, 1.0, 0),
+	[4] = Vector3.new(480, 1.0, 0),
+	[5] = Vector3.new(640, 1.0, 0),
 }
 
 -- Construct 3D High-Tech Orbital Salvage Drop Pod
@@ -37,10 +38,10 @@ local function constructPodModel(landingPos: Vector3, zoneId: number, zoneName: 
 	pod:SetAttribute("CurrentHP", maxHP)
 	pod:SetAttribute("BaseYield", baseYield)
 
-	-- 1. Hitbox (Root detection)
+	-- 1. Hitbox (Root detection & PrimaryPart)
 	local hitbox = Instance.new("Part")
 	hitbox.Name = "Hitbox"
-	hitbox.Size = Vector3.new(14, 14, 14)
+	hitbox.Size = Vector3.new(12, 10, 12)
 	hitbox.Position = landingPos + Vector3.new(0, 5, 0)
 	hitbox.Transparency = 1
 	hitbox.Anchored = true
@@ -54,8 +55,8 @@ local function constructPodModel(landingPos: Vector3, zoneId: number, zoneName: 
 	local base = Instance.new("Part")
 	base.Name = "Base"
 	base.Shape = Enum.PartType.Cylinder
-	base.Size = Vector3.new(1.8, 12, 12)
-	base.CFrame = CFrame.new(landingPos + Vector3.new(0, 0.9, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	base.Size = Vector3.new(1.6, 11, 11)
+	base.CFrame = CFrame.new(landingPos + Vector3.new(0, 0.8, 0)) * CFrame.Angles(0, 0, math.rad(90))
 	base.Material = Enum.Material.DiamondPlate
 	base.Color = Color3.fromRGB(35, 40, 50)
 	base.Anchored = true
@@ -66,8 +67,8 @@ local function constructPodModel(landingPos: Vector3, zoneId: number, zoneName: 
 	local core = Instance.new("Part")
 	core.Name = "Core"
 	core.Shape = Enum.PartType.Ball
-	core.Size = Vector3.new(7, 7, 7)
-	core.Position = landingPos + Vector3.new(0, 5.5, 0)
+	core.Size = Vector3.new(6, 6, 6)
+	core.Position = landingPos + Vector3.new(0, 5.0, 0)
 	core.Material = Enum.Material.Neon
 	core.Color = Color3.fromRGB(255, 120, 20)
 	core.Anchored = true
@@ -77,22 +78,22 @@ local function constructPodModel(landingPos: Vector3, zoneId: number, zoneName: 
 	local coreLight = Instance.new("PointLight")
 	coreLight.Name = "CoreLight"
 	coreLight.Color = Color3.fromRGB(255, 140, 30)
-	coreLight.Brightness = 5
-	coreLight.Range = 26
+	coreLight.Brightness = 4.5
+	coreLight.Range = 24
 	coreLight.Shadows = false
 	coreLight.Parent = core
 
 	-- 4. Armored Heavy Hull Ribs (4 Quad Stabilizers)
 	for i = 1, 4 do
 		local angle = math.rad((i - 1) * 90)
-		local xOff = math.cos(angle) * 4.2
-		local zOff = math.sin(angle) * 4.2
+		local xOff = math.cos(angle) * 3.8
+		local zOff = math.sin(angle) * 3.8
 
 		local fin = Instance.new("Part")
 		fin.Name = "HullRib_" .. tostring(i)
-		fin.Size = Vector3.new(1.8, 8, 2.2)
-		fin.Position = landingPos + Vector3.new(xOff, 5, zOff)
-		fin.CFrame = CFrame.lookAt(fin.Position, landingPos + Vector3.new(0, 5, 0)) * CFrame.Angles(math.rad(-15), 0, 0)
+		fin.Size = Vector3.new(1.6, 7.5, 2.0)
+		fin.Position = landingPos + Vector3.new(xOff, 4.8, zOff)
+		fin.CFrame = CFrame.lookAt(fin.Position, landingPos + Vector3.new(0, 4.8, 0)) * CFrame.Angles(math.rad(-15), 0, 0)
 		fin.Material = Enum.Material.Metal
 		fin.Color = Color3.fromRGB(60, 68, 82)
 		fin.Anchored = true
@@ -102,7 +103,7 @@ local function constructPodModel(landingPos: Vector3, zoneId: number, zoneName: 
 		-- Neon Hazard Striping
 		local stripe = Instance.new("Part")
 		stripe.Name = "HazardStripe"
-		stripe.Size = Vector3.new(0.4, 6, 2.25)
+		stripe.Size = Vector3.new(0.35, 5.5, 2.05)
 		stripe.CFrame = fin.CFrame
 		stripe.Material = Enum.Material.Neon
 		stripe.Color = Color3.fromRGB(255, 180, 0)
@@ -113,7 +114,7 @@ local function constructPodModel(landingPos: Vector3, zoneId: number, zoneName: 
 
 	-- 5. Exhaust Fire & Smoke Emitter
 	local att = Instance.new("Attachment")
-	att.Position = Vector3.new(0, 3.5, 0)
+	att.Position = Vector3.new(0, 3.0, 0)
 	att.Parent = core
 
 	local fire = Instance.new("ParticleEmitter")
@@ -126,16 +127,16 @@ local function constructPodModel(landingPos: Vector3, zoneId: number, zoneName: 
 	})
 	fire.LightEmission = 1.0
 	fire.Size = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 1.5),
-		NumberSequenceKeypoint.new(0.7, 3.0),
+		NumberSequenceKeypoint.new(0, 1.2),
+		NumberSequenceKeypoint.new(0.7, 2.4),
 		NumberSequenceKeypoint.new(1, 0),
 	})
-	fire.Speed = NumberRange.new(8, 16)
-	fire.SpreadAngle = Vector2.new(45, 45)
+	fire.Speed = NumberRange.new(6, 14)
+	fire.SpreadAngle = Vector2.new(40, 40)
 	fire.EmissionDirection = Enum.NormalId.Top
-	fire.Acceleration = Vector3.new(0, 15, 0)
-	fire.Lifetime = NumberRange.new(0.4, 0.8)
-	fire.Rate = 22
+	fire.Acceleration = Vector3.new(0, 12, 0)
+	fire.Lifetime = NumberRange.new(0.3, 0.7)
+	fire.Rate = 20
 	fire.Parent = att
 
 	-- 6. Interactive ProximityPrompt
@@ -144,15 +145,21 @@ local function constructPodModel(landingPos: Vector3, zoneId: number, zoneName: 
 	prompt.ObjectText = "🚀 ORBITAL DROP POD"
 	prompt.ActionText = "Salvage Pod"
 	prompt.HoldDuration = 0.05
-	prompt.MaxActivationDistance = 22
+	prompt.MaxActivationDistance = 24
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = hitbox
+
+	-- Direct server trigger connection for prompt
+	prompt.Triggered:Connect(function(player)
+		local ActionService = require(script.Parent.ActionService)
+		ActionService.performScrapAction(player, pod)
+	end)
 
 	-- 7. High-Visibility Boss Health Bar Billboard
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "HealthBillboard"
 	billboard.Size = UDim2.new(0, 260, 0, 75)
-	billboard.StudsOffset = Vector3.new(0, 10.5, 0)
+	billboard.StudsOffset = Vector3.new(0, 9.5, 0)
 	billboard.AlwaysOnTop = true
 	billboard.MaxDistance = 140
 	billboard.Parent = hitbox
@@ -221,6 +228,13 @@ local function constructPodModel(landingPos: Vector3, zoneId: number, zoneName: 
 	barFC.CornerRadius = UDim.new(0, 5)
 	barFC.Parent = barFill
 
+	-- Automatic cleanup callback when model is destroyed
+	pod.Destroying:Connect(function()
+		if activePodModel == pod then
+			activePodModel = nil
+		end
+	end)
+
 	return pod
 end
 
@@ -234,10 +248,10 @@ function EventService.triggerDropPod(preferredZoneId: number?): Model?
 	-- Pick zone (random 1 to 5, or preferred)
 	local zoneId = preferredZoneId or math.random(1, 5)
 	local zone = Config.Zones[zoneId] or Config.Zones[1]
-	local baseCenter = ZONE_LANDING_CENTERS[zoneId] or Vector3.new(0, 1.5, 75)
+	local baseCenter = ZONE_LANDING_CENTERS[zoneId] or Vector3.new(0, 1.0, 0)
 
-	-- Add slight landing dispersion offset (+-10 studs)
-	local offset = Vector3.new(math.random(-12, 12), 0, math.random(-8, 8))
+	-- Add small landing offset within the safe central courtyard of the platform
+	local offset = Vector3.new(math.random(-5, 5), 0, math.random(-5, 5))
 	local landingPos = baseCenter + offset
 
 	print(string.format("[EventService] Triggering Orbital Drop Pod in %s at %s", zone.Name, tostring(landingPos)))
@@ -262,45 +276,28 @@ function EventService.triggerDropPod(preferredZoneId: number?): Model?
 	activePodModel = pod
 	pod.Parent = Workspace
 
-	-- 3. Dramatic Reentry Descent Animation
-	local startAltitude = landingPos + Vector3.new(0, 220, 0)
-	for _, part in ipairs(pod:GetDescendants()) do
-		if part:IsA("BasePart") then
-			local localOffset = part.Position - landingPos
-			part.Position = startAltitude + localOffset
-		end
-	end
+	-- 3. Perfectly Rigid Reentry Descent Animation using Model:PivotTo()
+	local targetPivot = pod:GetPivot()
+	local dropHeight = 160
+	local startPivot = targetPivot + Vector3.new(0, dropHeight, 0)
+	pod:PivotTo(startPivot)
 
-	-- Animate descent to ground over 2.4 seconds
+	-- Animate descent to ground over 2.0 seconds with quadratic acceleration
 	task.spawn(function()
-		local descentDuration = 2.4
+		local descentDuration = 2.0
 		local startTime = os.clock()
 
 		while os.clock() - startTime < descentDuration do
 			local elapsed = os.clock() - startTime
 			local alpha = math.clamp(elapsed / descentDuration, 0, 1)
-			-- Accelerating fall with quadratic easing
-			local currentY = startAltitude.Y + (landingPos.Y - startAltitude.Y) * (alpha * alpha)
-
-			for _, part in ipairs(pod:GetDescendants()) do
-				if part:IsA("BasePart") then
-					local diff = currentY - startAltitude.Y
-					part.Position = (startAltitude + (part.Position - Vector3.new(0, part.Position.Y, 0)) + Vector3.new(0, diff, 0))
-				end
-			end
+			-- Accelerating fall with quadratic curve
+			local currentAltitude = dropHeight * (1 - (alpha * alpha))
+			pod:PivotTo(targetPivot + Vector3.new(0, currentAltitude, 0))
 			task.wait(0.03)
 		end
 
-		-- Snap to exact landing position
-		for _, part in ipairs(pod:GetDescendants()) do
-			if part:IsA("BasePart") then
-				local originalY = part:GetAttribute("OrigY")
-				if not originalY then
-					-- align with final landing height
-					part.Position = Vector3.new(part.Position.X, landingPos.Y + (part.Position.Y - landingPos.Y), part.Position.Z)
-				end
-			end
-		end
+		-- Snap firmly to exact target pivot
+		pod:PivotTo(targetPivot)
 
 		-- 4. Impact Touchdown: Broadcast impact shockwave
 		local impactEvent = Remotes.getEvent("OrbitalEventImpact")
@@ -313,8 +310,8 @@ function EventService.triggerDropPod(preferredZoneId: number?): Model?
 		local scorch = Instance.new("Part")
 		scorch.Name = "ScorchCrater"
 		scorch.Shape = Enum.PartType.Cylinder
-		scorch.Size = Vector3.new(0.1, 16, 16)
-		scorch.CFrame = CFrame.new(landingPos + Vector3.new(0, 0.05, 0)) * CFrame.Angles(0, 0, math.rad(90))
+		scorch.Size = Vector3.new(0.08, 14, 14)
+		scorch.CFrame = CFrame.new(landingPos + Vector3.new(0, 0.04, 0)) * CFrame.Angles(0, 0, math.rad(90))
 		scorch.Material = Enum.Material.CorrodedMetal
 		scorch.Color = Color3.fromRGB(20, 22, 28)
 		scorch.Anchored = true
@@ -330,7 +327,7 @@ function EventService.triggerDropPod(preferredZoneId: number?): Model?
 	task.delay(180, function()
 		if pod and pod.Parent then
 			local notifEv = Remotes.getEvent("ShowNotification")
-			notifEv:FireAllClients("🚀 POD LAUNCHED", "The unharvested Orbital Drop Pod has burned up and departed.", Color3.fromRGB(180, 180, 190))
+			notifEv:FireAllClients("🚀 POD LAUNCHED", "The unharvested Orbital Drop Pod has departed.", Color3.fromRGB(180, 180, 190))
 			pod:Destroy()
 			if activePodModel == pod then
 				activePodModel = nil
@@ -343,6 +340,12 @@ end
 
 function EventService.getActivePod(): Model?
 	return activePodModel
+end
+
+function EventService.clearActivePod(podModel: Model?)
+	if not podModel or activePodModel == podModel then
+		activePodModel = nil
+	end
 end
 
 -- Initialize periodic server event loop

@@ -101,10 +101,10 @@ function DebugService.handleAction(player: Player, action: string, arg: any?)
 
 	elseif action == "SpawnMeteor" then
 		local EventService = require(script.Parent.EventService)
-		local zoneId = type(arg) == "number" and arg or nil
+		local zoneId = (type(arg) == "number" and arg > 0) and arg or (data.CurrentZone or 1)
 		local pod = EventService.triggerDropPod(zoneId)
 		if pod then
-			notif:FireClient(player, "DEBUG: Pod Incoming", "Summoned an Orbital Drop Pod crash event!", Color3.fromRGB(255, 140, 20))
+			notif:FireClient(player, "DEBUG: Pod Incoming", string.format("Summoned Orbital Drop Pod into Zone %d!", zoneId), Color3.fromRGB(255, 140, 20))
 		end
 
 	elseif action == "ClearCargo" then

@@ -304,17 +304,29 @@ function HUDController.spawnRewardPopup(info: any)
 	else
 		SoundController.playHit(isDense, worldPos)
 		VFXController.spawnHitSparks(worldPos, isDense, info.TierColor)
-		VFXController.shakeCamera(isDense and 0.32 or 0.12, isDense and 0.14 or 0.08, 0.8)
+		VFXController.shakeCamera(isDense and 0.16 or 0.10, isDense and 0.09 or 0.07, 0.8)
 	end
 
 	-- Visual Formatting
 	local text: string
 	local textColor: Color3
 	if isBreak then
-		text = string.format("💥 CLEARED! +%s 🔩\n[%s]", formatNumber(info.ScrapEarned), info.TierName or "MAX")
-		textColor = Color3.fromRGB(80, 240, 140)
+		if info.IsOrbital then
+			text = string.format("🚀 POD SALVAGED! +%s 🔩\n[+%d GEARS BONUS]", formatNumber(info.ScrapEarned), math.random(8, 15))
+			textColor = Color3.fromRGB(255, 140, 20)
+		elseif isDense then
+			text = string.format("💥 CLEARED! +%s 🔩\n[%s]", formatNumber(info.ScrapEarned), info.TierName or "DENSE")
+			textColor = Color3.fromRGB(0, 240, 255)
+		else
+			text = string.format("💥 CLEARED! +%s 🔩\n[%s]", formatNumber(info.ScrapEarned), info.TierName or "MAX")
+			textColor = Color3.fromRGB(80, 240, 140)
+		end
+	elseif info.IsOrbital then
+		text = string.format("🚀 +%s 🔩", formatNumber(info.ScrapEarned))
+		textColor = Color3.fromRGB(255, 150, 30)
 	elseif isDense then
-		text = string.format("⭐ +%s 🔩\n[%s]", formatNumber(info.ScrapEarned), info.TierName or "DENSE")
+		-- Clean dense scrap display: NO "CRIT" text or crit styling, just clean scrap number in dense cyan!
+		text = string.format("+%s 🔩", formatNumber(info.ScrapEarned))
 		textColor = Color3.fromRGB(0, 240, 255)
 	else
 		text = string.format("+%s 🔩", formatNumber(info.ScrapEarned))
@@ -331,7 +343,7 @@ function HUDController.spawnRewardPopup(info: any)
 	label.Size = UDim2.new(1, 0, 1, 0)
 	label.BackgroundTransparency = 1
 	label.Font = Enum.Font.GothamBlack
-	label.TextSize = isDense and 24 or (isBreak and 26 or 20)
+	label.TextSize = isBreak and 24 or (info.IsOrbital and 22 or 18)
 	label.TextColor3 = textColor
 	label.TextStrokeTransparency = 0.1
 	label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)

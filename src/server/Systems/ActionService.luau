@@ -441,7 +441,9 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 	local maxCapacity = Config.getBackpackCapacity(bagLevel)
 	local currentBackpack = data.Backpack or 0
 
-	if currentBackpack >= maxCapacity then
+	local isOrbital = nodeModel:GetAttribute("IsOrbitalPod") == true
+
+	if not isOrbital and currentBackpack >= maxCapacity then
 		local notif = Remotes.getEvent("ShowNotification")
 		notif:FireClient(player, "🎒 CARGO FULL!", "Your backpack is full! Step on the Scrap Recycler in the Hub to sell!", Color3.fromRGB(255, 70, 70))
 		return
@@ -449,7 +451,7 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 
 	local zoneId = nodeModel:GetAttribute("ZoneId") or 1
 	local zone = Config.Zones[zoneId]
-	local baseActionTime = zone and zone.ActionTime or 1.0
+	local baseActionTime = isOrbital and 1.0 or (zone and zone.ActionTime or 1.0)
 
 	local speedLvl = (data.Upgrades and data.Upgrades["ScrapSpeed"]) or 1
 	local speedReduction = (speedLvl - 1) * Config.Upgrades.ScrapSpeed.EffectPerLevel
@@ -497,9 +499,15 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 	if currentHP > 0 then
 		-- Partial Strike: Fill backpack partially
 		nodeModel:SetAttribute("CurrentHP", currentHP)
-		local titleText = isDense and string.format("⭐ DENSE %s ⭐", zone.Name:upper()) or string.format("🔨 %s", zone.Name:upper())
+		local isOrbital = nodeModel:GetAttribute("IsOrbitalPod") == true
 		if statusLabel then
-			statusLabel.Text = titleText
+			if isOrbital then
+				statusLabel.Text = "🔥 ORBITAL SALVAGE POD 🔥"
+			elseif isDense then
+				statusLabel.Text = string.format("⭐ DENSE %s ⭐", zone.Name:upper())
+			else
+				statusLabel.Text = string.format("🔨 %s", zone.Name:upper())
+			end
 		end
 		local hpLabel = nodeModel:FindFirstChild("HpLabel", true) :: TextLabel?
 		if hpLabel then
@@ -534,7 +542,6 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 			BackpackService.updateCoreColor(player)
 		end)
 
-		local isOrbital = nodeModel:GetAttribute("IsOrbitalPod") == true
 		if isOrbital and math.random() <= 0.25 then
 			CurrencyService.addGears(player, 1)
 		end
@@ -542,11 +549,12 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 		local actionCompletedEvent = Remotes.getEvent("ActionCompleted")
 		actionCompletedEvent:FireClient(player, {
 			IsBreak = false,
-			IsDense = (isDense == true) or isOrbital,
+			IsDense = (isDense == true),
+			IsOrbital = isOrbital,
 			MaxHP = maxHP,
 			CurrentHP = currentHP,
 			TierName = isOrbital and "ORBITAL RAID" or (isDense and "Dense Hit" or "Hit"),
-			TierColor = isOrbital and Color3.fromRGB(255, 140, 20) or (isDense and Color3.fromRGB(255, 215, 50) or Color3.fromRGB(200, 200, 200)),
+			TierColor = isOrbital and Color3.fromRGB(255, 140, 20) or (isDense and Color3.fromRGB(0, 240, 255) or Color3.fromRGB(200, 200, 200)),
 			ScrapEarned = added,
 			SoundPitch = isOrbital and 1.35 or (0.9 + math.random() * 0.2),
 			Position = nodeHitbox.Position + Vector3.new(0, 3, 0),
@@ -584,11 +592,12 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 		local actionCompletedEvent = Remotes.getEvent("ActionCompleted")
 		actionCompletedEvent:FireClient(player, {
 			IsBreak = true,
-			IsDense = (isDense == true) or isOrbital,
+			IsDense = (isDense == true),
+			IsOrbital = isOrbital,
 			MaxHP = maxHP,
 			CurrentHP = 0,
 			TierName = isOrbital and "ORBITAL CACHE CLAIMED" or (isDense and ("DENSE " .. tier.Name) or tier.Name),
-			TierColor = isOrbital and Color3.fromRGB(255, 140, 20) or (isDense and Color3.fromRGB(255, 215, 50) or tier.Color),
+			TierColor = isOrbital and Color3.fromRGB(255, 140, 20) or (isDense and Color3.fromRGB(0, 240, 255) or tier.Color),
 			ScrapEarned = added,
 			SoundPitch = tier.SoundPitch,
 			Position = nodeHitbox.Position + Vector3.new(0, 4, 0),
@@ -614,7 +623,11 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 				string.format("%s dismantled the Orbital Drop Pod and claimed +%d Gears! ⚙️", player.Name, bonusGears),
 				Color3.fromRGB(255, 140, 20)
 			)
-			task.delay(1.5, function()
+			pcall(function()
+				local EventService = require(script.Parent.EventService)
+				EventService.clearActivePod(nodeModel)
+			end)
+			task.delay(1.2, function()
 				if nodeModel and nodeModel.Parent then
 					nodeModel:Destroy()
 				end
