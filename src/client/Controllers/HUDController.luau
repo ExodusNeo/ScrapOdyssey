@@ -314,7 +314,7 @@ function HUDController.spawnRewardPopup(info: any)
 		text = string.format("💥 CLEARED! +%s 🔩\n[%s]", formatNumber(info.ScrapEarned), info.TierName or "MAX")
 		textColor = Color3.fromRGB(80, 240, 140)
 	elseif isDense then
-		text = string.format("⭐ CRIT! +%s 🔩\n[%s]", formatNumber(info.ScrapEarned), info.TierName or "DENSE")
+		text = string.format("⭐ +%s 🔩\n[%s]", formatNumber(info.ScrapEarned), info.TierName or "DENSE")
 		textColor = Color3.fromRGB(0, 240, 255)
 	else
 		text = string.format("+%s 🔩", formatNumber(info.ScrapEarned))
