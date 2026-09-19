@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
+local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage.Modules.Config)
 local Types = require(ReplicatedStorage.Modules.Types)
@@ -53,6 +54,31 @@ local function formatNumber(n: number): string
 	end
 end
 
+local modalBackdrop: TextButton? = nil
+
+local function getOrCreateBackdrop(): TextButton
+	if not modalBackdrop then
+		modalBackdrop = Instance.new("TextButton")
+		modalBackdrop.Name = "ModalBackdrop"
+		modalBackdrop.Size = UDim2.new(1, 0, 1, 0)
+		modalBackdrop.Position = UDim2.new(0, 0, 0, 0)
+		modalBackdrop.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+		modalBackdrop.BackgroundTransparency = 0.55
+		modalBackdrop.Text = ""
+		modalBackdrop.AutoButtonColor = false
+		modalBackdrop.ZIndex = 18
+		modalBackdrop.Visible = false
+		modalBackdrop.Parent = mainGui
+
+		-- Clicking outside the modal immediately closes it!
+		modalBackdrop.MouseButton1Click:Connect(function()
+			playSound("rbxassetid://6895079853", 0.9)
+			MenuController.closeActivePanel()
+		end)
+	end
+	return modalBackdrop
+end
+
 local function createStyledPanel(titleText: string): (Frame, Frame)
 	local panel = Instance.new("Frame")
 	panel.Name = titleText .. "Panel"
@@ -61,6 +87,7 @@ local function createStyledPanel(titleText: string): (Frame, Frame)
 	panel.BackgroundColor3 = Color3.fromRGB(18, 20, 26)
 	panel.BorderSizePixel = 0
 	panel.Visible = false
+	panel.ZIndex = 22
 	panel.Parent = mainGui
 
 	local corner = Instance.new("UICorner")
@@ -77,6 +104,7 @@ local function createStyledPanel(titleText: string): (Frame, Frame)
 	header.Size = UDim2.new(1, 0, 0, 55)
 	header.BackgroundColor3 = Color3.fromRGB(25, 28, 38)
 	header.BorderSizePixel = 0
+	header.ZIndex = 23
 	header.Parent = panel
 
 	local headerCorner = Instance.new("UICorner")
@@ -93,22 +121,47 @@ local function createStyledPanel(titleText: string): (Frame, Frame)
 	title.TextColor3 = Color3.fromRGB(255, 215, 0)
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.Text = titleText
+	title.ZIndex = 24
 	title.Parent = header
 
+	-- High-visibility circular red close button with bold ASCII "X"
 	local closeBtn = Instance.new("TextButton")
 	closeBtn.Name = "CloseButton"
 	closeBtn.Size = UDim2.new(0, 36, 0, 36)
-	closeBtn.Position = UDim2.new(1, -46, 0, 9)
-	closeBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
-	closeBtn.Font = Enum.Font.GothamBold
-	closeBtn.TextSize = 18
+	closeBtn.Position = UDim2.new(1, -48, 0, 9)
+	closeBtn.BackgroundColor3 = Color3.fromRGB(225, 45, 55)
+	closeBtn.Font = Enum.Font.GothamBlack
+	closeBtn.TextSize = 20
 	closeBtn.TextColor3 = Color3.new(1, 1, 1)
-	closeBtn.Text = "✕"
+	closeBtn.Text = "X"
+	closeBtn.ZIndex = 30
+	closeBtn.AutoButtonColor = true
 	closeBtn.Parent = header
 
 	local btnCorner = Instance.new("UICorner")
-	btnCorner.CornerRadius = UDim.new(0, 8)
+	btnCorner.CornerRadius = UDim.new(1, 0) -- Round circle
 	btnCorner.Parent = closeBtn
+
+	local btnStroke = Instance.new("UIStroke")
+	btnStroke.Color = Color3.fromRGB(255, 140, 140)
+	btnStroke.Thickness = 1.8
+	btnStroke.Parent = closeBtn
+
+	closeBtn.MouseEnter:Connect(function()
+		TweenService:Create(closeBtn, TweenInfo.new(0.12), {
+			Size = UDim2.new(0, 40, 0, 40),
+			Position = UDim2.new(1, -50, 0, 7),
+			BackgroundColor3 = Color3.fromRGB(255, 70, 70),
+		}):Play()
+	end)
+
+	closeBtn.MouseLeave:Connect(function()
+		TweenService:Create(closeBtn, TweenInfo.new(0.12), {
+			Size = UDim2.new(0, 36, 0, 36),
+			Position = UDim2.new(1, -48, 0, 9),
+			BackgroundColor3 = Color3.fromRGB(225, 45, 55),
+		}):Play()
+	end)
 
 	closeBtn.MouseButton1Click:Connect(function()
 		playSound("rbxassetid://6895079853", 0.9)
@@ -120,6 +173,7 @@ local function createStyledPanel(titleText: string): (Frame, Frame)
 	body.Size = UDim2.new(1, -28, 1, -75)
 	body.Position = UDim2.new(0, 14, 0, 65)
 	body.BackgroundTransparency = 1
+	body.ZIndex = 23
 	body.Parent = panel
 
 	return panel, body
@@ -129,6 +183,9 @@ function MenuController.closeActivePanel()
 	if activePanel then
 		activePanel.Visible = false
 		activePanel = nil
+	end
+	if modalBackdrop then
+		modalBackdrop.Visible = false
 	end
 end
 
@@ -146,6 +203,9 @@ function MenuController.openPanel(name: string)
 	if activePanel then
 		activePanel.Visible = false
 	end
+
+	local backdrop = getOrCreateBackdrop()
+	backdrop.Visible = true
 
 	target.Visible = true
 	activePanel = target
@@ -860,6 +920,26 @@ function MenuController.showHatchReveal(info: any)
 	stroke.Thickness = 4
 	stroke.Parent = card
 
+	local closeHatchBtn = Instance.new("TextButton")
+	closeHatchBtn.Name = "CloseButton"
+	closeHatchBtn.Size = UDim2.new(0, 32, 0, 32)
+	closeHatchBtn.Position = UDim2.new(1, -42, 0, 10)
+	closeHatchBtn.BackgroundColor3 = Color3.fromRGB(225, 45, 55)
+	closeHatchBtn.Font = Enum.Font.GothamBlack
+	closeHatchBtn.TextSize = 18
+	closeHatchBtn.TextColor3 = Color3.new(1, 1, 1)
+	closeHatchBtn.Text = "X"
+	closeHatchBtn.ZIndex = 58
+	closeHatchBtn.Parent = card
+
+	local chCorner = Instance.new("UICorner")
+	chCorner.CornerRadius = UDim.new(1, 0)
+	chCorner.Parent = closeHatchBtn
+
+	closeHatchBtn.MouseButton1Click:Connect(function()
+		overlay:Destroy()
+	end)
+
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, 0, 0, 50)
 	title.Position = UDim2.new(0, 0, 0, 20)
@@ -1083,7 +1163,19 @@ function MenuController.init()
 	local teleportEvent = Remotes.getEvent("TeleportZone")
 	teleportEvent.OnClientEvent:Connect(function(zoneId)
 		if zoneId == -1 then
-			MenuController.openPanel("Teleport")
+			if activePanel ~= panels["Teleport"] then
+				MenuController.openPanel("Teleport")
+			end
+		end
+	end)
+
+	-- Close modals with Escape key or Gamepad Button B
+	UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if gameProcessed then return end
+		if input.KeyCode == Enum.KeyCode.Escape or input.KeyCode == Enum.KeyCode.ButtonB then
+			if activePanel then
+				MenuController.closeActivePanel()
+			end
 		end
 	end)
 

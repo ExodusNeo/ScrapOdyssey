@@ -129,18 +129,27 @@ local function createPortalPad(parent: Instance, position: Vector3, zoneId: numb
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = pad
 
+	local portalDebounces: { [Player]: number } = {}
+
 	local function openMenu(player: Player)
-		local notif = Remotes.getEvent("ShowNotification")
-		notif:FireClient(player, "Fast Travel", "Opening World Map...", Color3.fromRGB(180, 70, 255))
-		-- Signal client to open Teleport panel
+		local now = os.clock()
+		if portalDebounces[player] and (now - portalDebounces[player]) < 2.5 then
+			return
+		end
+		portalDebounces[player] = now
+
+		-- Signal client to open Teleport panel (cleanly without toast spam)
 		local clientEvent = Remotes.getEvent("TeleportZone")
-		clientEvent:FireClient(player, -1) -- -1 signals client to open map panel
+		clientEvent:FireClient(player, -1)
 	end
 
 	prompt.Triggered:Connect(openMenu)
 	pad.Touched:Connect(function(hit)
 		local char = hit.Parent
 		if not char then return end
+		if hit.Name ~= "HumanoidRootPart" and hit.Name ~= "UpperTorso" and hit.Name ~= "Torso" then
+			return
+		end
 		local player = Players:GetPlayerFromCharacter(char)
 		if player then
 			openMenu(player)
@@ -339,14 +348,23 @@ function ZoneService.constructCentralHub()
 	depositPad.Touched:Connect(function(hit)
 		local char = hit.Parent
 		if not char then return end
+		if hit.Name ~= "HumanoidRootPart" and hit.Name ~= "UpperTorso" and hit.Name ~= "Torso" then
+			return
+		end
 		local player = Players:GetPlayerFromCharacter(char)
 		if not player then return end
 
 		local now = os.clock()
-		if sellDebounce[player] and (now - sellDebounce[player]) < 0.6 then
+		if sellDebounce[player] and (now - sellDebounce[player]) < 1.5 then
 			return
 		end
 		sellDebounce[player] = now
+
+		local data = DataService.get(player)
+		-- Silently ignore if cargo is already 0, so walking across doesn't spam "Cargo Empty" notifications!
+		if not data or (data.Backpack or 0) <= 0 then
+			return
+		end
 
 		local CurrencyService = require(script.Parent.CurrencyService)
 		CurrencyService.recycleBackpack(player)
@@ -847,6 +865,9 @@ function ZoneService.setupVoidProtection()
 	net.Touched:Connect(function(hit)
 		local char = hit.Parent
 		if not char then return end
+		if hit.Name ~= "HumanoidRootPart" and hit.Name ~= "UpperTorso" and hit.Name ~= "Torso" then
+			return
+		end
 		local player = Players:GetPlayerFromCharacter(char)
 		if player then
 			rescuePlayer(player)
