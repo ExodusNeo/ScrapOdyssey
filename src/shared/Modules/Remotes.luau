@@ -25,6 +25,8 @@ local REMOTE_EVENTS = {
 	"ShowNotification",
 	"ClaimQuest",
 	"DebugAction",
+	"PurchaseTool",
+	"EquipTool",
 }
 
 local REMOTE_FUNCTIONS = {

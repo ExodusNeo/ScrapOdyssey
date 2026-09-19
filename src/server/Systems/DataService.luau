@@ -74,6 +74,8 @@ local function getDefaultData(): Types.PlayerData
 		RedeemedCodes = {},
 		TotalScrapsMined = 0,
 		Quests = initialQuests,
+		EquippedTool = "OmniWrench",
+		OwnedTools = { ["OmniWrench"] = true },
 	}
 end
 
@@ -108,6 +110,12 @@ function DataService.loadData(player: Player): Types.PlayerData
 					data.Quests[q.Id] = { Progress = 0, Completed = false, Claimed = false }
 				end
 			end
+		end
+		if not data.OwnedTools then
+			data.OwnedTools = { ["OmniWrench"] = true }
+		end
+		if not data.EquippedTool or not data.OwnedTools[data.EquippedTool] then
+			data.EquippedTool = "OmniWrench"
 		end
 	end
 

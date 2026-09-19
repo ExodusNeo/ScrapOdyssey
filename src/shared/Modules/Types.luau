@@ -58,6 +58,19 @@ export type QuestProgress = {
 	Claimed: boolean,
 }
 
+export type ToolConfig = {
+	Id: string,
+	Name: string,
+	Tier: number,
+	Cost: number,
+	Damage: number,
+	Cooldown: number,
+	Range: number,
+	Color: Color3,
+	Description: string,
+	Emoji: string,
+}
+
 export type PlayerData = {
 	Version: number,
 	Scrap: number,
@@ -76,6 +89,8 @@ export type PlayerData = {
 	RedeemedCodes: { [string]: boolean },
 	TotalScrapsMined: number,
 	Quests: { [string]: QuestProgress },
+	EquippedTool: string?,
+	OwnedTools: { [string]: boolean }?,
 }
 
 return {}

@@ -29,6 +29,7 @@ local rebirthInfoLabel: TextLabel
 local rebirthButton: TextButton
 local gearsShopHeaderLabel: TextLabel
 local questRowRefs: { [string]: { Fill: Frame, Label: TextLabel, ClaimButton: TextButton } } = {}
+local toolRowRefs: { [string]: { EquipButton: TextButton, Card: Frame } } = {}
 local isSFXEnabled = true
 local isMusicEnabled = true
 local bgMusic: Sound? = nil
@@ -1032,6 +1033,180 @@ function MenuController.buildSettingsPanel()
 	tDesc.Parent = tradeCard
 end
 
+function MenuController.buildToolArmoryPanel()
+	local panel, body = createStyledPanel("Scrapper Tool Armory")
+	panels["ToolArmory"] = panel
+
+	local subBanner = Instance.new("Frame")
+	subBanner.Size = UDim2.new(1, 0, 0, 36)
+	subBanner.BackgroundColor3 = Color3.fromRGB(25, 28, 38)
+	subBanner.BorderSizePixel = 0
+	subBanner.ZIndex = 23
+	subBanner.Parent = body
+
+	local sbCorner = Instance.new("UICorner")
+	sbCorner.CornerRadius = UDim.new(0, 10)
+	sbCorner.Parent = subBanner
+
+	local bannerText = Instance.new("TextLabel")
+	bannerText.Size = UDim2.new(1, -20, 1, 0)
+	bannerText.Position = UDim2.new(0, 10, 0, 0)
+	bannerText.BackgroundTransparency = 1
+	bannerText.Font = Enum.Font.GothamBold
+	bannerText.TextSize = 12
+	bannerText.TextColor3 = Color3.fromRGB(255, 180, 50)
+	bannerText.Text = "⚡ Forge higher-tier tools to increase hit damage, reach, and swing speed!"
+	bannerText.ZIndex = 24
+	bannerText.Parent = subBanner
+
+	local scroll = Instance.new("ScrollingFrame")
+	scroll.Size = UDim2.new(1, 0, 1, -44)
+	scroll.Position = UDim2.new(0, 0, 0, 44)
+	scroll.BackgroundTransparency = 1
+	scroll.ScrollBarThickness = 5
+	scroll.ScrollBarImageColor3 = Color3.fromRGB(255, 140, 40)
+	scroll.CanvasSize = UDim2.new(0, 0, 0, #Config.Tools * 74 + 16)
+	scroll.ZIndex = 23
+	scroll.Parent = body
+
+	local list = Instance.new("UIListLayout")
+	list.Padding = UDim.new(0, 8)
+	list.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	list.SortOrder = Enum.SortOrder.LayoutOrder
+	list.Parent = scroll
+
+	local uipadding = Instance.new("UIPadding")
+	uipadding.PaddingTop = UDim.new(0, 4)
+	uipadding.PaddingBottom = UDim.new(0, 12)
+	uipadding.PaddingLeft = UDim.new(0, 4)
+	uipadding.PaddingRight = UDim.new(0, 4)
+	uipadding.Parent = scroll
+
+	for idx, tool in ipairs(Config.Tools) do
+		local card = Instance.new("Frame")
+		card.Name = "ToolCard_" .. tool.Id
+		card.Size = UDim2.new(1, -6, 0, 68)
+		card.BackgroundColor3 = Color3.fromRGB(22, 25, 34)
+		card.BorderSizePixel = 0
+		card.LayoutOrder = idx
+		card.ZIndex = 24
+		card.Parent = scroll
+
+		local cCorner = Instance.new("UICorner")
+		cCorner.CornerRadius = UDim.new(0, 12)
+		cCorner.Parent = card
+
+		local cStroke = Instance.new("UIStroke")
+		cStroke.Color = Color3.fromRGB(45, 52, 68)
+		cStroke.Thickness = 1.4
+		cStroke.Parent = card
+
+		-- Left Emoji Icon Box
+		local iconBox = Instance.new("Frame")
+		iconBox.Size = UDim2.new(0, 52, 0, 52)
+		iconBox.Position = UDim2.new(0, 8, 0.5, -26)
+		iconBox.BackgroundColor3 = Color3.fromRGB(30, 34, 46)
+		iconBox.ZIndex = 25
+		iconBox.Parent = card
+
+		local ibCorner = Instance.new("UICorner")
+		ibCorner.CornerRadius = UDim.new(0, 10)
+		ibCorner.Parent = iconBox
+
+		local ibStroke = Instance.new("UIStroke")
+		ibStroke.Color = tool.Color
+		ibStroke.Thickness = 1.5
+		ibStroke.Parent = iconBox
+
+		local emojiLbl = Instance.new("TextLabel")
+		emojiLbl.Size = UDim2.new(1, 0, 1, 0)
+		emojiLbl.BackgroundTransparency = 1
+		emojiLbl.Font = Enum.Font.GothamBlack
+		emojiLbl.TextSize = 26
+		emojiLbl.Text = tool.Emoji
+		emojiLbl.ZIndex = 26
+		emojiLbl.Parent = iconBox
+
+		-- Name & Tier
+		local nameLbl = Instance.new("TextLabel")
+		nameLbl.Size = UDim2.new(1, -220, 0, 22)
+		nameLbl.Position = UDim2.new(0, 68, 0, 6)
+		nameLbl.BackgroundTransparency = 1
+		nameLbl.Font = Enum.Font.GothamBlack
+		nameLbl.TextSize = 14
+		nameLbl.TextColor3 = tool.Color
+		nameLbl.TextXAlignment = Enum.TextXAlignment.Left
+		nameLbl.Text = string.format("%s (Tier %d)", tool.Name, tool.Tier)
+		nameLbl.ZIndex = 25
+		nameLbl.Parent = card
+
+		-- Stats Row
+		local statsLbl = Instance.new("TextLabel")
+		statsLbl.Size = UDim2.new(1, -220, 0, 18)
+		statsLbl.Position = UDim2.new(0, 68, 0, 26)
+		statsLbl.BackgroundTransparency = 1
+		statsLbl.Font = Enum.Font.GothamBold
+		statsLbl.TextSize = 12
+		statsLbl.TextColor3 = Color3.fromRGB(240, 245, 255)
+		statsLbl.TextXAlignment = Enum.TextXAlignment.Left
+		statsLbl.Text = string.format("💥 %d Damage   ⚡ %.2fs Speed   🎯 %d Studs", tool.Damage, tool.Cooldown, tool.Range)
+		statsLbl.ZIndex = 25
+		statsLbl.Parent = card
+
+		-- Description
+		local descLbl = Instance.new("TextLabel")
+		descLbl.Size = UDim2.new(1, -220, 0, 16)
+		descLbl.Position = UDim2.new(0, 68, 0, 44)
+		descLbl.BackgroundTransparency = 1
+		descLbl.Font = Enum.Font.GothamMedium
+		descLbl.TextSize = 11
+		descLbl.TextColor3 = Color3.fromRGB(150, 165, 185)
+		descLbl.TextXAlignment = Enum.TextXAlignment.Left
+		descLbl.TextTruncate = Enum.TextTruncate.AtEnd
+		descLbl.Text = tool.Description
+		descLbl.ZIndex = 25
+		descLbl.Parent = card
+
+		-- Action Button (BUY / EQUIP / EQUIPPED)
+		local actionBtn = Instance.new("TextButton")
+		actionBtn.Name = "ActionBtn"
+		actionBtn.Size = UDim2.new(0, 135, 0, 40)
+		actionBtn.Position = UDim2.new(1, -145, 0.5, -20)
+		actionBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+		actionBtn.Font = Enum.Font.GothamBlack
+		actionBtn.TextSize = 13
+		actionBtn.TextColor3 = Color3.new(1, 1, 1)
+		actionBtn.Text = tool.Cost == 0 and "EQUIPPED" or string.format("BUY (%s 🔩)", formatNumber(tool.Cost))
+		actionBtn.ZIndex = 26
+		actionBtn.Parent = card
+
+		local abCorner = Instance.new("UICorner")
+		abCorner.CornerRadius = UDim.new(0, 10)
+		abCorner.Parent = actionBtn
+
+		actionBtn.MouseButton1Click:Connect(function()
+			if not currentData then return end
+			local isOwned = (currentData.OwnedTools and currentData.OwnedTools[tool.Id]) or (tool.Cost == 0)
+			local isEquipped = currentData.EquippedTool == tool.Id
+			if isEquipped then return end
+
+			playSound("rbxassetid://6895079853", 1.2)
+			if isOwned then
+				local equipEvent = Remotes.getEvent("EquipTool")
+				equipEvent:FireServer(tool.Id)
+			else
+				local buyEvent = Remotes.getEvent("PurchaseTool")
+				buyEvent:FireServer(tool.Id)
+			end
+		end)
+
+		toolRowRefs[tool.Id] = {
+			EquipButton = actionBtn,
+			Card = card,
+		}
+	end
+end
+
 function MenuController.buildDebugPanel()
 	local isDev = RunService:IsStudio() or player.Name == "ExodusNeo" or (game.CreatorId ~= 0 and player.UserId == game.CreatorId)
 	if not isDev then return end
@@ -1120,6 +1295,14 @@ function MenuController.buildDebugPanel()
 			Arg = nil,
 			Color = Color3.fromRGB(180, 70, 255),
 			BtnText = "GRANT DRONES",
+		},
+		{
+			Title = "🗡️ Unlock All 5 Tools",
+			Desc = "Grants all 5 scrapper tools and equips Tier 5 Void Ripper.",
+			Action = "UnlockAllTools",
+			Arg = nil,
+			Color = Color3.fromRGB(175, 60, 255),
+			BtnText = "ALL TOOLS",
 		},
 		{
 			Title = "🌀 Add +5 Rebirths",
@@ -1400,6 +1583,30 @@ function MenuController.updateUI(data: Types.PlayerData)
 			end
 		end
 	end
+
+	-- 7. Update Tool Armory
+	for _, tool in ipairs(Config.Tools) do
+		local refs = toolRowRefs[tool.Id]
+		if refs then
+			local isEquipped = (data.EquippedTool == tool.Id) or (not data.EquippedTool and tool.Id == "OmniWrench")
+			local isOwned = (data.OwnedTools and data.OwnedTools[tool.Id]) or (tool.Cost == 0)
+
+			if isEquipped then
+				refs.EquipButton.Text = "EQUIPPED"
+				refs.EquipButton.BackgroundColor3 = Color3.fromRGB(80, 85, 100)
+			elseif isOwned then
+				refs.EquipButton.Text = "EQUIP"
+				refs.EquipButton.BackgroundColor3 = Color3.fromRGB(50, 160, 255)
+			else
+				refs.EquipButton.Text = string.format("BUY (%s 🔩)", formatNumber(tool.Cost))
+				if data.Scrap >= tool.Cost then
+					refs.EquipButton.BackgroundColor3 = Color3.fromRGB(40, 190, 80)
+				else
+					refs.EquipButton.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+				end
+			end
+		end
+	end
 end
 
 -- Egg Hatch Reveal Modal
@@ -1520,6 +1727,7 @@ end
 function MenuController.buildIconBar()
 	local buttons = {
 		{ Name = "Upgrades", Label = "UPGRADES", Emoji = "🛒", Color = Color3.fromRGB(40, 200, 90) },
+		{ Name = "ToolArmory", Label = "TOOL ARMORY", Emoji = "🗡️", Color = Color3.fromRGB(255, 120, 40) },
 		{ Name = "GearsShop", Label = "PRESTIGE SHOP", Emoji = "⚙️", Color = Color3.fromRGB(50, 180, 255) },
 		{ Name = "Drones", Label = "DRONE HANGAR", Emoji = "🤖", Color = Color3.fromRGB(255, 160, 20) },
 		{ Name = "Quests", Label = "DAILY QUESTS", Emoji = "📜", Color = Color3.fromRGB(255, 200, 40) },
@@ -1662,6 +1870,7 @@ function MenuController.init()
 	setupMusic()
 	MenuController.buildIconBar()
 	MenuController.buildUpgradesPanel()
+	MenuController.buildToolArmoryPanel()
 	MenuController.buildGearsShopPanel()
 	MenuController.buildDronesPanel()
 	MenuController.buildQuestsPanel()
@@ -1692,6 +1901,16 @@ function MenuController.init()
 		if zoneId == -1 then
 			if activePanel ~= panels["Teleport"] then
 				MenuController.openPanel("Teleport")
+			end
+		end
+	end)
+
+	-- In-world Tool Armory kiosk signal
+	local equipEvent = Remotes.getEvent("EquipTool")
+	equipEvent.OnClientEvent:Connect(function(arg)
+		if arg == "OPEN_ARMORY" then
+			if activePanel ~= panels["ToolArmory"] then
+				MenuController.openPanel("ToolArmory")
 			end
 		end
 	end)

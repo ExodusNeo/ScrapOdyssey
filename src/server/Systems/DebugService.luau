@@ -66,6 +66,17 @@ function DebugService.handleAction(player: Player, action: string, arg: any?)
 		DataService.sync(player)
 		notif:FireClient(player, "DEBUG: Perks Active", "All Gears Prestige Shop Perks unlocked and active!", Color3.fromRGB(255, 170, 0))
 
+	elseif action == "UnlockAllTools" then
+		data.OwnedTools = data.OwnedTools or {}
+		for _, t in ipairs(Config.Tools) do
+			data.OwnedTools[t.Id] = true
+		end
+		data.EquippedTool = "VoidRipper"
+		DataService.sync(player)
+		local ActionService = require(script.Parent.ActionService)
+		ActionService.giveScrapperTool(player)
+		notif:FireClient(player, "DEBUG: All Tools Unlocked", "Unlocked all 5 tools & equipped Tier 5 Void Singularity Ripper!", Color3.fromRGB(175, 60, 255))
+
 	elseif action == "GiveAllPets" then
 		data.Pets = data.Pets or {}
 		for _, template in ipairs(Config.Pets.List) do

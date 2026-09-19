@@ -296,6 +296,165 @@ function ZoneService.constructRecycler(parent: Instance, basePos: Vector3, zoneI
 	return recyclerModel
 end
 
+-- Helper to build an Industrial Sci-Fi Tool Armory & Forge Stand in Central Hub
+function ZoneService.constructToolArmoryKiosk(parent: Instance, pos: Vector3): Model
+	local model = Instance.new("Model")
+	model.Name = "ToolArmoryKiosk"
+
+	-- Foundation Deck
+	local deck = Instance.new("Part")
+	deck.Name = "Deck"
+	deck.Size = Vector3.new(14, 0.4, 12)
+	deck.Position = pos + Vector3.new(0, 0.2, 0)
+	deck.Anchored = true
+	deck.Material = Enum.Material.DiamondPlate
+	deck.Color = Color3.fromRGB(30, 32, 40)
+	deck.Parent = model
+
+	-- Heavy Steel Workbench
+	local bench = Instance.new("Part")
+	bench.Name = "Workbench"
+	bench.Size = Vector3.new(9, 3.2, 4)
+	bench.Position = pos + Vector3.new(0, 1.8, -1.8)
+	bench.Anchored = true
+	bench.Material = Enum.Material.Metal
+	bench.Color = Color3.fromRGB(45, 50, 62)
+	bench.Parent = model
+
+	-- Cyber Anvil
+	local anvil = Instance.new("Part")
+	anvil.Name = "Anvil"
+	anvil.Size = Vector3.new(2.8, 1.8, 1.6)
+	anvil.Position = pos + Vector3.new(-2.2, 3.8, -1.8)
+	anvil.Anchored = true
+	anvil.Material = Enum.Material.CorrodedMetal
+	anvil.Color = Color3.fromRGB(210, 120, 35)
+	anvil.Parent = model
+
+	-- Floating Holographic Preview Tools on Table
+	local holoWrench = Instance.new("Part")
+	holoWrench.Name = "HoloTool"
+	holoWrench.Size = Vector3.new(0.6, 2.4, 0.6)
+	holoWrench.Position = pos + Vector3.new(1.8, 4.2, -1.8)
+	holoWrench.Orientation = Vector3.new(25, 45, 15)
+	holoWrench.Anchored = true
+	holoWrench.CanCollide = false
+	holoWrench.Material = Enum.Material.SmoothPlastic
+	holoWrench.Color = Color3.fromRGB(255, 170, 40)
+	holoWrench.Parent = model
+
+	local holoLight = Instance.new("PointLight")
+	holoLight.Color = Color3.fromRGB(255, 170, 40)
+	holoLight.Brightness = 0.5
+	holoLight.Range = 10
+	holoLight.Parent = holoWrench
+
+	task.spawn(function()
+		while holoWrench.Parent do
+			local t = os.clock() * 1.5
+			holoWrench.Position = pos + Vector3.new(1.8, 4.2 + math.sin(t) * 0.2, -1.8)
+			holoWrench.CFrame = CFrame.new(holoWrench.Position) * CFrame.Angles(0, math.rad(t * 40 % 360), math.rad(15))
+			task.wait(0.04)
+		end
+	end)
+
+	-- Dual Roof Canopy Support Columns
+	for _, cx in ipairs({ -6, 6 }) do
+		local col = Instance.new("Part")
+		col.Size = Vector3.new(1.2, 9, 1.2)
+		col.Position = pos + Vector3.new(cx, 4.7, -4.5)
+		col.Anchored = true
+		col.Material = Enum.Material.Metal
+		col.Color = Color3.fromRGB(35, 38, 48)
+		col.Parent = model
+	end
+
+	-- Canopy Roof
+	local roof = Instance.new("Part")
+	roof.Name = "CanopyRoof"
+	roof.Size = Vector3.new(15, 0.8, 10)
+	roof.Position = pos + Vector3.new(0, 9.2, -1)
+	roof.Anchored = true
+	roof.Material = Enum.Material.Metal
+	roof.Color = Color3.fromRGB(25, 28, 36)
+	roof.Parent = model
+
+	local roofTrim = Instance.new("Part")
+	roofTrim.Name = "CanopyTrim"
+	roofTrim.Size = Vector3.new(15.4, 0.4, 0.6)
+	roofTrim.Position = pos + Vector3.new(0, 9.2, 4)
+	roofTrim.Anchored = true
+	roofTrim.Material = Enum.Material.SmoothPlastic
+	roofTrim.Color = Color3.fromRGB(255, 140, 30)
+	roofTrim.Parent = model
+
+	-- Illuminated Overhead Armory Billboard
+	local sign = Instance.new("Part")
+	sign.Name = "ArmorySign"
+	sign.Size = Vector3.new(12, 2.4, 0.6)
+	sign.Position = pos + Vector3.new(0, 10.6, 4)
+	sign.Anchored = true
+	sign.Material = Enum.Material.SmoothPlastic
+	sign.Color = Color3.fromRGB(16, 18, 26)
+	sign.Parent = model
+
+	local sGui = Instance.new("SurfaceGui")
+	sGui.Face = Enum.NormalId.Front
+	sGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	sGui.PixelsPerStud = 40
+	sGui.LightInfluence = 0.2
+	sGui.Parent = sign
+
+	local sBox = Instance.new("Frame")
+	sBox.Size = UDim2.new(1, 0, 1, 0)
+	sBox.BackgroundColor3 = Color3.fromRGB(18, 20, 30)
+	sBox.BorderSizePixel = 0
+	sBox.Parent = sGui
+
+	local sStroke = Instance.new("UIStroke")
+	sStroke.Color = Color3.fromRGB(255, 140, 30)
+	sStroke.Thickness = 2
+	sStroke.Parent = sBox
+
+	local sTitle = Instance.new("TextLabel")
+	sTitle.Size = UDim2.new(1, 0, 0.6, 0)
+	sTitle.Position = UDim2.new(0, 0, 0.05, 0)
+	sTitle.BackgroundTransparency = 1
+	sTitle.Font = Enum.Font.GothamBlack
+	sTitle.TextSize = 22
+	sTitle.TextColor3 = Color3.fromRGB(255, 180, 50)
+	sTitle.Text = "🛠️ TOOL ARMORY & FORGE 🛠️"
+	sTitle.Parent = sBox
+
+	local sSub = Instance.new("TextLabel")
+	sSub.Size = UDim2.new(1, 0, 0.35, 0)
+	sSub.Position = UDim2.new(0, 0, 0.6, 0)
+	sSub.BackgroundTransparency = 1
+	sSub.Font = Enum.Font.GothamBold
+	sSub.TextSize = 13
+	sSub.TextColor3 = Color3.fromRGB(200, 215, 235)
+	sSub.Text = "[ UPGRADE TOOLS // MULTIPLY HIT DAMAGE ]"
+	sSub.Parent = sBox
+
+	-- Interaction Proximity Prompt
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "ArmoryPrompt"
+	prompt.ObjectText = "Tool Armory"
+	prompt.ActionText = "Open Forge"
+	prompt.HoldDuration = 0.1
+	prompt.MaxActivationDistance = 14
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = bench
+
+	prompt.Triggered:Connect(function(player)
+		local equipEvent = Remotes.getEvent("EquipTool")
+		equipEvent:FireClient(player, "OPEN_ARMORY")
+	end)
+
+	model.Parent = parent
+	return model
+end
+
 -- 3. Build the Central Town Hub (Plaza, Pedestals, Recycler Machine, Props)
 function ZoneService.constructCentralHub()
 	local hubFolder = Workspace:FindFirstChild("CentralHub") :: Folder
@@ -468,6 +627,9 @@ function ZoneService.constructCentralHub()
 
 	-- Fast-Travel Portal Pad in Hub
 	createPortalPad(hubFolder, Vector3.new(-18, 0.3, 25), 1)
+
+	-- Tool Armory Forge Kiosk in Hub
+	ZoneService.constructToolArmoryKiosk(hubFolder, Vector3.new(-18, 0, -16))
 
 	-- 4 Scrap Nodes in Hub (Zone 1) - Evenly spaced with >16 studs clearance
 	local zone1Offsets = {

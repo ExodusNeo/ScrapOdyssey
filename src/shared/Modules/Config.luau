@@ -330,6 +330,79 @@ local Config = {
 		},
 	},
 
+	-- 5 Tiers of 3D Scrapper Tools (Unlockable in Tool Armory)
+	Tools = {
+		{
+			Id = "OmniWrench",
+			Name = "Omni-Wrench",
+			Tier = 1,
+			Cost = 0,
+			Damage = 1,
+			Cooldown = 0.50,
+			Range = 22,
+			Color = Color3.fromRGB(240, 160, 40),
+			Description = "Standard issue titanium lug wrench. Reliable and sturdy.",
+			Emoji = "🔧",
+		},
+		{
+			Id = "PneumaticDrill",
+			Name = "Pneumatic Jackdrill",
+			Tier = 2,
+			Cost = 5000,
+			Damage = 2,
+			Cooldown = 0.40,
+			Range = 24,
+			Color = Color3.fromRGB(255, 120, 20),
+			Description = "High-frequency percussive impact drill designed for crushed cyber-metal.",
+			Emoji = "🔩",
+		},
+		{
+			Id = "PlasmaCutter",
+			Name = "Thermal Plasma Torch",
+			Tier = 3,
+			Cost = 35000,
+			Damage = 4,
+			Cooldown = 0.32,
+			Range = 26,
+			Color = Color3.fromRGB(40, 180, 255),
+			Description = "Industrial cutting laser that slices through high-tensile titanium with ease.",
+			Emoji = "🔥",
+		},
+		{
+			Id = "CyberScythe",
+			Name = "Cyber Energy Scythe",
+			Tier = 4,
+			Cost = 250000,
+			Damage = 8,
+			Cooldown = 0.25,
+			Range = 28,
+			Color = Color3.fromRGB(255, 45, 125),
+			Description = "Electrified high-density carbon scythe that cleaves massive quantum alloy.",
+			Emoji = "⚡",
+		},
+		{
+			Id = "VoidRipper",
+			Name = "Void Singularity Ripper",
+			Tier = 5,
+			Cost = 1500000,
+			Damage = 16,
+			Cooldown = 0.18,
+			Range = 32,
+			Color = Color3.fromRGB(175, 60, 255),
+			Description = "Experimental gravity-warping blade that fractures molecular scrap bonds in seconds.",
+			Emoji = "🌌",
+		},
+	} :: { Types.ToolConfig },
+
+	getTool = function(toolId: string): Types.ToolConfig?
+		for _, t in ipairs(Config.Tools) do
+			if t.Id == toolId then
+				return t
+			end
+		end
+		return Config.Tools[1]
+	end,
+
 	-- Developer products & Gamepasses
 	Monetization = {
 		Gamepasses = {

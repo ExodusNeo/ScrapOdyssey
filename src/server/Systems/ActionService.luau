@@ -15,112 +15,352 @@ local ActionService = {}
 local playerLastActionTime: { [Player]: number } = {}
 local nodeCooldown: { [Model]: boolean } = {}
 
--- Create physical Plasma Dismantler Tool for player
-local function giveScrapperTool(player: Player)
-	local backpack = player:WaitForChild("Backpack")
-	if backpack:FindFirstChild("PlasmaDismantler") then return end
+-- Procedural 3D Scrapper Tool Construction (5 Tiers)
+function ActionService.buildTool(toolId: string): Tool
+	local conf = Config.getTool(toolId) or Config.Tools[1]
 
 	local tool = Instance.new("Tool")
-	tool.Name = "PlasmaDismantler"
-	tool.ToolTip = "Click to strike scrap piles!"
+	tool.Name = "ScrapperTool"
+	tool.ToolTip = string.format("%s (Damage: %d)", conf.Name, conf.Damage)
 	tool.RequiresHandle = true
 	tool.CanBeDropped = false
+	tool:SetAttribute("IsScrapperTool", true)
+	tool:SetAttribute("ToolId", conf.Id)
+	tool:SetAttribute("Damage", conf.Damage)
+	tool:SetAttribute("Cooldown", conf.Cooldown)
+	tool:SetAttribute("Range", conf.Range)
 
-	-- Ergonomic Main Grip
+	-- Main Ergonomic Handle Grip
 	local handle = Instance.new("Part")
 	handle.Name = "Handle"
-	handle.Size = Vector3.new(0.65, 3.2, 0.65)
 	handle.Material = Enum.Material.Rubber
-	handle.Color = Color3.fromRGB(24, 26, 32)
+	handle.Color = Color3.fromRGB(28, 30, 36)
+	handle.CanCollide = false
 	handle.Parent = tool
 
-	-- Energy Battery Cartridge on bottom
-	local battery = Instance.new("Part")
-	battery.Name = "PowerBattery"
-	battery.Size = Vector3.new(0.85, 0.7, 0.85)
-	battery.Position = handle.Position + Vector3.new(0, -1.6, 0)
-	battery.Material = Enum.Material.SmoothPlastic
-	battery.Color = Color3.fromRGB(0, 190, 225)
-	battery.Parent = tool
+	if conf.Id == "OmniWrench" then
+		handle.Size = Vector3.new(0.65, 2.6, 0.65)
+		-- Shaft
+		local shaft = Instance.new("Part")
+		shaft.Name = "WrenchShaft"
+		shaft.Size = Vector3.new(0.8, 1.4, 0.5)
+		shaft.Position = handle.Position + Vector3.new(0, 1.6, 0)
+		shaft.Material = Enum.Material.Metal
+		shaft.Color = Color3.fromRGB(160, 165, 175)
+		shaft.CanCollide = false
+		shaft.Parent = tool
+		local wShaft = Instance.new("WeldConstraint")
+		wShaft.Part0 = handle; wShaft.Part1 = shaft; wShaft.Parent = shaft
 
-	local weldBat = Instance.new("WeldConstraint")
-	weldBat.Part0 = handle
-	weldBat.Part1 = battery
-	weldBat.Parent = battery
+		-- Wrench Head (C-Jaw)
+		local head = Instance.new("Part")
+		head.Name = "WrenchHead"
+		head.Size = Vector3.new(1.6, 1.2, 0.6)
+		head.Position = handle.Position + Vector3.new(0, 2.6, 0)
+		head.Material = Enum.Material.CorrodedMetal
+		head.Color = conf.Color
+		head.CanCollide = false
+		head.Parent = tool
+		local wHead = Instance.new("WeldConstraint")
+		wHead.Part0 = handle; wHead.Part1 = head; wHead.Parent = head
 
-	-- Heavy Emitter Housing Head
-	local head = Instance.new("Part")
-	head.Name = "EmitterHousing"
-	head.Size = Vector3.new(1.1, 1.2, 1.1)
-	head.Position = handle.Position + Vector3.new(0, 1.8, 0)
-	head.Material = Enum.Material.DiamondPlate
-	head.Color = Color3.fromRGB(50, 55, 65)
-	head.Parent = tool
+		local sparks = Instance.new("ParticleEmitter")
+		sparks.Name = "Sparks"
+		sparks.Color = ColorSequence.new(conf.Color)
+		sparks.Size = NumberSequence.new(0.1, 0.25)
+		sparks.Rate = 5
+		sparks.Speed = NumberRange.new(1.0, 2.5)
+		sparks.Lifetime = NumberRange.new(0.2, 0.5)
+		sparks.Parent = head
 
-	local weldHead = Instance.new("WeldConstraint")
-	weldHead.Part0 = handle
-	weldHead.Part1 = head
-	weldHead.Parent = head
+	elseif conf.Id == "PneumaticDrill" then
+		handle.Size = Vector3.new(0.7, 2.2, 0.7)
+		-- Drill Chamber
+		local chamber = Instance.new("Part")
+		chamber.Name = "Chamber"
+		chamber.Size = Vector3.new(1.6, 2.2, 1.6)
+		chamber.Position = handle.Position + Vector3.new(0, 1.6, 0)
+		chamber.Material = Enum.Material.DiamondPlate
+		chamber.Color = conf.Color
+		chamber.CanCollide = false
+		chamber.Parent = tool
+		local wChamber = Instance.new("WeldConstraint")
+		wChamber.Part0 = handle; wChamber.Part1 = chamber; wChamber.Parent = chamber
 
-	-- Dual Plasma Emitter Prongs
-	local prongL = Instance.new("Part")
-	prongL.Name = "ProngLeft"
-	prongL.Size = Vector3.new(0.25, 1.4, 0.4)
-	prongL.Position = head.Position + Vector3.new(-0.45, 1.1, 0)
-	prongL.Material = Enum.Material.Metal
-	prongL.Color = Color3.fromRGB(255, 170, 0)
-	prongL.Parent = tool
+		-- Air Tanks
+		for _, xOff in ipairs({ -0.85, 0.85 }) do
+			local tank = Instance.new("Part")
+			tank.Shape = Enum.PartType.Cylinder
+			tank.Size = Vector3.new(1.8, 0.6, 0.6)
+			tank.Position = chamber.Position + Vector3.new(xOff, 0, 0)
+			tank.Orientation = Vector3.new(0, 0, 90)
+			tank.Material = Enum.Material.Metal
+			tank.Color = Color3.fromRGB(180, 190, 205)
+			tank.CanCollide = false
+			tank.Parent = tool
+			local wTank = Instance.new("WeldConstraint")
+			wTank.Part0 = chamber; wTank.Part1 = tank; wTank.Parent = tank
+		end
 
-	local weldPL = Instance.new("WeldConstraint")
-	weldPL.Part0 = head
-	weldPL.Part1 = prongL
-	weldPL.Parent = prongL
+		-- Drill Bit
+		local bit = Instance.new("Part")
+		bit.Name = "DrillBit"
+		bit.Shape = Enum.PartType.Cylinder
+		bit.Size = Vector3.new(2.4, 1.0, 1.0)
+		bit.Position = chamber.Position + Vector3.new(0, 2.1, 0)
+		bit.Orientation = Vector3.new(0, 0, 90)
+		bit.Material = Enum.Material.Metal
+		bit.Color = Color3.fromRGB(75, 80, 90)
+		bit.CanCollide = false
+		bit.Parent = tool
+		local wBit = Instance.new("WeldConstraint")
+		wBit.Part0 = chamber; wBit.Part1 = bit; wBit.Parent = bit
 
-	local prongR = Instance.new("Part")
-	prongR.Name = "ProngRight"
-	prongR.Size = Vector3.new(0.25, 1.4, 0.4)
-	prongR.Position = head.Position + Vector3.new(0.45, 1.1, 0)
-	prongR.Material = Enum.Material.Metal
-	prongR.Color = Color3.fromRGB(255, 170, 0)
-	prongR.Parent = tool
+		local smoke = Instance.new("ParticleEmitter")
+		smoke.Name = "Exhaust"
+		smoke.Color = ColorSequence.new(Color3.fromRGB(190, 190, 200))
+		smoke.Size = NumberSequence.new(0.3, 0.8)
+		smoke.Transparency = NumberSequence.new(0.4, 1.0)
+		smoke.Rate = 8
+		smoke.Speed = NumberRange.new(2, 4)
+		smoke.Lifetime = NumberRange.new(0.4, 0.8)
+		smoke.Parent = chamber
 
-	local weldPR = Instance.new("WeldConstraint")
-	weldPR.Part0 = head
-	weldPR.Part1 = prongR
-	weldPR.Parent = prongR
+	elseif conf.Id == "PlasmaCutter" then
+		handle.Size = Vector3.new(0.65, 2.8, 0.65)
+		-- Housing Head
+		local head = Instance.new("Part")
+		head.Name = "NozzleHousing"
+		head.Size = Vector3.new(1.2, 1.4, 1.2)
+		head.Position = handle.Position + Vector3.new(0, 1.8, 0)
+		head.Material = Enum.Material.DiamondPlate
+		head.Color = Color3.fromRGB(45, 50, 60)
+		head.CanCollide = false
+		head.Parent = tool
+		local wHead = Instance.new("WeldConstraint")
+		wHead.Part0 = handle; wHead.Part1 = head; wHead.Parent = head
 
-	-- Crackling Plasma Core Blade
-	local blade = Instance.new("Part")
-	blade.Name = "Tip"
-	blade.Size = Vector3.new(0.65, 1.2, 0.3)
-	blade.Position = head.Position + Vector3.new(0, 1.0, 0)
-	blade.Material = Enum.Material.SmoothPlastic
-	blade.Color = Color3.fromRGB(240, 175, 45)
-	blade.Parent = tool
+		-- Dual Plasma Cells
+		for _, xOff in ipairs({ -0.65, 0.65 }) do
+			local cell = Instance.new("Part")
+			cell.Size = Vector3.new(0.35, 1.2, 0.35)
+			cell.Position = head.Position + Vector3.new(xOff, -0.2, 0)
+			cell.Material = Enum.Material.SmoothPlastic
+			cell.Color = conf.Color
+			cell.CanCollide = false
+			cell.Parent = tool
+			local wCell = Instance.new("WeldConstraint")
+			wCell.Part0 = head; wCell.Part1 = cell; wCell.Parent = cell
+		end
 
-	local weldBlade = Instance.new("WeldConstraint")
-	weldBlade.Part0 = head
-	weldBlade.Part1 = blade
-	weldBlade.Parent = blade
+		-- Concentrated Plasma Torch Beam
+		local beam = Instance.new("Part")
+		beam.Name = "PlasmaBeam"
+		beam.Size = Vector3.new(0.45, 2.2, 0.45)
+		beam.Position = head.Position + Vector3.new(0, 1.4, 0)
+		beam.Material = Enum.Material.SmoothPlastic
+		beam.Color = conf.Color
+		beam.CanCollide = false
+		beam.Parent = tool
+		local wBeam = Instance.new("WeldConstraint")
+		wBeam.Part0 = head; wBeam.Part1 = beam; wBeam.Parent = beam
 
-	local light = Instance.new("PointLight")
-	light.Color = Color3.fromRGB(255, 190, 50)
-	light.Brightness = 2.4
-	light.Range = 12
-	light.Parent = blade
+		local light = Instance.new("PointLight")
+		light.Color = conf.Color
+		light.Brightness = 2.5
+		light.Range = 12
+		light.Parent = beam
 
-	local sparks = Instance.new("ParticleEmitter")
-	sparks.Name = "PlasmaSparks"
-	sparks.Color = ColorSequence.new(Color3.fromRGB(255, 200, 80))
-	sparks.Size = NumberSequence.new(0.1, 0.25)
-	sparks.Rate = 6
-	sparks.Speed = NumberRange.new(1.0, 2.5)
-	sparks.SpreadAngle = Vector2.new(180, 180)
-	sparks.Lifetime = NumberRange.new(0.3, 0.6)
-	sparks.Parent = blade
+		local fire = Instance.new("ParticleEmitter")
+		fire.Name = "PlasmaFire"
+		fire.Color = ColorSequence.new(conf.Color)
+		fire.Size = NumberSequence.new(0.2, 0.6)
+		fire.Rate = 12
+		fire.Speed = NumberRange.new(2, 5)
+		fire.Lifetime = NumberRange.new(0.2, 0.5)
+		fire.SpreadAngle = Vector2.new(45, 45)
+		fire.Parent = beam
 
-	-- Tool activation is handled cleanly by client ActionController
-	tool.Parent = backpack
+	elseif conf.Id == "CyberScythe" then
+		handle.Size = Vector3.new(0.55, 4.4, 0.55)
+		handle.Color = Color3.fromRGB(20, 22, 28)
+
+		-- Emitter Hub
+		local hub = Instance.new("Part")
+		hub.Name = "ScytheHub"
+		hub.Size = Vector3.new(1.1, 1.1, 1.1)
+		hub.Position = handle.Position + Vector3.new(0, 2.4, 0)
+		hub.Material = Enum.Material.Metal
+		hub.Color = Color3.fromRGB(40, 42, 52)
+		hub.CanCollide = false
+		hub.Parent = tool
+		local wHub = Instance.new("WeldConstraint")
+		wHub.Part0 = handle; wHub.Part1 = hub; wHub.Parent = hub
+
+		-- Curved Energy Blade
+		local blade = Instance.new("Part")
+		blade.Name = "EnergyBlade"
+		blade.Size = Vector3.new(2.8, 0.75, 0.3)
+		blade.Position = hub.Position + Vector3.new(1.3, 0.4, 0)
+		blade.Orientation = Vector3.new(0, 0, 30)
+		blade.Material = Enum.Material.SmoothPlastic
+		blade.Color = conf.Color
+		blade.CanCollide = false
+		blade.Parent = tool
+		local wBlade = Instance.new("WeldConstraint")
+		wBlade.Part0 = hub; wBlade.Part1 = blade; wBlade.Parent = blade
+
+		local light = Instance.new("PointLight")
+		light.Color = conf.Color
+		light.Brightness = 2.8
+		light.Range = 14
+		light.Parent = blade
+
+		local sparks = Instance.new("ParticleEmitter")
+		sparks.Name = "CyberLightning"
+		sparks.Color = ColorSequence.new(conf.Color)
+		sparks.Size = NumberSequence.new(0.15, 0.45)
+		sparks.Rate = 14
+		sparks.Speed = NumberRange.new(2, 6)
+		sparks.Lifetime = NumberRange.new(0.2, 0.5)
+		sparks.Parent = blade
+
+	elseif conf.Id == "VoidRipper" then
+		handle.Size = Vector3.new(0.7, 3.4, 0.7)
+		handle.Color = Color3.fromRGB(15, 15, 20)
+
+		-- Void Crossguard
+		local guard = Instance.new("Part")
+		guard.Name = "VoidGuard"
+		guard.Size = Vector3.new(2.4, 0.8, 0.7)
+		guard.Position = handle.Position + Vector3.new(0, 1.9, 0)
+		guard.Material = Enum.Material.DiamondPlate
+		guard.Color = Color3.fromRGB(35, 25, 45)
+		guard.CanCollide = false
+		guard.Parent = tool
+		local wGuard = Instance.new("WeldConstraint")
+		wGuard.Part0 = handle; wGuard.Part1 = guard; wGuard.Parent = guard
+
+		-- Singularity Core Orb
+		local core = Instance.new("Part")
+		core.Name = "SingularityCore"
+		core.Shape = Enum.PartType.Ball
+		core.Size = Vector3.new(1.1, 1.1, 1.1)
+		core.Position = guard.Position + Vector3.new(0, 0.4, 0)
+		core.Material = Enum.Material.SmoothPlastic
+		core.Color = conf.Color
+		core.CanCollide = false
+		core.Parent = tool
+		local wCore = Instance.new("WeldConstraint")
+		wCore.Part0 = guard; wCore.Part1 = core; wCore.Parent = core
+
+		-- Dual Cleaver Blades
+		for _, xOff in ipairs({ -0.4, 0.4 }) do
+			local cBlade = Instance.new("Part")
+			cBlade.Name = "VoidBlade"
+			cBlade.Size = Vector3.new(0.35, 3.0, 0.8)
+			cBlade.Position = guard.Position + Vector3.new(xOff, 2.0, 0)
+			cBlade.Material = Enum.Material.CorrodedMetal
+			cBlade.Color = Color3.fromRGB(25, 20, 32)
+			cBlade.CanCollide = false
+			cBlade.Parent = tool
+			local wCBlade = Instance.new("WeldConstraint")
+			wCBlade.Part0 = guard; wCBlade.Part1 = cBlade; wCBlade.Parent = cBlade
+		end
+
+		local light = Instance.new("PointLight")
+		light.Color = conf.Color
+		light.Brightness = 3.2
+		light.Range = 16
+		light.Parent = core
+
+		local vortex = Instance.new("ParticleEmitter")
+		vortex.Name = "VoidVortex"
+		vortex.Color = ColorSequence.new(conf.Color)
+		vortex.Size = NumberSequence.new(0.2, 0.7)
+		vortex.Rate = 18
+		vortex.Speed = NumberRange.new(1.5, 4.5)
+		vortex.Lifetime = NumberRange.new(0.4, 0.9)
+		vortex.SpreadAngle = Vector2.new(180, 180)
+		vortex.Parent = core
+	end
+
+	return tool
+end
+
+-- Give or update the player's equipped scrapper tool
+function ActionService.giveScrapperTool(player: Player)
+	local data = DataService.get(player)
+	local toolId = data and data.EquippedTool or "OmniWrench"
+
+	-- Clear out any existing tools in Character & Backpack
+	local character = player.Character
+	if character then
+		for _, item in ipairs(character:GetChildren()) do
+			if item:IsA("Tool") and (item:GetAttribute("IsScrapperTool") or item.Name == "ScrapperTool" or item.Name == "PlasmaDismantler" or item.Name == "OmniScrapper") then
+				item:Destroy()
+			end
+		end
+	end
+
+	local backpack = player:FindFirstChild("Backpack") or player:WaitForChild("Backpack", 5)
+	if backpack then
+		for _, item in ipairs(backpack:GetChildren()) do
+			if item:IsA("Tool") and (item:GetAttribute("IsScrapperTool") or item.Name == "ScrapperTool" or item.Name == "PlasmaDismantler" or item.Name == "OmniScrapper") then
+				item:Destroy()
+			end
+		end
+
+		local tool = ActionService.buildTool(toolId)
+		tool.Parent = backpack
+	end
+end
+
+-- Equip an owned tool
+function ActionService.equipTool(player: Player, toolId: string)
+	local data = DataService.get(player)
+	if not data then return end
+	if not data.OwnedTools or not data.OwnedTools[toolId] then return end
+
+	data.EquippedTool = toolId
+	DataService.sync(player)
+	ActionService.giveScrapperTool(player)
+
+	local conf = Config.getTool(toolId)
+	if conf then
+		local notif = Remotes.getEvent("ShowNotification")
+		notif:FireClient(player, "Tool Equipped", string.format("Equipped %s (%s)!", conf.Name, conf.Emoji), conf.Color)
+	end
+end
+
+-- Purchase and equip a tool from the Armory
+function ActionService.purchaseTool(player: Player, toolId: string)
+	local data = DataService.get(player)
+	if not data then return end
+	local conf = Config.getTool(toolId)
+	if not conf then return end
+
+	data.OwnedTools = data.OwnedTools or { ["OmniWrench"] = true }
+	if data.OwnedTools[toolId] then
+		ActionService.equipTool(player, toolId)
+		return
+	end
+
+	if data.Scrap < conf.Cost then
+		local notif = Remotes.getEvent("ShowNotification")
+		notif:FireClient(player, "Insufficient Scrap", string.format("You need %s Scrap to purchase the %s!", tostring(conf.Cost), conf.Name), Color3.fromRGB(255, 75, 75))
+		return
+	end
+
+	data.Scrap -= conf.Cost
+	data.OwnedTools[toolId] = true
+	data.EquippedTool = toolId
+	CurrencyService.updateLeaderstats(player)
+	DataService.sync(player)
+	ActionService.giveScrapperTool(player)
+
+	local notif = Remotes.getEvent("ShowNotification")
+	notif:FireClient(player, "Tool Unlocked!", string.format("Unlocked and equipped %s (%s)!", conf.Name, conf.Emoji), conf.Color)
 end
 
 -- Roll reward tier with SuperLuck perk support
@@ -165,14 +405,17 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 	local nodeHitbox = nodeModel:FindFirstChild("Hitbox") :: BasePart
 	if not nodeHitbox then return end
 
-	-- 1. Distance Sanity Check (26 studs)
-	local distance = (rootPart.Position - nodeHitbox.Position).Magnitude
-	if distance > 26 then return end
-
-	-- 2. Cooldown & Capacity Check
 	local data = DataService.get(player)
 	if not data then return end
 
+	local toolConf = Config.getTool(data.EquippedTool or "OmniWrench")
+	local maxRange = (toolConf and toolConf.Range or 22) + 6
+
+	-- 1. Distance Sanity Check (scales with tool range)
+	local distance = (rootPart.Position - nodeHitbox.Position).Magnitude
+	if distance > maxRange then return end
+
+	-- 2. Cooldown & Capacity Check
 	local bagLevel = (data.Upgrades and data.Upgrades["BackpackCapacity"]) or 1
 	local maxCapacity = Config.getBackpackCapacity(bagLevel)
 	local currentBackpack = data.Backpack or 0
@@ -189,17 +432,19 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 
 	local speedLvl = (data.Upgrades and data.Upgrades["ScrapSpeed"]) or 1
 	local speedReduction = (speedLvl - 1) * Config.Upgrades.ScrapSpeed.EffectPerLevel
-	local finalActionDelay = math.max(0.18, baseActionTime - speedReduction)
+	local toolCooldown = toolConf and toolConf.Cooldown or 0.45
+	local finalActionDelay = math.max(0.12, (baseActionTime * toolCooldown) - speedReduction)
 
 	local now = os.clock()
 	local lastTime = playerLastActionTime[player] or 0
-	if now - lastTime < (finalActionDelay * 0.80) then return end
+	if now - lastTime < (finalActionDelay * 0.75) then return end
 	playerLastActionTime[player] = now
 
-	-- 3. Hit Points / Multi-Hit Logic
+	-- 3. Hit Points / Multi-Hit Logic with Tool Damage
 	local maxHP = nodeModel:GetAttribute("MaxHP") or 3
 	local currentHP = nodeModel:GetAttribute("CurrentHP") or maxHP
-	currentHP = currentHP - 1
+	local toolDamage = toolConf and toolConf.Damage or 1
+	currentHP = currentHP - toolDamage
 
 	local corePart = nodeModel:FindFirstChild("Core") :: BasePart
 	local basePart = nodeModel:FindFirstChild("Base") :: BasePart
@@ -337,19 +582,33 @@ function ActionService.init()
 		end
 	end)
 
+	local purchaseToolEvent = Remotes.getEvent("PurchaseTool")
+	purchaseToolEvent.OnServerEvent:Connect(function(player, toolId)
+		if type(toolId) == "string" then
+			ActionService.purchaseTool(player, toolId)
+		end
+	end)
+
+	local equipToolEvent = Remotes.getEvent("EquipTool")
+	equipToolEvent.OnServerEvent:Connect(function(player, toolId)
+		if type(toolId) == "string" then
+			ActionService.equipTool(player, toolId)
+		end
+	end)
+
 	-- Give tool on join and spawn
 	Players.PlayerAdded:Connect(function(player)
 		player.CharacterAdded:Connect(function()
-			giveScrapperTool(player)
+			ActionService.giveScrapperTool(player)
 		end)
 		if player.Character then
-			giveScrapperTool(player)
+			ActionService.giveScrapperTool(player)
 		end
 	end)
 
 	for _, player in ipairs(Players:GetPlayers()) do
 		if player.Character then
-			giveScrapperTool(player)
+			ActionService.giveScrapperTool(player)
 		end
 	end
 
