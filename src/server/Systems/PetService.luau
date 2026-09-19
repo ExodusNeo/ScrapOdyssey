@@ -13,7 +13,34 @@ local CurrencyService = require(script.Parent.CurrencyService)
 local PetService = {}
 local spawnedDrones: { [Player]: { Model } } = {}
 
-function PetService.rollPet(): Types.PetTemplate
+function PetService.rollPet(eggType: string?): Types.PetTemplate
+	local eggConf = eggType and Config.Eggs[eggType]
+	if eggConf and #eggConf.Pool > 0 then
+		local totalWeight = 0
+		for _, item in ipairs(eggConf.Pool) do
+			totalWeight = totalWeight + item.Weight
+		end
+
+		local roll = math.random() * totalWeight
+		local cumulative = 0
+		local pickedId = eggConf.Pool[1].Id
+
+		for _, item in ipairs(eggConf.Pool) do
+			cumulative = cumulative + item.Weight
+			if roll <= cumulative then
+				pickedId = item.Id
+				break
+			end
+		end
+
+		for _, template in ipairs(Config.Pets.List) do
+			if template.Id == pickedId then
+				return template
+			end
+		end
+	end
+
+	-- Fallback to global list
 	local totalWeight = 0
 	for _, pet in ipairs(Config.Pets.List) do
 		totalWeight = totalWeight + pet.Weight
@@ -32,18 +59,21 @@ function PetService.rollPet(): Types.PetTemplate
 	return Config.Pets.List[1]
 end
 
-function PetService.hatchEgg(player: Player): Types.PetTemplate?
+function PetService.hatchEgg(player: Player, eggType: string?): Types.PetTemplate?
 	local data = DataService.get(player)
 	if not data then return nil end
 
-	local cost = Config.Pets.EggCost
+	local selectedType = (eggType and Config.Eggs[eggType]) and eggType or "RustEgg"
+	local eggConf = Config.Eggs[selectedType]
+	local cost = eggConf.Cost
+
 	if not CurrencyService.removeScrap(player, cost) then
 		local notif = Remotes.getEvent("ShowNotification")
-		notif:FireClient(player, "Not Enough Scrap", string.format("You need %d Scrap to hatch a drone.", cost), Color3.fromRGB(255, 70, 70))
+		notif:FireClient(player, "Not Enough Scrap", string.format("You need %d Scrap to hatch %s.", cost, eggConf.Name), Color3.fromRGB(255, 70, 70))
 		return nil
 	end
 
-	local rolled = PetService.rollPet()
+	local rolled = PetService.rollPet(selectedType)
 	local newOwnedPet: Types.OwnedPet = {
 		UUID = HttpService:GenerateGUID(false),
 		Id = rolled.Id,
@@ -59,6 +89,7 @@ function PetService.hatchEgg(player: Player): Types.PetTemplate?
 	hatchResult:FireClient(player, {
 		Template = rolled,
 		Pet = newOwnedPet,
+		EggName = eggConf.Name,
 	})
 
 	return rolled
@@ -180,8 +211,8 @@ end
 
 function PetService.init()
 	local hatchEvent = Remotes.getEvent("HatchEgg")
-	hatchEvent.OnServerEvent:Connect(function(player)
-		PetService.hatchEgg(player)
+	hatchEvent.OnServerEvent:Connect(function(player, eggType)
+		PetService.hatchEgg(player, type(eggType) == "string" and eggType or "RustEgg")
 	end)
 
 	local equipEvent = Remotes.getEvent("EquipPet")

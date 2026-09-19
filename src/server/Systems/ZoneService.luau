@@ -1,4 +1,5 @@
 --!strict
+local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -177,7 +178,7 @@ function ZoneService.constructCentralHub()
 
 	-- Recycler Billboard Title
 	local rbb = Instance.new("BillboardGui")
-	rbb.Size = UDim2.new(0, 200, 0, 60)
+	rbb.Size = UDim2.new(0, 240, 0, 60)
 	rbb.StudsOffset = Vector3.new(0, 7, 0)
 	rbb.AlwaysOnTop = true
 	rbb.Parent = baseUnit
@@ -190,27 +191,104 @@ function ZoneService.constructCentralHub()
 	rTitle.TextColor3 = Color3.fromRGB(255, 215, 0)
 	rTitle.TextStrokeTransparency = 0.2
 	rTitle.TextStrokeColor3 = Color3.new(0, 0, 0)
-	rTitle.Text = "⚙️ SCRAP RECYCLER ⚙️\n[DEPOSIT & UPGRADE]"
+	rTitle.Text = "⚙️ SCRAP RECYCLER ⚙️\n[DEPOSIT & SELL CARGO]"
 	rTitle.Parent = rbb
+
+	-- Active Physical Deposit Sell Pad in front of Recycler
+	local depositPad = Instance.new("Part")
+	depositPad.Name = "RecyclerDepositPad"
+	depositPad.Size = Vector3.new(14, 0.4, 10)
+	depositPad.Position = Vector3.new(0, 0.2, -8)
+	depositPad.Anchored = true
+	depositPad.CanCollide = true
+	depositPad.Material = Enum.Material.Neon
+	depositPad.Color = Color3.fromRGB(40, 230, 120) -- Glowing green sell pad
+	depositPad.Parent = recyclerModel
+
+	local padBb = Instance.new("BillboardGui")
+	padBb.Size = UDim2.new(0, 220, 0, 50)
+	padBb.StudsOffset = Vector3.new(0, 3, 0)
+	padBb.AlwaysOnTop = true
+	padBb.Parent = depositPad
+
+	local padLbl = Instance.new("TextLabel")
+	padLbl.Size = UDim2.new(1, 0, 1, 0)
+	padLbl.BackgroundTransparency = 1
+	padLbl.Font = Enum.Font.GothamBlack
+	padLbl.TextSize = 16
+	padLbl.TextColor3 = Color3.fromRGB(40, 255, 120)
+	padLbl.TextStrokeTransparency = 0.2
+	padLbl.TextStrokeColor3 = Color3.new(0, 0, 0)
+	padLbl.Text = "⚡ SELL CARGO ⚡\n[Step Here to Convert to Scrap]"
+	padLbl.Parent = padBb
+
+	local depositPrompt = Instance.new("ProximityPrompt")
+	depositPrompt.Name = "RecyclePrompt"
+	depositPrompt.ObjectText = "Scrap Recycler"
+	depositPrompt.ActionText = "Sell Cargo"
+	depositPrompt.HoldDuration = 0.1
+	depositPrompt.MaxActivationDistance = 14
+	depositPrompt.RequiresLineOfSight = false
+	depositPrompt.Parent = depositPad
+
+	depositPrompt.Triggered:Connect(function(player)
+		local CurrencyService = require(script.Parent.CurrencyService)
+		CurrencyService.recycleBackpack(player)
+	end)
+
+	local sellDebounce: { [Player]: number } = {}
+	depositPad.Touched:Connect(function(hit)
+		local char = hit.Parent
+		if not char then return end
+		local player = Players:GetPlayerFromCharacter(char)
+		if not player then return end
+
+		local now = os.clock()
+		if sellDebounce[player] and (now - sellDebounce[player]) < 0.6 then
+			return
+		end
+		sellDebounce[player] = now
+
+		local CurrencyService = require(script.Parent.CurrencyService)
+		CurrencyService.recycleBackpack(player)
+	end)
 
 	recyclerModel.Parent = hubFolder
 
-	-- Physical Drone Incubator Pedestals (Shop Eggs on Display!)
-	local eggPositions = {
-		Vector3.new(-18, 0.4, 0),
-		Vector3.new(-24, 0.4, 0),
-		Vector3.new(-30, 0.4, 0),
+	-- Physical Drone Incubator Pedestals (The ONLY way to hatch drones!)
+	local eggConfigs = {
+		{
+			Type = "RustEgg",
+			Name = "Rust Egg",
+			Cost = 250,
+			Pos = Vector3.new(-18, 0.4, 0),
+			Color = Color3.fromRGB(160, 130, 110),
+			SubText = "Rust Bot (65%)\nSpark Drone (35%)",
+		},
+		{
+			Type = "PlasmaEgg",
+			Name = "Plasma Egg",
+			Cost = 1500,
+			Pos = Vector3.new(-24, 0.4, 0),
+			Color = Color3.fromRGB(50, 150, 255),
+			SubText = "Plasma Welder (70%)\nScrap Hound (30%)",
+		},
+		{
+			Type = "CyberEgg",
+			Name = "Cyber Egg",
+			Cost = 10000,
+			Pos = Vector3.new(-30, 0.4, 0),
+			Color = Color3.fromRGB(255, 40, 100),
+			SubText = "Cyber Mech (85%)\nVoid Titan (15%)",
+		},
 	}
 
-	local eggTitles = { "Common Egg\n(250 🔩)", "Rare Egg\n(1.5K 🔩)", "Mythic Egg\n(10K 🔩)" }
-	local eggColors = { Color3.fromRGB(160, 130, 110), Color3.fromRGB(50, 150, 255), Color3.fromRGB(255, 40, 100) }
-
-	for i, pos in ipairs(eggPositions) do
+	for _, eggInfo in ipairs(eggConfigs) do
 		local pedestal = Instance.new("Part")
-		pedestal.Name = "Pedestal_" .. tostring(i)
+		pedestal.Name = "Pedestal_" .. eggInfo.Type
 		pedestal.Shape = Enum.PartType.Cylinder
 		pedestal.Size = Vector3.new(2.5, 3.5, 3.5)
-		pedestal.Position = pos + Vector3.new(0, 1.25, 0)
+		pedestal.Position = eggInfo.Pos + Vector3.new(0, 1.25, 0)
 		pedestal.Orientation = Vector3.new(0, 0, 90)
 		pedestal.Anchored = true
 		pedestal.Material = Enum.Material.SmoothPlastic
@@ -218,18 +296,18 @@ function ZoneService.constructCentralHub()
 		pedestal.Parent = hubFolder
 
 		local egg = Instance.new("Part")
-		egg.Name = "DisplayEgg"
+		egg.Name = "DisplayEgg_" .. eggInfo.Type
 		egg.Shape = Enum.PartType.Ball
 		egg.Size = Vector3.new(2.2, 3.0, 2.2)
-		egg.Position = pos + Vector3.new(0, 3.8, 0)
+		egg.Position = eggInfo.Pos + Vector3.new(0, 3.8, 0)
 		egg.Anchored = true
 		egg.Material = Enum.Material.Neon
-		egg.Color = eggColors[i]
+		egg.Color = eggInfo.Color
 		egg.Parent = hubFolder
 
 		local eggBb = Instance.new("BillboardGui")
-		eggBb.Size = UDim2.new(0, 120, 0, 40)
-		eggBb.StudsOffset = Vector3.new(0, 2.8, 0)
+		eggBb.Size = UDim2.new(0, 150, 0, 55)
+		eggBb.StudsOffset = Vector3.new(0, 3.2, 0)
 		eggBb.AlwaysOnTop = true
 		eggBb.Parent = egg
 
@@ -237,15 +315,15 @@ function ZoneService.constructCentralHub()
 		eggLbl.Size = UDim2.new(1, 0, 1, 0)
 		eggLbl.BackgroundTransparency = 1
 		eggLbl.Font = Enum.Font.GothamBold
-		eggLbl.TextSize = 14
-		eggLbl.TextColor3 = eggColors[i]
-		eggLbl.Text = eggTitles[i]
+		eggLbl.TextSize = 13
+		eggLbl.TextColor3 = eggInfo.Color
+		eggLbl.Text = string.format("🥚 %s\n(%d 🔩)\n%s", eggInfo.Name, eggInfo.Cost, eggInfo.SubText)
 		eggLbl.Parent = eggBb
 
 		local prompt = Instance.new("ProximityPrompt")
 		prompt.Name = "HatchPrompt"
-		prompt.ObjectText = "Drone Incubator"
-		prompt.ActionText = "Hatch Egg (250 🔩)"
+		prompt.ObjectText = eggInfo.Name
+		prompt.ActionText = string.format("Hatch (%d 🔩)", eggInfo.Cost)
 		prompt.HoldDuration = 0.2
 		prompt.MaxActivationDistance = 14
 		prompt.RequiresLineOfSight = false
@@ -253,7 +331,7 @@ function ZoneService.constructCentralHub()
 
 		prompt.Triggered:Connect(function(player)
 			local PetService = require(script.Parent.PetService)
-			PetService.hatchEgg(player)
+			PetService.hatchEgg(player, eggInfo.Type)
 		end)
 	end
 

@@ -55,6 +55,7 @@ export type OwnedPet = {
 export type PlayerData = {
 	Version: number,
 	Scrap: number,
+	Backpack: number,
 	Gears: number,
 	Rebirths: number,
 	CurrentZone: number,

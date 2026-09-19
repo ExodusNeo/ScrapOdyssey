@@ -351,56 +351,52 @@ function MenuController.buildGearsShopPanel()
 	end
 end
 
--- 3. Drones Panel Builder
+-- 3. Drones Panel Builder (Pure Inventory & Loadout - Drones hatched in Hub!)
 function MenuController.buildDronesPanel()
-	local panel, body = createStyledPanel("🥚 SCRAPPER DRONES")
+	local panel, body = createStyledPanel("🤖 DRONE HANGAR")
 	panels["Drones"] = panel
 
-	local hatchBar = Instance.new("Frame")
-	hatchBar.Size = UDim2.new(1, 0, 0, 70)
-	hatchBar.BackgroundColor3 = Color3.fromRGB(28, 32, 45)
-	hatchBar.BorderSizePixel = 0
-	hatchBar.Parent = body
+	-- Guide banner pointing to physical egg pods in Hub
+	local banner = Instance.new("Frame")
+	banner.Name = "EggGuideBanner"
+	banner.Size = UDim2.new(1, 0, 0, 52)
+	banner.BackgroundColor3 = Color3.fromRGB(25, 30, 44)
+	banner.BorderSizePixel = 0
+	banner.Parent = body
 
-	local hCorner = Instance.new("UICorner")
-	hCorner.CornerRadius = UDim.new(0, 12)
-	hCorner.Parent = hatchBar
+	local bCorner = Instance.new("UICorner")
+	bCorner.CornerRadius = UDim.new(0, 10)
+	bCorner.Parent = banner
 
-	local hatchLabel = Instance.new("TextLabel")
-	hatchLabel.Size = UDim2.new(0.6, 0, 1, 0)
-	hatchLabel.Position = UDim2.new(0, 14, 0, 0)
-	hatchLabel.BackgroundTransparency = 1
-	hatchLabel.Font = Enum.Font.GothamBold
-	hatchLabel.TextSize = 15
-	hatchLabel.TextColor3 = Color3.new(1, 1, 1)
-	hatchLabel.TextXAlignment = Enum.TextXAlignment.Left
-	hatchLabel.Text = string.format("Hatch Scrapper Drone\nCost: %d 🔩", Config.Pets.EggCost)
-	hatchLabel.Parent = hatchBar
+	local bStroke = Instance.new("UIStroke")
+	bStroke.Color = Color3.fromRGB(50, 70, 100)
+	bStroke.Thickness = 1.2
+	bStroke.Parent = banner
 
-	local hatchBtn = Instance.new("TextButton")
-	hatchBtn.Size = UDim2.new(0, 130, 0, 48)
-	hatchBtn.Position = UDim2.new(1, -145, 0.5, -24)
-	hatchBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 0)
-	hatchBtn.Font = Enum.Font.GothamBlack
-	hatchBtn.TextSize = 16
-	hatchBtn.TextColor3 = Color3.new(1, 1, 1)
-	hatchBtn.Text = "HATCH 🥚"
-	hatchBtn.Parent = hatchBar
+	local bIcon = Instance.new("TextLabel")
+	bIcon.Size = UDim2.new(0, 40, 1, 0)
+	bIcon.BackgroundTransparency = 1
+	bIcon.Font = Enum.Font.GothamBold
+	bIcon.TextSize = 22
+	bIcon.Text = "🥚"
+	bIcon.Parent = banner
 
-	local hbCorner = Instance.new("UICorner")
-	hbCorner.CornerRadius = UDim.new(0, 10)
-	hbCorner.Parent = hatchBtn
-
-	hatchBtn.MouseButton1Click:Connect(function()
-		playSound("rbxassetid://5153734608", 1.0)
-		local hatchRemote = Remotes.getEvent("HatchEgg")
-		hatchRemote:FireServer()
-	end)
+	local bText = Instance.new("TextLabel")
+	bText.Size = UDim2.new(1, -50, 1, 0)
+	bText.Position = UDim2.new(0, 44, 0, 0)
+	bText.BackgroundTransparency = 1
+	bText.Font = Enum.Font.GothamMedium
+	bText.TextSize = 13
+	bText.TextColor3 = Color3.fromRGB(170, 215, 255)
+	bText.TextXAlignment = Enum.TextXAlignment.Left
+	bText.TextWrapped = true
+	bText.Text = "Hatch new Drones at the physical Egg Pods in the Central Hub! (Rust, Plasma & Cyber Pods)"
+	bText.Parent = banner
 
 	local invTitle = Instance.new("TextLabel")
 	invTitle.Name = "InvTitle"
 	invTitle.Size = UDim2.new(1, 0, 0, 24)
-	invTitle.Position = UDim2.new(0, 0, 0, 80)
+	invTitle.Position = UDim2.new(0, 0, 0, 62)
 	invTitle.BackgroundTransparency = 1
 	invTitle.Font = Enum.Font.GothamBold
 	invTitle.TextSize = 14
@@ -411,8 +407,8 @@ function MenuController.buildDronesPanel()
 
 	petListScroll = Instance.new("ScrollingFrame")
 	petListScroll.Name = "PetList"
-	petListScroll.Size = UDim2.new(1, 0, 1, -110)
-	petListScroll.Position = UDim2.new(0, 0, 0, 108)
+	petListScroll.Size = UDim2.new(1, 0, 1, -94)
+	petListScroll.Position = UDim2.new(0, 0, 0, 90)
 	petListScroll.BackgroundTransparency = 1
 	petListScroll.ScrollBarThickness = 6
 	petListScroll.Parent = body

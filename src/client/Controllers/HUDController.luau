@@ -4,6 +4,7 @@ local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 
+local Config = require(ReplicatedStorage.Modules.Config)
 local Remotes = require(ReplicatedStorage.Modules.Remotes)
 local Types = require(ReplicatedStorage.Modules.Types)
 
@@ -16,8 +17,11 @@ local mainGui: ScreenGui
 local scrapLabel: TextLabel
 local gearsLabel: TextLabel
 local multLabel: TextLabel
+local cargoFill: Frame
+local cargoLabel: TextLabel
 local currentScrap = 0
 local currentGears = 0
+local currentBackpack = -1
 
 local function playSound(soundId: string, pitch: number?, volume: number?)
 	task.spawn(function()
@@ -52,7 +56,7 @@ function HUDController.createHUD()
 	mainGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	mainGui.Parent = playerGui
 
-	-- Top Left Currency Card
+	-- Top Left Currency Card (Banked Spendable Scrap & Gears)
 	local topBar = Instance.new("Frame")
 	topBar.Name = "TopBar"
 	topBar.Size = UDim2.new(0, 380, 0, 75)
@@ -71,7 +75,7 @@ function HUDController.createHUD()
 	topStroke.Thickness = 2
 	topStroke.Parent = topBar
 
-	-- Scrap Section (Left half)
+	-- Banked Scrap Section (Left half)
 	local scrapContainer = Instance.new("Frame")
 	scrapContainer.Name = "ScrapContainer"
 	scrapContainer.Size = UDim2.new(0.5, -12, 1, -12)
@@ -135,11 +139,55 @@ function HUDController.createHUD()
 	gearsLabel.Text = "0"
 	gearsLabel.Parent = gearsContainer
 
-	-- Multiplier Badge below top bar
+	-- Raw Cargo / Backpack Progress Bar
+	local cargoContainer = Instance.new("Frame")
+	cargoContainer.Name = "CargoContainer"
+	cargoContainer.Size = UDim2.new(0, 380, 0, 34)
+	cargoContainer.Position = UDim2.new(0, 24, 0, 106)
+	cargoContainer.BackgroundColor3 = Color3.fromRGB(18, 20, 26)
+	cargoContainer.BackgroundTransparency = 0.15
+	cargoContainer.BorderSizePixel = 0
+	cargoContainer.ClipsDescendants = true
+	cargoContainer.Parent = mainGui
+
+	local ccCorner = Instance.new("UICorner")
+	ccCorner.CornerRadius = UDim.new(0, 10)
+	ccCorner.Parent = cargoContainer
+
+	local ccStroke = Instance.new("UIStroke")
+	ccStroke.Color = Color3.fromRGB(50, 60, 80)
+	ccStroke.Thickness = 1.5
+	ccStroke.Parent = cargoContainer
+
+	cargoFill = Instance.new("Frame")
+	cargoFill.Name = "CargoFill"
+	cargoFill.Size = UDim2.new(0, 0, 1, 0)
+	cargoFill.BackgroundColor3 = Color3.fromRGB(40, 200, 100)
+	cargoFill.BorderSizePixel = 0
+	cargoFill.Parent = cargoContainer
+
+	local cfCorner = Instance.new("UICorner")
+	cfCorner.CornerRadius = UDim.new(0, 10)
+	cfCorner.Parent = cargoFill
+
+	cargoLabel = Instance.new("TextLabel")
+	cargoLabel.Name = "CargoLabel"
+	cargoLabel.Size = UDim2.new(1, 0, 1, 0)
+	cargoLabel.BackgroundTransparency = 1
+	cargoLabel.Font = Enum.Font.GothamBlack
+	cargoLabel.TextSize = 13
+	cargoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	cargoLabel.TextStrokeTransparency = 0.2
+	cargoLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+	cargoLabel.Text = "🎒 CARGO: 0 / 50 🔩"
+	cargoLabel.ZIndex = 2
+	cargoLabel.Parent = cargoContainer
+
+	-- Multiplier Badge below cargo bar
 	local badge = Instance.new("Frame")
 	badge.Name = "MultiplierBadge"
-	badge.Size = UDim2.new(0, 140, 0, 28)
-	badge.Position = UDim2.new(0, 24, 0, 106)
+	badge.Size = UDim2.new(0, 150, 0, 28)
+	badge.Position = UDim2.new(0, 24, 0, 148)
 	badge.BackgroundColor3 = Color3.fromRGB(18, 20, 26)
 	badge.BackgroundTransparency = 0.2
 	badge.Parent = mainGui
@@ -169,7 +217,7 @@ function HUDController.updateCurrencies(data: Types.PlayerData)
 	local targetScrap = data.Scrap
 	local targetGears = data.Gears
 
-	-- Pop animation for scrap
+	-- Pop animation for banked scrap
 	if targetScrap ~= currentScrap then
 		currentScrap = targetScrap
 		scrapLabel.Text = formatNumber(targetScrap)
@@ -193,6 +241,32 @@ function HUDController.updateCurrencies(data: Types.PlayerData)
 			TextSize = 25,
 		})
 		tween:Play()
+	end
+
+	-- Update Cargo Capacity Bar
+	if cargoFill and cargoLabel then
+		local bagLevel = (data.Upgrades and data.Upgrades["BackpackCapacity"]) or 1
+		local maxCap = Config.getBackpackCapacity(bagLevel)
+		local backpack = data.Backpack or 0
+		local ratio = math.clamp(backpack / math.max(1, maxCap), 0, 1)
+
+		TweenService:Create(cargoFill, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Size = UDim2.new(ratio, 0, 1, 0),
+		}):Play()
+
+		if backpack >= maxCap then
+			cargoFill.BackgroundColor3 = Color3.fromRGB(240, 50, 60)
+			cargoLabel.Text = string.format("🎒 FULL! (%d/%d) — RECYCLE AT HUB!", backpack, maxCap)
+			cargoLabel.TextColor3 = Color3.fromRGB(255, 220, 220)
+		elseif ratio >= 0.8 then
+			cargoFill.BackgroundColor3 = Color3.fromRGB(255, 170, 30)
+			cargoLabel.Text = string.format("🎒 CARGO: %d / %d 🔩", backpack, maxCap)
+			cargoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+		else
+			cargoFill.BackgroundColor3 = Color3.fromRGB(40, 200, 100)
+			cargoLabel.Text = string.format("🎒 CARGO: %d / %d 🔩", backpack, maxCap)
+			cargoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+		end
 	end
 
 	-- Calculate approx multiplier display

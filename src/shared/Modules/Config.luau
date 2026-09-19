@@ -9,6 +9,7 @@ local Config = {
 	-- Base player stats
 	Defaults = {
 		Scrap = 0,
+		Backpack = 0,
 		Gears = 0,
 		Rebirths = 0,
 		CurrentZone = 1,
@@ -19,6 +20,11 @@ local Config = {
 		BaseActionTime = 1.0,
 		BaseScrapYield = 10,
 	},
+
+	getBackpackCapacity = function(level: number): number
+		level = level or 1
+		return math.floor(50 * (1.6 ^ (level - 1)))
+	end,
 
 	-- Reward rarity tiers with weights and multipliers
 	RewardTiers = {
@@ -206,6 +212,40 @@ local Config = {
 				Color = Color3.fromRGB(255, 40, 100),
 			},
 		} :: { Types.PetTemplate },
+	},
+
+	-- The 3 Physical In-World Eggs located in the Hub
+	Eggs = {
+		RustEgg = {
+			Id = "RustEgg",
+			Name = "Rust Egg",
+			Cost = 250,
+			Color = Color3.fromRGB(160, 130, 110),
+			Pool = {
+				{ Id = "drone_rust", Weight = 65 },
+				{ Id = "drone_spark", Weight = 35 },
+			},
+		},
+		PlasmaEgg = {
+			Id = "PlasmaEgg",
+			Name = "Plasma Egg",
+			Cost = 1500,
+			Color = Color3.fromRGB(50, 150, 255),
+			Pool = {
+				{ Id = "drone_welder", Weight = 70 },
+				{ Id = "drone_hound", Weight = 30 },
+			},
+		},
+		CyberEgg = {
+			Id = "CyberEgg",
+			Name = "Cyber Egg",
+			Cost = 10000,
+			Color = Color3.fromRGB(255, 40, 100),
+			Pool = {
+				{ Id = "drone_mech", Weight = 85 },
+				{ Id = "drone_titan", Weight = 15 },
+			},
+		},
 	},
 
 	-- Gears Prestige Shop (High-value permanent perks)

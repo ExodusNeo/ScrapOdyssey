@@ -138,9 +138,19 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 	local distance = (rootPart.Position - nodeHitbox.Position).Magnitude
 	if distance > 26 then return end
 
-	-- 2. Cooldown & Speed Check
+	-- 2. Cooldown & Capacity Check
 	local data = DataService.get(player)
 	if not data then return end
+
+	local bagLevel = (data.Upgrades and data.Upgrades["BackpackCapacity"]) or 1
+	local maxCapacity = Config.getBackpackCapacity(bagLevel)
+	local currentBackpack = data.Backpack or 0
+
+	if currentBackpack >= maxCapacity then
+		local notif = Remotes.getEvent("ShowNotification")
+		notif:FireClient(player, "🎒 CARGO FULL!", "Your backpack is full! Step on the Scrap Recycler in the Hub to sell!", Color3.fromRGB(255, 70, 70))
+		return
+	end
 
 	local zoneId = nodeModel:GetAttribute("ZoneId") or 1
 	local zone = Config.Zones[zoneId]
@@ -187,25 +197,28 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 	local baseYield = zone and zone.BaseYield or 10
 
 	if currentHP > 0 then
-		-- Partial Strike: Give partial scrap, show hit count
+		-- Partial Strike: Fill backpack partially
 		nodeModel:SetAttribute("CurrentHP", currentHP)
 		if statusLabel then
 			statusLabel.Text = string.format("🔨 %s\n[HP: %d/%d]", zone.Name:upper(), currentHP, maxHP)
 		end
 
 		local strikeScrap = math.max(1, math.floor((baseYield * tier.Multiplier) * 0.35))
-		local earned = CurrencyService.addScrap(player, strikeScrap)
+		local spaceLeft = math.max(0, maxCapacity - (data.Backpack or 0))
+		local added = math.min(spaceLeft, strikeScrap)
+		data.Backpack = (data.Backpack or 0) + added
+		DataService.sync(player)
 
 		local actionCompletedEvent = Remotes.getEvent("ActionCompleted")
 		actionCompletedEvent:FireClient(player, {
 			TierName = "Hit",
 			TierColor = Color3.fromRGB(200, 200, 200),
-			ScrapEarned = earned,
+			ScrapEarned = added,
 			SoundPitch = 0.9 + math.random() * 0.2,
 			Position = nodeHitbox.Position + Vector3.new(0, 3, 0),
 		})
 	else
-		-- Final Break Strike: Huge explosion of rewards and respawn timer!
+		-- Final Break Strike: Big reward into backpack!
 		nodeModel:SetAttribute("CurrentHP", 0)
 		nodeCooldown[nodeModel] = true
 
@@ -214,13 +227,16 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 		end
 
 		local breakScrap = math.floor((baseYield * tier.Multiplier) * 1.5)
-		local earned = CurrencyService.addScrap(player, breakScrap)
+		local spaceLeft = math.max(0, maxCapacity - (data.Backpack or 0))
+		local added = math.min(spaceLeft, breakScrap)
+		data.Backpack = (data.Backpack or 0) + added
+		DataService.sync(player)
 
 		local actionCompletedEvent = Remotes.getEvent("ActionCompleted")
 		actionCompletedEvent:FireClient(player, {
 			TierName = tier.Name,
 			TierColor = tier.Color,
-			ScrapEarned = earned,
+			ScrapEarned = added,
 			SoundPitch = tier.SoundPitch,
 			Position = nodeHitbox.Position + Vector3.new(0, 4, 0),
 		})

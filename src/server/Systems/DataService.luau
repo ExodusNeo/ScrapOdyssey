@@ -48,6 +48,7 @@ local function getDefaultData(): Types.PlayerData
 	return {
 		Version = DATA_VERSION,
 		Scrap = Config.Defaults.Scrap,
+		Backpack = 0,
 		Gears = Config.Defaults.Gears,
 		Rebirths = Config.Defaults.Rebirths,
 		CurrentZone = Config.Defaults.CurrentZone,

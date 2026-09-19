@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Modules.Config)
 local Types = require(ReplicatedStorage.Modules.Types)
+local Remotes = require(ReplicatedStorage.Modules.Remotes)
 local DataService = require(script.Parent.DataService)
 
 local CurrencyService = {}
@@ -142,9 +143,34 @@ function CurrencyService.formatNumber(n: number): string
 	end
 end
 
+function CurrencyService.recycleBackpack(player: Player): number
+	local data = DataService.get(player)
+	if not data then return 0 end
+
+	local rawAmount = data.Backpack or 0
+	if rawAmount <= 0 then
+		local notif = Remotes.getEvent("ShowNotification")
+		notif:FireClient(player, "Cargo Empty", "You have no raw scrap in your cargo to recycle! Go strike some piles.", Color3.fromRGB(255, 170, 0))
+		return 0
+	end
+
+	local mult = CurrencyService.getMultiplier(player)
+	local earned = math.floor(rawAmount * mult)
+
+	data.Backpack = 0
+	data.Scrap = data.Scrap + earned
+
+	CurrencyService.updateLeaderstats(player)
+	DataService.sync(player)
+
+	local notif = Remotes.getEvent("ShowNotification")
+	notif:FireClient(player, "SCRAP RECYCLED!", string.format("Converted %d Cargo into +%s Banked Scrap! 💰", rawAmount, CurrencyService.formatNumber(earned)), Color3.fromRGB(80, 220, 120))
+
+	return earned
+end
+
 function CurrencyService.init()
 	Players.PlayerAdded:Connect(function(player)
-		-- Wait for data to load
 		task.delay(0.5, function()
 			CurrencyService.updateLeaderstats(player)
 		end)
@@ -154,7 +180,12 @@ function CurrencyService.init()
 		CurrencyService.updateLeaderstats(player)
 	end
 
-	print("[CurrencyService] Initialized.")
+	local recycleEvent = Remotes.getEvent("RecycleScrap")
+	recycleEvent.OnServerEvent:Connect(function(player)
+		CurrencyService.recycleBackpack(player)
+	end)
+
+	print("[CurrencyService] Initialized with Scrap Recycling Depot support.")
 end
 
 return CurrencyService
