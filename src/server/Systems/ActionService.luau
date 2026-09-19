@@ -536,6 +536,10 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 
 		local actionCompletedEvent = Remotes.getEvent("ActionCompleted")
 		actionCompletedEvent:FireClient(player, {
+			IsBreak = false,
+			IsDense = isDense == true,
+			MaxHP = maxHP,
+			CurrentHP = currentHP,
 			TierName = isDense and "Dense Hit" or "Hit",
 			TierColor = isDense and Color3.fromRGB(255, 215, 50) or Color3.fromRGB(200, 200, 200),
 			ScrapEarned = added,
@@ -573,6 +577,10 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 
 		local actionCompletedEvent = Remotes.getEvent("ActionCompleted")
 		actionCompletedEvent:FireClient(player, {
+			IsBreak = true,
+			IsDense = isDense == true,
+			MaxHP = maxHP,
+			CurrentHP = 0,
 			TierName = isDense and ("DENSE " .. tier.Name) or tier.Name,
 			TierColor = isDense and Color3.fromRGB(255, 215, 50) or tier.Color,
 			ScrapEarned = added,

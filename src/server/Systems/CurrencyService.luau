@@ -183,6 +183,15 @@ function CurrencyService.recycleBackpack(player: Player): number
 		QuestService.recordScrapEarned(player, earned)
 	end)
 
+	local recycleCompleted = Remotes.getEvent("RecycleCompleted")
+	local char = player.Character
+	local rootPos = (char and char:FindFirstChild("HumanoidRootPart")) and (char.HumanoidRootPart :: BasePart).Position or Vector3.new(0, 5, 0)
+	recycleCompleted:FireClient(player, {
+		ScrapRecycled = rawAmount,
+		ScrapEarned = earned,
+		Position = rootPos,
+	})
+
 	local notif = Remotes.getEvent("ShowNotification")
 	notif:FireClient(player, "SCRAP RECYCLED!", string.format("Converted %d Cargo into +%s Banked Scrap! 💰", rawAmount, CurrencyService.formatNumber(earned)), Color3.fromRGB(80, 220, 120))
 

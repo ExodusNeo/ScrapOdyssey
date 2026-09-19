@@ -9,6 +9,8 @@ local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage.Modules.Config)
 local Types = require(ReplicatedStorage.Modules.Types)
 local Remotes = require(ReplicatedStorage.Modules.Remotes)
+local SoundController = require(script.Parent:WaitForChild("SoundController"))
+local VFXController = require(script.Parent:WaitForChild("VFXController"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui") :: PlayerGui
@@ -30,35 +32,20 @@ local rebirthButton: TextButton
 local gearsShopHeaderLabel: TextLabel
 local questRowRefs: { [string]: { Fill: Frame, Label: TextLabel, ClaimButton: TextButton } } = {}
 local toolRowRefs: { [string]: { EquipButton: TextButton, Card: Frame } } = {}
-local isSFXEnabled = true
-local isMusicEnabled = true
-local bgMusic: Sound? = nil
 
 local function playSound(soundId: string, pitch: number?)
-	if not isSFXEnabled then return end
-	task.spawn(function()
-		local sound = Instance.new("Sound")
-		sound.SoundId = soundId
-		sound.Pitch = pitch or 1.0
-		sound.Volume = 0.5
-		sound.Parent = SoundService
-		sound:Play()
-		sound.Ended:Connect(function()
-			sound:Destroy()
-		end)
-	end)
+	if not SoundController.isSFXEnabled() then return end
+	if soundId == "rbxassetid://6895079853" then
+		SoundController.playUIClick()
+	elseif soundId == "rbxassetid://5153734608" then
+		SoundController.playSuccess()
+	else
+		SoundController.playUIClick()
+	end
 end
 
 local function setupMusic()
-	if not bgMusic then
-		bgMusic = Instance.new("Sound")
-		bgMusic.Name = "ScrapOdysseyAmbient"
-		bgMusic.SoundId = "rbxassetid://9043887091"
-		bgMusic.Looped = true
-		bgMusic.Volume = isMusicEnabled and 0.18 or 0
-		bgMusic.Parent = SoundService
-		bgMusic:Play()
-	end
+	-- Centrally initialized and controlled via SoundController
 end
 
 local function formatNumber(n: number): string
@@ -920,11 +907,12 @@ function MenuController.buildSettingsPanel()
 	local mToggle = Instance.new("TextButton")
 	mToggle.Size = UDim2.new(0, 120, 0, 42)
 	mToggle.Position = UDim2.new(1, -136, 0.5, -21)
-	mToggle.BackgroundColor3 = isMusicEnabled and Color3.fromRGB(40, 180, 80) or Color3.fromRGB(180, 50, 50)
+	local isMusic = SoundController.isMusicEnabled()
+	mToggle.BackgroundColor3 = isMusic and Color3.fromRGB(40, 180, 80) or Color3.fromRGB(180, 50, 50)
 	mToggle.Font = Enum.Font.GothamBlack
 	mToggle.TextSize = 14
 	mToggle.TextColor3 = Color3.new(1, 1, 1)
-	mToggle.Text = isMusicEnabled and "PLAYING 🔊" or "MUTED 🔇"
+	mToggle.Text = isMusic and "PLAYING 🔊" or "MUTED 🔇"
 	mToggle.Parent = musicCard
 
 	local mtCorner = Instance.new("UICorner")
@@ -932,14 +920,10 @@ function MenuController.buildSettingsPanel()
 	mtCorner.Parent = mToggle
 
 	mToggle.MouseButton1Click:Connect(function()
-		isMusicEnabled = not isMusicEnabled
-		SoundService:SetAttribute("MusicEnabled", isMusicEnabled)
-		mToggle.BackgroundColor3 = isMusicEnabled and Color3.fromRGB(40, 180, 80) or Color3.fromRGB(180, 50, 50)
-		mToggle.Text = isMusicEnabled and "PLAYING 🔊" or "MUTED 🔇"
-		if bgMusic then
-			bgMusic.Volume = isMusicEnabled and 0.18 or 0
-		end
-		playSound("rbxassetid://6895079853", 1.2)
+		local on = SoundController.toggleMusic()
+		mToggle.BackgroundColor3 = on and Color3.fromRGB(40, 180, 80) or Color3.fromRGB(180, 50, 50)
+		mToggle.Text = on and "PLAYING 🔊" or "MUTED 🔇"
+		SoundController.playUIClick()
 	end)
 
 	-- 2. SFX Setting Card
@@ -972,11 +956,12 @@ function MenuController.buildSettingsPanel()
 	local sToggle = Instance.new("TextButton")
 	sToggle.Size = UDim2.new(0, 120, 0, 42)
 	sToggle.Position = UDim2.new(1, -136, 0.5, -21)
-	sToggle.BackgroundColor3 = isSFXEnabled and Color3.fromRGB(40, 180, 80) or Color3.fromRGB(180, 50, 50)
+	local isSFX = SoundController.isSFXEnabled()
+	sToggle.BackgroundColor3 = isSFX and Color3.fromRGB(40, 180, 80) or Color3.fromRGB(180, 50, 50)
 	sToggle.Font = Enum.Font.GothamBlack
 	sToggle.TextSize = 14
 	sToggle.TextColor3 = Color3.new(1, 1, 1)
-	sToggle.Text = isSFXEnabled and "ENABLED 🔔" or "MUTED 🔕"
+	sToggle.Text = isSFX and "ENABLED 🔔" or "MUTED 🔕"
 	sToggle.Parent = sfxCard
 
 	local stCorner = Instance.new("UICorner")
@@ -984,13 +969,58 @@ function MenuController.buildSettingsPanel()
 	stCorner.Parent = sToggle
 
 	sToggle.MouseButton1Click:Connect(function()
-		isSFXEnabled = not isSFXEnabled
-		SoundService:SetAttribute("SFXEnabled", isSFXEnabled)
-		sToggle.BackgroundColor3 = isSFXEnabled and Color3.fromRGB(40, 180, 80) or Color3.fromRGB(180, 50, 50)
-		sToggle.Text = isSFXEnabled and "ENABLED 🔔" or "MUTED 🔕"
-		if isSFXEnabled then
-			playSound("rbxassetid://6895079853", 1.2)
-		end
+		local on = SoundController.toggleSFX()
+		sToggle.BackgroundColor3 = on and Color3.fromRGB(40, 180, 80) or Color3.fromRGB(180, 50, 50)
+		sToggle.Text = on and "ENABLED 🔔" or "MUTED 🔕"
+	end)
+
+	-- 3. Screen Shake & Camera Juice Setting Card
+	local shakeCard = Instance.new("Frame")
+	shakeCard.Size = UDim2.new(1, 0, 0, 68)
+	shakeCard.BackgroundColor3 = Color3.fromRGB(24, 28, 38)
+	shakeCard.BorderSizePixel = 0
+	shakeCard.Parent = body
+
+	local shkCorner = Instance.new("UICorner")
+	shkCorner.CornerRadius = UDim.new(0, 12)
+	shkCorner.Parent = shakeCard
+
+	local shkStroke = Instance.new("UIStroke")
+	shkStroke.Color = Color3.fromRGB(45, 55, 75)
+	shkStroke.Thickness = 1.5
+	shkStroke.Parent = shakeCard
+
+	local shkTitle = Instance.new("TextLabel")
+	shkTitle.Size = UDim2.new(0.65, 0, 1, 0)
+	shkTitle.Position = UDim2.new(0, 16, 0, 0)
+	shkTitle.BackgroundTransparency = 1
+	shkTitle.Font = Enum.Font.GothamBold
+	shkTitle.TextSize = 16
+	shkTitle.TextColor3 = Color3.new(1, 1, 1)
+	shkTitle.TextXAlignment = Enum.TextXAlignment.Left
+	shkTitle.Text = "📳 Camera Shake Juice"
+	shkTitle.Parent = shakeCard
+
+	local shkToggle = Instance.new("TextButton")
+	shkToggle.Size = UDim2.new(0, 120, 0, 42)
+	shkToggle.Position = UDim2.new(1, -136, 0.5, -21)
+	local isShake = VFXController.isScreenShakeEnabled()
+	shkToggle.BackgroundColor3 = isShake and Color3.fromRGB(120, 55, 165) or Color3.fromRGB(45, 50, 60)
+	shkToggle.Font = Enum.Font.GothamBlack
+	shkToggle.TextSize = 14
+	shkToggle.TextColor3 = Color3.new(1, 1, 1)
+	shkToggle.Text = isShake and "ACTIVE 📳" or "OFF 🚫"
+	shkToggle.Parent = shakeCard
+
+	local shktCorner = Instance.new("UICorner")
+	shktCorner.CornerRadius = UDim.new(0, 8)
+	shktCorner.Parent = shkToggle
+
+	shkToggle.MouseButton1Click:Connect(function()
+		local on = VFXController.toggleScreenShake()
+		shkToggle.BackgroundColor3 = on and Color3.fromRGB(120, 55, 165) or Color3.fromRGB(45, 50, 60)
+		shkToggle.Text = on and "ACTIVE 📳" or "OFF 🚫"
+		SoundController.playUIClick()
 	end)
 
 	-- 3. Social & Trading Card (Notepad Phase 6 Stub)

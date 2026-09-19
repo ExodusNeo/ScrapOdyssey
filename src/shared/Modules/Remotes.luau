@@ -20,6 +20,7 @@ local REMOTE_EVENTS = {
 	"TeleportZone",
 	"PurchaseGearsPerk",
 	"RecycleScrap",
+	"RecycleCompleted",
 	"SendTrade",
 	"TradeUpdate",
 	"ShowNotification",

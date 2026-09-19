@@ -2,11 +2,13 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local SoundService = game:GetService("SoundService")
+local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Modules.Config)
 local Remotes = require(ReplicatedStorage.Modules.Remotes)
 local Types = require(ReplicatedStorage.Modules.Types)
+local SoundController = require(script.Parent:WaitForChild("SoundController"))
+local VFXController = require(script.Parent:WaitForChild("VFXController"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui") :: PlayerGui
@@ -22,21 +24,6 @@ local cargoLabel: TextLabel
 local currentScrap = 0
 local currentGears = 0
 local currentBackpack = -1
-
-local function playSound(soundId: string, pitch: number?, volume: number?)
-	if SoundService:GetAttribute("SFXEnabled") == false then return end
-	task.spawn(function()
-		local sound = Instance.new("Sound")
-		sound.SoundId = soundId
-		sound.Pitch = pitch or 1.0
-		sound.Volume = volume or 0.5
-		sound.Parent = SoundService
-		sound:Play()
-		sound.Ended:Connect(function()
-			sound:Destroy()
-		end)
-	end)
-end
 
 local function formatNumber(n: number): string
 	if n >= 1e9 then
@@ -212,6 +199,100 @@ function HUDController.createHUD()
 	multLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
 	multLabel.Text = "⚡ MULT: 1.0x"
 	multLabel.Parent = badge
+
+	-- Top Right Audio & Effects Controls
+	local controlBar = Instance.new("Frame")
+	controlBar.Name = "AudioControlBar"
+	controlBar.Size = UDim2.new(0, 200, 0, 36)
+	controlBar.Position = UDim2.new(1, -220, 0, 24)
+	controlBar.BackgroundColor3 = Color3.fromRGB(18, 20, 26)
+	controlBar.BackgroundTransparency = 0.15
+	controlBar.BorderSizePixel = 0
+	controlBar.Parent = mainGui
+
+	local barCorner = Instance.new("UICorner")
+	barCorner.CornerRadius = UDim.new(0, 10)
+	barCorner.Parent = controlBar
+
+	local barStroke = Instance.new("UIStroke")
+	barStroke.Color = Color3.fromRGB(50, 60, 80)
+	barStroke.Thickness = 1.5
+	barStroke.Parent = controlBar
+
+	local barLayout = Instance.new("UIListLayout")
+	barLayout.FillDirection = Enum.FillDirection.Horizontal
+	barLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	barLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	barLayout.Padding = UDim.new(0, 6)
+	barLayout.Parent = controlBar
+
+	-- 1. Music Toggle Button
+	local musicBtn = Instance.new("TextButton")
+	musicBtn.Name = "MusicBtn"
+	musicBtn.Size = UDim2.new(0, 58, 0, 26)
+	musicBtn.BackgroundColor3 = Color3.fromRGB(35, 120, 60)
+	musicBtn.Font = Enum.Font.GothamBold
+	musicBtn.TextSize = 11
+	musicBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	musicBtn.Text = "🎵 ON"
+	musicBtn.AutoButtonColor = false
+	musicBtn.Parent = controlBar
+
+	local mCorner = Instance.new("UICorner")
+	mCorner.CornerRadius = UDim.new(0, 6)
+	mCorner.Parent = musicBtn
+
+	musicBtn.MouseButton1Click:Connect(function()
+		local on = SoundController.toggleMusic()
+		musicBtn.Text = on and "🎵 ON" or "🎵 OFF"
+		musicBtn.BackgroundColor3 = on and Color3.fromRGB(35, 120, 60) or Color3.fromRGB(45, 50, 60)
+		SoundController.playUIClick()
+	end)
+
+	-- 2. SFX Toggle Button
+	local sfxBtn = Instance.new("TextButton")
+	sfxBtn.Name = "SFXBtn"
+	sfxBtn.Size = UDim2.new(0, 58, 0, 26)
+	sfxBtn.BackgroundColor3 = Color3.fromRGB(30, 95, 175)
+	sfxBtn.Font = Enum.Font.GothamBold
+	sfxBtn.TextSize = 11
+	sfxBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	sfxBtn.Text = "🔊 ON"
+	sfxBtn.AutoButtonColor = false
+	sfxBtn.Parent = controlBar
+
+	local sCorner = Instance.new("UICorner")
+	sCorner.CornerRadius = UDim.new(0, 6)
+	sCorner.Parent = sfxBtn
+
+	sfxBtn.MouseButton1Click:Connect(function()
+		local on = SoundController.toggleSFX()
+		sfxBtn.Text = on and "🔊 ON" or "🔇 OFF"
+		sfxBtn.BackgroundColor3 = on and Color3.fromRGB(30, 95, 175) or Color3.fromRGB(45, 50, 60)
+	end)
+
+	-- 3. Screen Shake Toggle Button
+	local shakeBtn = Instance.new("TextButton")
+	shakeBtn.Name = "ShakeBtn"
+	shakeBtn.Size = UDim2.new(0, 62, 0, 26)
+	shakeBtn.BackgroundColor3 = Color3.fromRGB(120, 55, 165)
+	shakeBtn.Font = Enum.Font.GothamBold
+	shakeBtn.TextSize = 11
+	shakeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	shakeBtn.Text = "📳 ON"
+	shakeBtn.AutoButtonColor = false
+	shakeBtn.Parent = controlBar
+
+	local shCorner = Instance.new("UICorner")
+	shCorner.CornerRadius = UDim.new(0, 6)
+	shCorner.Parent = shakeBtn
+
+	shakeBtn.MouseButton1Click:Connect(function()
+		local on = VFXController.toggleScreenShake()
+		shakeBtn.Text = on and "📳 ON" or "📳 OFF"
+		shakeBtn.BackgroundColor3 = on and Color3.fromRGB(120, 55, 165) or Color3.fromRGB(45, 50, 60)
+		SoundController.playUIClick()
+	end)
 end
 
 function HUDController.updateCurrencies(data: Types.PlayerData)
@@ -303,21 +384,39 @@ function HUDController.updateGateBarriers(maxZone: number)
 	end
 end
 
--- Spawn floating "+25 Scrap [Rare]" text in 3D world with sound and particle burst
+-- Spawn floating "+25 Scrap" text in 3D world with sound, particles, and camera juice
 function HUDController.spawnRewardPopup(info: any)
 	local worldPos = info.Position or Vector3.new(0, 10, 0)
-	local text = string.format("+%s Scrap\n[%s]", formatNumber(info.ScrapEarned), info.TierName)
+	local isBreak = info.IsBreak == true or (info.CurrentHP ~= nil and info.CurrentHP <= 0)
+	local isDense = info.IsDense == true
 
-	-- Play hit sound with pitch according to rarity
-	playSound("rbxassetid://9114223175", info.SoundPitch or 1.0, 0.6)
+	-- Audio & Particle FX
+	if isBreak then
+		SoundController.playShatter(isDense, worldPos)
+		VFXController.spawnShatterVFX(worldPos, isDense)
+		VFXController.shakeCamera(0.55, 0.22, 1.2)
+	else
+		SoundController.playHit(isDense, worldPos)
+		VFXController.spawnHitSparks(worldPos, isDense, info.TierColor)
+		VFXController.shakeCamera(isDense and 0.32 or 0.12, isDense and 0.14 or 0.08, 0.8)
+	end
 
-	-- If Rare/Epic/Legendary/Mythic, also play chime
-	if info.TierName ~= "Common" then
-		playSound("rbxassetid://5153734608", 1.0 + (info.SoundPitch or 1.0) * 0.2, 0.4)
+	-- Visual Formatting
+	local text: string
+	local textColor: Color3
+	if isBreak then
+		text = string.format("💥 CLEARED! +%s 🔩\n[%s]", formatNumber(info.ScrapEarned), info.TierName or "MAX")
+		textColor = Color3.fromRGB(80, 240, 140)
+	elseif isDense then
+		text = string.format("⭐ CRIT! +%s 🔩\n[%s]", formatNumber(info.ScrapEarned), info.TierName or "DENSE")
+		textColor = Color3.fromRGB(0, 240, 255)
+	else
+		text = string.format("+%s 🔩", formatNumber(info.ScrapEarned))
+		textColor = info.TierColor or Color3.fromRGB(255, 215, 0)
 	end
 
 	local billboard = Instance.new("BillboardGui")
-	billboard.Size = UDim2.new(0, 180, 0, 50)
+	billboard.Size = UDim2.new(0, 100, 0, 30)
 	billboard.StudsOffsetWorldSpace = worldPos
 	billboard.AlwaysOnTop = true
 	billboard.Parent = mainGui
@@ -326,25 +425,30 @@ function HUDController.spawnRewardPopup(info: any)
 	label.Size = UDim2.new(1, 0, 1, 0)
 	label.BackgroundTransparency = 1
 	label.Font = Enum.Font.GothamBlack
-	label.TextSize = 24
-	label.TextColor3 = info.TierColor or Color3.fromRGB(255, 215, 0)
-	label.TextStrokeTransparency = 0.15
+	label.TextSize = isDense and 24 or (isBreak and 26 or 20)
+	label.TextColor3 = textColor
+	label.TextStrokeTransparency = 0.1
 	label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 	label.Text = text
 	label.Parent = billboard
 
-	-- Float up and fade out
-	local floatTween = TweenService:Create(billboard, TweenInfo.new(1.3, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {
-		StudsOffsetWorldSpace = worldPos + Vector3.new(0, 6, 0),
+	-- Punchy bounce scale + float
+	local popTween = TweenService:Create(billboard, TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Size = UDim2.new(0, 200, 0, 56),
 	})
-	local fadeTween = TweenService:Create(label, TweenInfo.new(1.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+	local floatTween = TweenService:Create(billboard, TweenInfo.new(1.1, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {
+		StudsOffsetWorldSpace = worldPos + Vector3.new(0, 5, 0),
+	})
+	local fadeTween = TweenService:Create(label, TweenInfo.new(1.1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
 		TextTransparency = 1,
 		TextStrokeTransparency = 1,
-		TextSize = 28,
 	})
 
-	floatTween:Play()
-	fadeTween:Play()
+	popTween:Play()
+	popTween.Completed:Connect(function()
+		floatTween:Play()
+		fadeTween:Play()
+	end)
 
 	fadeTween.Completed:Connect(function()
 		billboard:Destroy()
@@ -360,10 +464,18 @@ function HUDController.init()
 		HUDController.updateCurrencies(data)
 	end)
 
-	-- Action completed event (popups)
+	-- Action completed event (popups, hit sparks, sound)
 	local actionCompleted = Remotes.getEvent("ActionCompleted")
 	actionCompleted.OnClientEvent:Connect(function(info)
 		HUDController.spawnRewardPopup(info)
+	end)
+
+	-- Recycle completed event (golden geyser, cha-ching audio)
+	local recycleCompleted = Remotes.getEvent("RecycleCompleted")
+	recycleCompleted.OnClientEvent:Connect(function(info)
+		SoundController.playRecycle(info.Position)
+		VFXController.spawnRecycleVFX(info.Position, info.ScrapRecycled or 0, info.ScrapEarned or 0)
+		VFXController.shakeCamera(0.28, 0.18, 0.9)
 	end)
 
 	-- Initial fetch
@@ -386,7 +498,7 @@ function HUDController.init()
 		end
 	end)
 
-	print("[HUDController] Initialized with audio feedback and popups.")
+	print("[HUDController] Initialized with audio feedback, camera shake, and particle juice.")
 end
 
 return HUDController

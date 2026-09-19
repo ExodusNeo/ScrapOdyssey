@@ -4,6 +4,8 @@ local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Remotes = require(ReplicatedStorage.Modules.Remotes)
+local SoundController = require(script.Parent:WaitForChild("SoundController"))
+local VFXController = require(script.Parent:WaitForChild("VFXController"))
 
 local ActionController = {}
 local player = Players.LocalPlayer
@@ -15,6 +17,10 @@ local function onToolActivated(tool: Tool)
 	local cooldown = tool:GetAttribute("Cooldown") or 0.45
 	if now - lastSwingTime < (cooldown * 0.85) then return end
 	lastSwingTime = now
+
+	-- Instant responsive swing audio & visual feedback
+	SoundController.playSwing()
+	VFXController.pulseToolTrail(tool)
 
 	local character = player.Character
 	if not character then return end
@@ -45,7 +51,8 @@ local function onToolActivated(tool: Tool)
 end
 
 local function hookTool(tool: Instance)
-	if tool:IsA("Tool") and (tool:GetAttribute("IsScrapperTool") or tool.Name == "ScrapperTool" or tool.Name == "OmniScrapper" or tool.Name == "PlasmaDismantler") then
+	if tool:IsA("Tool") and (tool:GetAttribute("IsScrapperTool") or tool.Name == "ScrapperTool" or tool.Name == "OmniScrapper" or tool.Name == "PlasmaDismantler" or tool:FindFirstChild("Handle")) then
+		VFXController.attachToolTrail(tool :: Tool)
 		tool.Activated:Connect(function()
 			onToolActivated(tool :: Tool)
 		end)
