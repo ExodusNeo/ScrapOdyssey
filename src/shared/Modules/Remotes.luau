@@ -28,6 +28,8 @@ local REMOTE_EVENTS = {
 	"DebugAction",
 	"PurchaseTool",
 	"EquipTool",
+	"OrbitalEventAnnounce",
+	"OrbitalEventImpact",
 }
 
 local REMOTE_FUNCTIONS = {

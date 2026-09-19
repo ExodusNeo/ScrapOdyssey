@@ -1348,6 +1348,14 @@ function MenuController.buildDebugPanel()
 			BtnText = "+5 REBIRTHS",
 		},
 		{
+			Title = "🚀 Trigger Orbital Drop Pod Event",
+			Desc = "Summons a crashing orbital salvage pod with high HP and massive loot.",
+			Action = "SpawnMeteor",
+			Arg = nil,
+			Color = Color3.fromRGB(255, 120, 20),
+			BtnText = "SPAWN POD",
+		},
+		{
 			Title = "🧹 Clear All Stats (Scrap & Gears)",
 			Desc = "Resets Scrap, Gears, Cargo, and Rebirths to 0 while keeping unlocks.",
 			Action = "ClearStats",

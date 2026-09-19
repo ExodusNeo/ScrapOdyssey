@@ -384,6 +384,21 @@ function HUDController.init()
 		VFXController.shakeCamera(0.28, 0.18, 0.9)
 	end)
 
+	-- Orbital Drop Pod incoming announcement and crash impact
+	local orbitalAnnounce = Remotes.getEvent("OrbitalEventAnnounce")
+	orbitalAnnounce.OnClientEvent:Connect(function(info)
+		SoundController.playSuccess()
+	end)
+
+	local orbitalImpact = Remotes.getEvent("OrbitalEventImpact")
+	orbitalImpact.OnClientEvent:Connect(function(info)
+		if info and info.LandingPosition then
+			VFXController.spawnShatterVFX(info.LandingPosition, true)
+			SoundController.playShatter(true, info.LandingPosition)
+			VFXController.shakeCamera(0.85, 0.35, 1.5)
+		end
+	end)
+
 	-- Initial fetch
 	local getFunction = Remotes.getFunction("GetPlayerData")
 	task.spawn(function()

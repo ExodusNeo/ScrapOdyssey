@@ -52,6 +52,7 @@ safeInit("QuestService")
 safeInit("LeaderboardService")
 safeInit("MonetizationService")
 safeInit("DebugService")
+safeInit("EventService")
 
 print("==================================================")
 print("       SCRAP ODYSSEY: SERVER READY!               ")

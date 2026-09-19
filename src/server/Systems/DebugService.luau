@@ -99,6 +99,14 @@ function DebugService.handleAction(player: Player, action: string, arg: any?)
 		DataService.sync(player)
 		notif:FireClient(player, "DEBUG: Rebirths Added", string.format("+%d Rebirths and +%d Gears awarded!", count, gearsEarned), Color3.fromRGB(90, 140, 255))
 
+	elseif action == "SpawnMeteor" then
+		local EventService = require(script.Parent.EventService)
+		local zoneId = type(arg) == "number" and arg or nil
+		local pod = EventService.triggerDropPod(zoneId)
+		if pod then
+			notif:FireClient(player, "DEBUG: Pod Incoming", "Summoned an Orbital Drop Pod crash event!", Color3.fromRGB(255, 140, 20))
+		end
+
 	elseif action == "ClearCargo" then
 		data.Backpack = 0
 		CurrencyService.updateLeaderstats(player)

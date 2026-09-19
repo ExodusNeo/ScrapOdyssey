@@ -534,16 +534,21 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 			BackpackService.updateCoreColor(player)
 		end)
 
+		local isOrbital = nodeModel:GetAttribute("IsOrbitalPod") == true
+		if isOrbital and math.random() <= 0.25 then
+			CurrencyService.addGears(player, 1)
+		end
+
 		local actionCompletedEvent = Remotes.getEvent("ActionCompleted")
 		actionCompletedEvent:FireClient(player, {
 			IsBreak = false,
-			IsDense = isDense == true,
+			IsDense = (isDense == true) or isOrbital,
 			MaxHP = maxHP,
 			CurrentHP = currentHP,
-			TierName = isDense and "Dense Hit" or "Hit",
-			TierColor = isDense and Color3.fromRGB(255, 215, 50) or Color3.fromRGB(200, 200, 200),
+			TierName = isOrbital and "ORBITAL RAID" or (isDense and "Dense Hit" or "Hit"),
+			TierColor = isOrbital and Color3.fromRGB(255, 140, 20) or (isDense and Color3.fromRGB(255, 215, 50) or Color3.fromRGB(200, 200, 200)),
 			ScrapEarned = added,
-			SoundPitch = 0.9 + math.random() * 0.2,
+			SoundPitch = isOrbital and 1.35 or (0.9 + math.random() * 0.2),
 			Position = nodeHitbox.Position + Vector3.new(0, 3, 0),
 		})
 	else
@@ -563,6 +568,7 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 			barFill.Size = UDim2.new(0, 0, 1, 0)
 		end
 
+		local isOrbital = nodeModel:GetAttribute("IsOrbitalPod") == true
 		local breakScrap = math.floor((baseYield * tier.Multiplier) * 1.5)
 		local spaceLeft = math.max(0, maxCapacity - (data.Backpack or 0))
 		local added = math.min(spaceLeft, breakScrap)
@@ -578,11 +584,11 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 		local actionCompletedEvent = Remotes.getEvent("ActionCompleted")
 		actionCompletedEvent:FireClient(player, {
 			IsBreak = true,
-			IsDense = isDense == true,
+			IsDense = (isDense == true) or isOrbital,
 			MaxHP = maxHP,
 			CurrentHP = 0,
-			TierName = isDense and ("DENSE " .. tier.Name) or tier.Name,
-			TierColor = isDense and Color3.fromRGB(255, 215, 50) or tier.Color,
+			TierName = isOrbital and "ORBITAL CACHE CLAIMED" or (isDense and ("DENSE " .. tier.Name) or tier.Name),
+			TierColor = isOrbital and Color3.fromRGB(255, 140, 20) or (isDense and Color3.fromRGB(255, 215, 50) or tier.Color),
 			ScrapEarned = added,
 			SoundPitch = tier.SoundPitch,
 			Position = nodeHitbox.Position + Vector3.new(0, 4, 0),
@@ -599,7 +605,24 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 		local halo = nodeModel:FindFirstChild("DenseHalo") :: BasePart?
 		if halo then halo.Transparency = 1 end
 
-		-- Respawn after 2.5 seconds with fresh RNG Dense roll
+		if isOrbital then
+			local bonusGears = math.random(8, 15)
+			CurrencyService.addGears(player, bonusGears)
+			local notif = Remotes.getEvent("ShowNotification")
+			notif:FireAllClients(
+				"🚀 ORBITAL POD NEUTRALIZED!",
+				string.format("%s dismantled the Orbital Drop Pod and claimed +%d Gears! ⚙️", player.Name, bonusGears),
+				Color3.fromRGB(255, 140, 20)
+			)
+			task.delay(1.5, function()
+				if nodeModel and nodeModel.Parent then
+					nodeModel:Destroy()
+				end
+			end)
+			return
+		end
+
+		-- Respawn after 2.5 seconds with fresh RNG Dense roll (standard piles only)
 		task.delay(2.5, function()
 			if nodeModel and nodeModel.Parent then
 				local rZoneId = nodeModel:GetAttribute("ZoneId") or 1
