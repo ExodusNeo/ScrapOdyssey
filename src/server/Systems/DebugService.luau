@@ -109,6 +109,19 @@ function DebugService.handleAction(player: Player, action: string, arg: any?)
 		end)
 		notif:FireClient(player, "DEBUG: Cargo Cleared", "Backpack emptied.", Color3.fromRGB(200, 200, 200))
 
+	elseif action == "ClearStats" then
+		data.Scrap = 0
+		data.Backpack = 0
+		data.Gears = 0
+		data.Rebirths = 0
+		CurrencyService.updateLeaderstats(player)
+		DataService.sync(player)
+		pcall(function()
+			local BackpackService = require(script.Parent.BackpackService)
+			BackpackService.updateCoreColor(player)
+		end)
+		notif:FireClient(player, "DEBUG: Stats Cleared", "Scrap, Gears, Cargo, and Rebirths reset to 0!", Color3.fromRGB(255, 120, 50))
+
 	elseif action == "ResetSave" then
 		data.Scrap = 0
 		data.Backpack = 0
@@ -119,12 +132,16 @@ function DebugService.handleAction(player: Player, action: string, arg: any?)
 		data.Upgrades = { ScrapPower = 1, ScrapSpeed = 1, BackpackCapacity = 1 }
 		data.GearsPerks = {}
 		data.Pets = {}
+		data.OwnedTools = { ["OmniWrench"] = true }
+		data.EquippedTool = "OmniWrench"
 		CurrencyService.updateLeaderstats(player)
 		DataService.sync(player)
 		pcall(function()
 			local BackpackService = require(script.Parent.BackpackService)
 			BackpackService.createBackpack(player)
 		end)
+		local ActionService = require(script.Parent.ActionService)
+		ActionService.giveScrapperTool(player)
 		notif:FireClient(player, "DEBUG: Profile Reset", "Data reset to fresh defaults.", Color3.fromRGB(255, 70, 70))
 	end
 end

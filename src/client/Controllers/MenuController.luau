@@ -1251,9 +1251,10 @@ function MenuController.buildDebugPanel()
 	local scroll = Instance.new("ScrollingFrame")
 	scroll.Size = UDim2.new(1, 0, 1, 0)
 	scroll.BackgroundTransparency = 1
-	scroll.ScrollBarThickness = 5
+	scroll.ScrollBarThickness = 6
 	scroll.ScrollBarImageColor3 = Color3.fromRGB(255, 65, 100)
-	scroll.CanvasSize = UDim2.new(0, 0, 0, 560)
+	scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 	scroll.ZIndex = 24
 	scroll.Parent = body
 
@@ -1265,7 +1266,7 @@ function MenuController.buildDebugPanel()
 
 	local uipadding = Instance.new("UIPadding")
 	uipadding.PaddingTop = UDim.new(0, 6)
-	uipadding.PaddingBottom = UDim.new(0, 14)
+	uipadding.PaddingBottom = UDim.new(0, 24)
 	uipadding.PaddingLeft = UDim.new(0, 6)
 	uipadding.PaddingRight = UDim.new(0, 6)
 	uipadding.Parent = scroll
@@ -1347,6 +1348,14 @@ function MenuController.buildDebugPanel()
 			BtnText = "+5 REBIRTHS",
 		},
 		{
+			Title = "🧹 Clear All Stats (Scrap & Gears)",
+			Desc = "Resets Scrap, Gears, Cargo, and Rebirths to 0 while keeping unlocks.",
+			Action = "ClearStats",
+			Arg = nil,
+			Color = Color3.fromRGB(240, 90, 40),
+			BtnText = "CLEAR STATS",
+		},
+		{
 			Title = "🗑️ Clear Backpack Cargo",
 			Desc = "Empties your backpack storage to 0 / Max.",
 			Action = "ClearCargo",
@@ -1355,8 +1364,8 @@ function MenuController.buildDebugPanel()
 			BtnText = "CLEAR CARGO",
 		},
 		{
-			Title = "⚠️ Reset Save Profile",
-			Desc = "Wipes player profile and resets to default Zone 1 state.",
+			Title = "⚠️ Reset Save Profile (Full Wipe)",
+			Desc = "Wipes entire save profile back to fresh beginner account.",
 			Action = "ResetSave",
 			Arg = nil,
 			Color = Color3.fromRGB(225, 45, 55),
