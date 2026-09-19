@@ -660,11 +660,11 @@ function ZoneService.buildZone1Props(folder: Instance, center: Vector3)
 	createPropPart(props, "SiloDome", Vector3.new(7.5, 5, 7.5), CFrame.new(siloPos + Vector3.new(0, 19, 0)), Color3.fromRGB(130, 75, 45), Enum.Material.Metal, Enum.PartType.Ball)
 	createPropPart(props, "SiloCatwalk", Vector3.new(1, 9, 9), CFrame.new(siloPos + Vector3.new(0, 11, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(50, 50, 55), Enum.Material.Metal, Enum.PartType.Cylinder)
 
-	-- 5. Rusted Oil Drum Clusters
+	-- 5. Rusted Oil Drum Clusters (Base resting on ground at Y = 1.4, stacked drum at Y = 4.2)
 	local drumOffsets = {
 		Vector3.new(-28, 1.4, -36),
 		Vector3.new(-26, 1.4, -34),
-		Vector3.new(-27, 3.8, -35),
+		Vector3.new(-27, 4.2, -35),
 		Vector3.new(28, 1.4, -36),
 		Vector3.new(26, 1.4, -34),
 	}
@@ -690,28 +690,30 @@ function ZoneService.buildZone2Props(folder: Instance, center: Vector3)
 	createPropPart(props, "PistonR", Vector3.new(10, 1.8, 1.8), CFrame.new(crusherPos + Vector3.new(4.5, 12, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(180, 190, 205), Enum.Material.Metal, Enum.PartType.Cylinder)
 	createPropPart(props, "CrushRam", Vector3.new(17, 2, 6.5), CFrame.new(crusherPos + Vector3.new(0, 7, 0)), Color3.fromRGB(100, 115, 130), Enum.Material.Metal)
 
-	-- 2. Crushed Cyber-Car Stack (North-West Corner)
+	-- 2. Crushed Cyber-Car Stack (North-West Corner - Flush Contact)
 	local carPos1 = center + Vector3.new(-38, 0, -32)
 	createPropPart(props, "CarLower_1", Vector3.new(7.5, 2.2, 12), CFrame.new(carPos1 + Vector3.new(0, 1.1, 0)), Color3.fromRGB(60, 95, 120), Enum.Material.Metal)
-	createPropPart(props, "CarLower_Windshield", Vector3.new(6.5, 1.2, 4), CFrame.new(carPos1 + Vector3.new(0, 2.6, -1)), Color3.fromRGB(20, 30, 40), Enum.Material.SmoothPlastic)
-	local rotCar2 = CFrame.Angles(math.rad(8), math.rad(15), math.rad(-6))
-	createPropPart(props, "CarUpper_1", Vector3.new(7, 2, 11), CFrame.new(carPos1 + Vector3.new(0.5, 3.8, 0)) * rotCar2, Color3.fromRGB(140, 50, 60), Enum.Material.Metal)
+	createPropPart(props, "CarLower_Windshield", Vector3.new(6.5, 1.0, 4), CFrame.new(carPos1 + Vector3.new(0, 2.7, -1)), Color3.fromRGB(20, 30, 40), Enum.Material.SmoothPlastic)
+	local rotCar2 = CFrame.Angles(math.rad(6), math.rad(14), math.rad(-4))
+	createPropPart(props, "CarUpper_1", Vector3.new(7, 2, 11), CFrame.new(carPos1 + Vector3.new(0.4, 2.9, 0)) * rotCar2, Color3.fromRGB(140, 50, 60), Enum.Material.Metal)
 
-	-- 3. Crushed Cyber-Car Stack (North-East Corner)
+	-- 3. Crushed Cyber-Car Stack (North-East Corner - Flush Contact)
 	local carPos2 = center + Vector3.new(38, 0, -32)
-	local rotCar3 = CFrame.Angles(math.rad(-6), math.rad(-18), math.rad(8))
-	createPropPart(props, "CarStack2_Base", Vector3.new(8, 2.4, 12), CFrame.new(carPos2 + Vector3.new(0, 1.2, 0)), Color3.fromRGB(160, 120, 40), Enum.Material.Metal)
-	createPropPart(props, "CarStack2_Top", Vector3.new(7.2, 2.1, 10.5), CFrame.new(carPos2 + Vector3.new(-0.4, 4.0, 0)) * rotCar3, Color3.fromRGB(75, 80, 95), Enum.Material.Metal)
+	local rotCar3 = CFrame.Angles(math.rad(-5), math.rad(-16), math.rad(6))
+	createPropPart(props, "CarStack2_Base", Vector3.new(8, 2.2, 12), CFrame.new(carPos2 + Vector3.new(0, 1.1, 0)), Color3.fromRGB(160, 120, 40), Enum.Material.Metal)
+	createPropPart(props, "CarStack2_Top", Vector3.new(7.2, 2.0, 10.5), CFrame.new(carPos2 + Vector3.new(-0.3, 2.9, 0)) * rotCar3, Color3.fromRGB(75, 80, 95), Enum.Material.Metal)
 
-	-- 4. Giant Radial Tire Pyramids (South-East & South-Center)
+	-- 4. Giant Radial Tire Stacks (South-East & South-Center - Ground & Stack Flush)
 	local tireClusters = {
 		Vector3.new(38, 0, 34),
 		Vector3.new(0, 0, 42),
 	}
 	for idx, tPos in ipairs(tireClusters) do
-		createPropPart(props, "Tire1_" .. idx, Vector3.new(2.5, 4.5, 4.5), CFrame.new(center + tPos + Vector3.new(-2.5, 2.25, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(25, 26, 30), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
-		createPropPart(props, "Tire2_" .. idx, Vector3.new(2.5, 4.5, 4.5), CFrame.new(center + tPos + Vector3.new(2.5, 2.25, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(25, 26, 30), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
-		createPropPart(props, "Tire3_" .. idx, Vector3.new(2.5, 4.5, 4.5), CFrame.new(center + tPos + Vector3.new(0, 5.5, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(25, 26, 30), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+		createPropPart(props, "Tire1_" .. idx, Vector3.new(1.6, 5.0, 5.0), CFrame.new(center + tPos + Vector3.new(-2.6, 0.8, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(25, 26, 30), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+		createPropPart(props, "Tire2_" .. idx, Vector3.new(1.6, 5.0, 5.0), CFrame.new(center + tPos + Vector3.new(-2.6, 2.4, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(25, 26, 30), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+		createPropPart(props, "Tire3_" .. idx, Vector3.new(1.6, 5.0, 5.0), CFrame.new(center + tPos + Vector3.new(-2.6, 4.0, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(25, 26, 30), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+		createPropPart(props, "Tire4_" .. idx, Vector3.new(1.6, 4.6, 4.6), CFrame.new(center + tPos + Vector3.new(2.4, 0.8, 0.5)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(28, 28, 32), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+		createPropPart(props, "Tire5_" .. idx, Vector3.new(1.6, 4.6, 4.6), CFrame.new(center + tPos + Vector3.new(2.4, 2.4, 0.5)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(28, 28, 32), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 	end
 end
 
@@ -748,12 +750,13 @@ function ZoneService.buildZone3Props(folder: Instance, center: Vector3)
 	createPropPart(props, "ConvTowerR", Vector3.new(2.5, 16, 2.5), CFrame.new(convPos + Vector3.new(18, 8, 0)), Color3.fromRGB(180, 85, 25), Enum.Material.Metal)
 	createPropPart(props, "ConvTrack", Vector3.new(38, 2.5, 3.5), CFrame.new(convPos + Vector3.new(0, 16, 0)), Color3.fromRGB(190, 95, 30), Enum.Material.Metal)
 
-	-- 4. Titanium Ingot Pallet Stack (South-East)
+	-- 4. Titanium Ingot Pallet Stack (South-East - Perfectly Flush Resting)
 	local palletPos = center + Vector3.new(38, 0, 32)
 	createPropPart(props, "Pallet", Vector3.new(8, 0.8, 8), CFrame.new(palletPos + Vector3.new(0, 0.4, 0)), Color3.fromRGB(120, 85, 55), Enum.Material.Wood)
 	for layer = 1, 3 do
 		for bar = 1, 3 do
-			createPropPart(props, "Ingot_" .. layer .. "_" .. bar, Vector3.new(7.2, 0.9, 1.8), CFrame.new(palletPos + Vector3.new(0, 0.8 + (layer * 0.95), (bar - 2) * 2.2)), Color3.fromRGB(200, 205, 215), Enum.Material.Metal)
+			local ingotY = 0.8 + ((layer - 0.5) * 0.8)
+			createPropPart(props, "Ingot_" .. layer .. "_" .. bar, Vector3.new(7.2, 0.8, 1.8), CFrame.new(palletPos + Vector3.new(0, ingotY, (bar - 2) * 2.2)), Color3.fromRGB(200, 205, 215), Enum.Material.Metal)
 		end
 	end
 end

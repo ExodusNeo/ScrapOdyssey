@@ -4,6 +4,7 @@ local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Modules.Config)
 local Types = require(ReplicatedStorage.Modules.Types)
@@ -1031,6 +1032,187 @@ function MenuController.buildSettingsPanel()
 	tDesc.Parent = tradeCard
 end
 
+function MenuController.buildDebugPanel()
+	local isDev = RunService:IsStudio() or player.Name == "ExodusNeo" or (game.CreatorId ~= 0 and player.UserId == game.CreatorId)
+	if not isDev then return end
+
+	local panel, body = createStyledPanel("Developer Debug Console")
+	panels["Debug"] = panel
+
+	local scroll = Instance.new("ScrollingFrame")
+	scroll.Size = UDim2.new(1, 0, 1, 0)
+	scroll.BackgroundTransparency = 1
+	scroll.ScrollBarThickness = 5
+	scroll.ScrollBarImageColor3 = Color3.fromRGB(255, 65, 100)
+	scroll.CanvasSize = UDim2.new(0, 0, 0, 560)
+	scroll.ZIndex = 24
+	scroll.Parent = body
+
+	local list = Instance.new("UIListLayout")
+	list.Padding = UDim.new(0, 8)
+	list.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	list.SortOrder = Enum.SortOrder.LayoutOrder
+	list.Parent = scroll
+
+	local uipadding = Instance.new("UIPadding")
+	uipadding.PaddingTop = UDim.new(0, 6)
+	uipadding.PaddingBottom = UDim.new(0, 14)
+	uipadding.PaddingLeft = UDim.new(0, 6)
+	uipadding.PaddingRight = UDim.new(0, 6)
+	uipadding.Parent = scroll
+
+	local subDesc = Instance.new("TextLabel")
+	subDesc.Size = UDim2.new(1, 0, 0, 24)
+	subDesc.BackgroundTransparency = 1
+	subDesc.Font = Enum.Font.GothamMedium
+	subDesc.TextSize = 12
+	subDesc.TextColor3 = Color3.fromRGB(255, 160, 175)
+	subDesc.Text = "⚡ Instant Testing Controls (Authorized for " .. player.Name .. " & Studio)"
+	subDesc.LayoutOrder = 1
+	subDesc.ZIndex = 25
+	subDesc.Parent = scroll
+
+	local debugActions = {
+		{
+			Title = "🔓 Unlock All Zones (Zones 1-5)",
+			Desc = "Instant access to all worlds & fast travel warp points without grinding.",
+			Action = "UnlockAllZones",
+			Arg = nil,
+			Color = Color3.fromRGB(40, 200, 90),
+			BtnText = "UNLOCK ALL ZONES",
+		},
+		{
+			Title = "⚙️ Add +100 Gears",
+			Desc = "Prestige currency to purchase all permanent upgrades and boosts.",
+			Action = "AddGears",
+			Arg = 100,
+			Color = Color3.fromRGB(50, 180, 255),
+			BtnText = "+100 GEARS",
+		},
+		{
+			Title = "🔩 Add +1,000,000 Scrap",
+			Desc = "Massive scrap injection for purchasing all stats and eggs.",
+			Action = "AddScrap",
+			Arg = 1000000,
+			Color = Color3.fromRGB(255, 200, 40),
+			BtnText = "+1M SCRAP",
+		},
+		{
+			Title = "⚡ Max All Upgrades",
+			Desc = "Maxes out Scrapper Power, Speed, and Magnetic Cargo instantly.",
+			Action = "MaxUpgrades",
+			Arg = nil,
+			Color = Color3.fromRGB(255, 140, 30),
+			BtnText = "MAX UPGRADES",
+		},
+		{
+			Title = "🌟 Unlock All Prestige Perks",
+			Desc = "Activates Overclock, Scrapper Luck, Magnet Range, Rebirth Discount, etc.",
+			Action = "UnlockAllPerks",
+			Arg = nil,
+			Color = Color3.fromRGB(255, 215, 0),
+			BtnText = "ALL PERKS",
+		},
+		{
+			Title = "🤖 Grant All Drones",
+			Desc = "Adds 1 copy of every companion drone to your Drone Hangar.",
+			Action = "GiveAllPets",
+			Arg = nil,
+			Color = Color3.fromRGB(180, 70, 255),
+			BtnText = "GRANT DRONES",
+		},
+		{
+			Title = "🌀 Add +5 Rebirths",
+			Desc = "Increases Rebirth tier by +5 and awards +25 bonus gears.",
+			Action = "AddRebirth",
+			Arg = 5,
+			Color = Color3.fromRGB(90, 140, 255),
+			BtnText = "+5 REBIRTHS",
+		},
+		{
+			Title = "🗑️ Clear Backpack Cargo",
+			Desc = "Empties your backpack storage to 0 / Max.",
+			Action = "ClearCargo",
+			Arg = nil,
+			Color = Color3.fromRGB(160, 175, 195),
+			BtnText = "CLEAR CARGO",
+		},
+		{
+			Title = "⚠️ Reset Save Profile",
+			Desc = "Wipes player profile and resets to default Zone 1 state.",
+			Action = "ResetSave",
+			Arg = nil,
+			Color = Color3.fromRGB(225, 45, 55),
+			BtnText = "WIPE PROFILE",
+		},
+	}
+
+	for idx, def in ipairs(debugActions) do
+		local row = Instance.new("Frame")
+		row.Name = "DebugRow_" .. def.Action
+		row.Size = UDim2.new(1, -8, 0, 50)
+		row.BackgroundColor3 = Color3.fromRGB(25, 28, 38)
+		row.BorderSizePixel = 0
+		row.LayoutOrder = 10 + idx
+		row.ZIndex = 25
+		row.Parent = scroll
+
+		local rCorner = Instance.new("UICorner")
+		rCorner.CornerRadius = UDim.new(0, 10)
+		rCorner.Parent = row
+
+		local rStroke = Instance.new("UIStroke")
+		rStroke.Color = Color3.fromRGB(45, 52, 70)
+		rStroke.Thickness = 1.2
+		rStroke.Parent = row
+
+		local tTitle = Instance.new("TextLabel")
+		tTitle.Size = UDim2.new(1, -165, 0, 22)
+		tTitle.Position = UDim2.new(0, 14, 0, 5)
+		tTitle.BackgroundTransparency = 1
+		tTitle.Font = Enum.Font.GothamBold
+		tTitle.TextSize = 13
+		tTitle.TextColor3 = Color3.fromRGB(240, 245, 255)
+		tTitle.TextXAlignment = Enum.TextXAlignment.Left
+		tTitle.Text = def.Title
+		tTitle.ZIndex = 26
+		tTitle.Parent = row
+
+		local tRowDesc = Instance.new("TextLabel")
+		tRowDesc.Size = UDim2.new(1, -165, 0, 18)
+		tRowDesc.Position = UDim2.new(0, 14, 0, 27)
+		tRowDesc.BackgroundTransparency = 1
+		tRowDesc.Font = Enum.Font.GothamMedium
+		tRowDesc.TextSize = 11
+		tRowDesc.TextColor3 = Color3.fromRGB(150, 165, 185)
+		tRowDesc.TextXAlignment = Enum.TextXAlignment.Left
+		tRowDesc.Text = def.Desc
+		tRowDesc.ZIndex = 26
+		tRowDesc.Parent = row
+
+		local actionBtn = Instance.new("TextButton")
+		actionBtn.Size = UDim2.new(0, 140, 0, 36)
+		actionBtn.Position = UDim2.new(1, -150, 0.5, -18)
+		actionBtn.BackgroundColor3 = def.Color
+		actionBtn.Font = Enum.Font.GothamBlack
+		actionBtn.TextSize = 12
+		actionBtn.TextColor3 = Color3.new(1, 1, 1)
+		actionBtn.Text = def.BtnText
+		actionBtn.ZIndex = 27
+		actionBtn.Parent = row
+
+		local aCorner = Instance.new("UICorner")
+		aCorner.CornerRadius = UDim.new(0, 8)
+		aCorner.Parent = actionBtn
+
+		actionBtn.MouseButton1Click:Connect(function()
+			playSound("rbxassetid://6895079853", 1.2)
+			local debugEvent = Remotes.getEvent("DebugAction")
+			debugEvent:FireServer(def.Action, def.Arg)
+		end)
+	end
+end
+
 -- Reactive Data Updating: Updates all active UI elements when data arrives from server!
 function MenuController.updateUI(data: Types.PlayerData)
 	currentData = data
@@ -1336,10 +1518,29 @@ end
 
 -- Side Navigation Bar with 8 100% Reliable, Vibrant Emoji Icons
 function MenuController.buildIconBar()
+	local buttons = {
+		{ Name = "Upgrades", Label = "UPGRADES", Emoji = "🛒", Color = Color3.fromRGB(40, 200, 90) },
+		{ Name = "GearsShop", Label = "PRESTIGE SHOP", Emoji = "⚙️", Color = Color3.fromRGB(50, 180, 255) },
+		{ Name = "Drones", Label = "DRONE HANGAR", Emoji = "🤖", Color = Color3.fromRGB(255, 160, 20) },
+		{ Name = "Quests", Label = "DAILY QUESTS", Emoji = "📜", Color = Color3.fromRGB(255, 200, 40) },
+		{ Name = "Teleport", Label = "FAST TRAVEL", Emoji = "🗺️", Color = Color3.fromRGB(180, 70, 255) },
+		{ Name = "Rebirth", Label = "REBIRTH", Emoji = "🌀", Color = Color3.fromRGB(90, 140, 255) },
+		{ Name = "Rewards", Label = "DAILY & CODES", Emoji = "🎁", Color = Color3.fromRGB(240, 70, 130) },
+		{ Name = "Settings", Label = "SETTINGS", Emoji = "🔧", Color = Color3.fromRGB(160, 175, 195) },
+	}
+
+	local isDev = RunService:IsStudio() or player.Name == "ExodusNeo" or (game.CreatorId ~= 0 and player.UserId == game.CreatorId)
+	if isDev then
+		table.insert(buttons, { Name = "Debug", Label = "DEV DEBUG", Emoji = "🛠️", Color = Color3.fromRGB(255, 65, 100) })
+	end
+
+	local totalButtons = #buttons
+	local barHeight = 24 + totalButtons * 44 + (totalButtons - 1) * 7
+
 	local bar = Instance.new("Frame")
 	bar.Name = "SideIconBar"
-	bar.Size = UDim2.new(0, 60, 0, 440)
-	bar.Position = UDim2.new(0, 18, 0.5, -220)
+	bar.Size = UDim2.new(0, 60, 0, barHeight)
+	bar.Position = UDim2.new(0, 18, 0.5, -math.floor(barHeight / 2))
 	bar.BackgroundColor3 = Color3.fromRGB(18, 20, 26)
 	bar.BackgroundTransparency = 0.15
 	bar.BorderSizePixel = 0
@@ -1359,17 +1560,6 @@ function MenuController.buildIconBar()
 	list.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	list.VerticalAlignment = Enum.VerticalAlignment.Center
 	list.Parent = bar
-
-	local buttons = {
-		{ Name = "Upgrades", Label = "UPGRADES", Emoji = "🛒", Color = Color3.fromRGB(40, 200, 90) },
-		{ Name = "GearsShop", Label = "PRESTIGE SHOP", Emoji = "⚙️", Color = Color3.fromRGB(50, 180, 255) },
-		{ Name = "Drones", Label = "DRONE HANGAR", Emoji = "🤖", Color = Color3.fromRGB(255, 160, 20) },
-		{ Name = "Quests", Label = "DAILY QUESTS", Emoji = "📜", Color = Color3.fromRGB(255, 200, 40) },
-		{ Name = "Teleport", Label = "FAST TRAVEL", Emoji = "🗺️", Color = Color3.fromRGB(180, 70, 255) },
-		{ Name = "Rebirth", Label = "REBIRTH", Emoji = "🌀", Color = Color3.fromRGB(90, 140, 255) },
-		{ Name = "Rewards", Label = "DAILY & CODES", Emoji = "🎁", Color = Color3.fromRGB(240, 70, 130) },
-		{ Name = "Settings", Label = "SETTINGS", Emoji = "🔧", Color = Color3.fromRGB(160, 175, 195) },
-	}
 
 	for _, info in ipairs(buttons) do
 		local btn = Instance.new("TextButton")
@@ -1479,6 +1669,7 @@ function MenuController.init()
 	MenuController.buildRebirthPanel()
 	MenuController.buildRewardsPanel()
 	MenuController.buildSettingsPanel()
+	MenuController.buildDebugPanel()
 
 	-- Sync Data listener
 	local syncEvent = Remotes.getEvent("SyncData")
@@ -1505,12 +1696,21 @@ function MenuController.init()
 		end
 	end)
 
-	-- Close modals with Escape key or Gamepad Button B
+	-- Close modals with Escape key or Gamepad Button B, or toggle Debug with F4
 	UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		if gameProcessed then return end
 		if input.KeyCode == Enum.KeyCode.Escape or input.KeyCode == Enum.KeyCode.ButtonB then
 			if activePanel then
 				MenuController.closeActivePanel()
+			end
+		elseif input.KeyCode == Enum.KeyCode.F4 then
+			local isDev = RunService:IsStudio() or player.Name == "ExodusNeo" or (game.CreatorId ~= 0 and player.UserId == game.CreatorId)
+			if isDev then
+				if activePanel == panels["Debug"] then
+					MenuController.closeActivePanel()
+				else
+					MenuController.openPanel("Debug")
+				end
 			end
 		end
 	end)

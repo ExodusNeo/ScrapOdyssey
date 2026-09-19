@@ -24,6 +24,7 @@ local REMOTE_EVENTS = {
 	"TradeUpdate",
 	"ShowNotification",
 	"ClaimQuest",
+	"DebugAction",
 }
 
 local REMOTE_FUNCTIONS = {

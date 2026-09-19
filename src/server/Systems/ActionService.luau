@@ -119,43 +119,7 @@ local function giveScrapperTool(player: Player)
 	sparks.Lifetime = NumberRange.new(0.3, 0.6)
 	sparks.Parent = blade
 
-	-- Tool Activation LocalScript
-	local toolScript = Instance.new("LocalScript")
-	toolScript.Name = "ToolController"
-	toolScript.Source = [=[
-		local tool = script.Parent
-		local player = game.Players.LocalPlayer
-		local Remotes = require(game.ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
-		local requestAction = Remotes.getEvent("RequestAction")
-
-		tool.Activated:Connect(function()
-			local character = player.Character
-			if not character then return end
-			local root = character:FindFirstChild("HumanoidRootPart")
-			if not root then return end
-
-			local closestModel = nil
-			local closestDist = 24
-
-			for _, desc in ipairs(workspace:GetDescendants()) do
-				if desc:IsA("Model") and string.sub(desc.Name, 1, 10) == "ScrapPile_" then
-					local hitbox = desc:FindFirstChild("Hitbox")
-					if hitbox and hitbox:IsA("BasePart") then
-						local dist = (root.Position - hitbox.Position).Magnitude
-						if dist < closestDist then
-							closestDist = dist
-							closestModel = desc
-						end
-					end
-				end
-			end
-
-			if closestModel then
-				requestAction:FireServer(closestModel)
-			end
-		end)
-	]=]
-	toolScript.Parent = tool
+	-- Tool activation is handled cleanly by client ActionController
 	tool.Parent = backpack
 end
 

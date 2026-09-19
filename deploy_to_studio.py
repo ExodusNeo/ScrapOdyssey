@@ -24,6 +24,7 @@ def deploy():
         ("src/server/Systems/QuestService.luau", "ServerScriptService", "Systems", "QuestService", "ModuleScript"),
         ("src/server/Systems/LeaderboardService.luau", "ServerScriptService", "Systems", "LeaderboardService", "ModuleScript"),
         ("src/server/Systems/MonetizationService.luau", "ServerScriptService", "Systems", "MonetizationService", "ModuleScript"),
+        ("src/server/Systems/DebugService.luau", "ServerScriptService", "Systems", "DebugService", "ModuleScript"),
 
         ("src/server/Main.server.luau", "ServerScriptService", "", "Main", "Script"),
 
