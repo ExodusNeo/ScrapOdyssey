@@ -1,0 +1,7 @@
+# Roblox temporary and build files
+*.rbxlx.lock
+*.rbxl.lock
+
+# OS Files
+.DS_Store
+Thumbs.db
