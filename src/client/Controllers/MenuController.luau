@@ -18,18 +18,13 @@ local activePanel: Frame? = nil
 local panels: { [string]: Frame } = {}
 local currentData: Types.PlayerData? = nil
 
--- UI References for reactive updating
-local upgradeRowRefs: {
-	[string]: {
-		LevelLabel: TextLabel,
-		BuyButton: TextButton,
-		Row: Frame,
-	}
-} = {}
-
+-- References for reactive updates
+local upgradeRowRefs: { [string]: { LevelLabel: TextLabel, BuyButton: TextButton, Row: Frame } } = {}
+local gearsPerkRowRefs: { [string]: { BuyButton: TextButton, StatusLabel: TextLabel } } = {}
 local petListScroll: ScrollingFrame
 local rebirthInfoLabel: TextLabel
 local rebirthButton: TextButton
+local gearsShopHeaderLabel: TextLabel
 
 local function playSound(soundId: string, pitch: number?)
 	task.spawn(function()
@@ -60,8 +55,8 @@ end
 local function createStyledPanel(titleText: string): (Frame, Frame)
 	local panel = Instance.new("Frame")
 	panel.Name = titleText .. "Panel"
-	panel.Size = UDim2.new(0, 520, 0, 460)
-	panel.Position = UDim2.new(0.5, -260, 0.5, -230)
+	panel.Size = UDim2.new(0, 520, 0, 470)
+	panel.Position = UDim2.new(0.5, -260, 0.5, -235)
 	panel.BackgroundColor3 = Color3.fromRGB(18, 20, 26)
 	panel.BorderSizePixel = 0
 	panel.Visible = false
@@ -76,7 +71,6 @@ local function createStyledPanel(titleText: string): (Frame, Frame)
 	stroke.Thickness = 2
 	stroke.Parent = panel
 
-	-- Header
 	local header = Instance.new("Frame")
 	header.Name = "Header"
 	header.Size = UDim2.new(1, 0, 0, 55)
@@ -155,14 +149,12 @@ function MenuController.openPanel(name: string)
 	target.Visible = true
 	activePanel = target
 
-	-- Pop-in bounce animation
-	target.Size = UDim2.new(0, 490, 0, 430)
+	target.Size = UDim2.new(0, 490, 0, 440)
 	local tween = TweenService:Create(target, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-		Size = UDim2.new(0, 520, 0, 460),
+		Size = UDim2.new(0, 520, 0, 470),
 	})
 	tween:Play()
 
-	-- Refresh active panel data
 	if currentData then
 		MenuController.updateUI(currentData)
 	end
@@ -243,11 +235,6 @@ function MenuController.buildUpgradesPanel()
 		btnCorner.CornerRadius = UDim.new(0, 10)
 		btnCorner.Parent = buyBtn
 
-		local btnStroke = Instance.new("UIStroke")
-		btnStroke.Color = Color3.fromRGB(30, 140, 60)
-		btnStroke.Thickness = 2
-		btnStroke.Parent = buyBtn
-
 		buyBtn.MouseButton1Click:Connect(function()
 			playSound("rbxassetid://5153734608", 1.2)
 			local purchaseRemote = Remotes.getEvent("PurchaseUpgrade")
@@ -262,12 +249,113 @@ function MenuController.buildUpgradesPanel()
 	end
 end
 
--- 2. Drones Panel Builder
+-- 2. Gears Prestige Shop Builder (True purpose for Gears!)
+function MenuController.buildGearsShopPanel()
+	local panel, body = createStyledPanel("⚙️ GEARS PRESTIGE SHOP")
+	panels["GearsShop"] = panel
+
+	gearsShopHeaderLabel = Instance.new("TextLabel")
+	gearsShopHeaderLabel.Name = "GearsBalance"
+	gearsShopHeaderLabel.Size = UDim2.new(1, 0, 0, 30)
+	gearsShopHeaderLabel.BackgroundTransparency = 1
+	gearsShopHeaderLabel.Font = Enum.Font.GothamBlack
+	gearsShopHeaderLabel.TextSize = 16
+	gearsShopHeaderLabel.TextColor3 = Color3.fromRGB(80, 210, 255)
+	gearsShopHeaderLabel.Text = "AVAILABLE: 0 ⚙️ GEARS (EARN FROM REBIRTHS)"
+	gearsShopHeaderLabel.Parent = body
+
+	local scroll = Instance.new("ScrollingFrame")
+	scroll.Size = UDim2.new(1, 0, 1, -40)
+	scroll.Position = UDim2.new(0, 0, 0, 35)
+	scroll.BackgroundTransparency = 1
+	scroll.ScrollBarThickness = 6
+	scroll.Parent = body
+
+	local list = Instance.new("UIListLayout")
+	list.Padding = UDim.new(0, 10)
+	list.Parent = scroll
+
+	for perkId, perk in pairs(Config.GearsShop) do
+		local row = Instance.new("Frame")
+		row.Name = perkId
+		row.Size = UDim2.new(1, -10, 0, 85)
+		row.BackgroundColor3 = Color3.fromRGB(26, 30, 42)
+		row.BorderSizePixel = 0
+		row.Parent = scroll
+
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 10)
+		corner.Parent = row
+
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Color3.fromRGB(50, 140, 220)
+		stroke.Thickness = 1.5
+		stroke.Parent = row
+
+		local iconLbl = Instance.new("TextLabel")
+		iconLbl.Size = UDim2.new(0, 45, 1, 0)
+		iconLbl.BackgroundTransparency = 1
+		iconLbl.Font = Enum.Font.GothamBold
+		iconLbl.TextSize = 28
+		iconLbl.Text = perk.Icon or "⚙️"
+		iconLbl.Parent = row
+
+		local nameLbl = Instance.new("TextLabel")
+		nameLbl.Size = UDim2.new(0.6, 0, 0, 24)
+		nameLbl.Position = UDim2.new(0, 50, 0, 10)
+		nameLbl.BackgroundTransparency = 1
+		nameLbl.Font = Enum.Font.GothamBlack
+		nameLbl.TextSize = 15
+		nameLbl.TextColor3 = Color3.fromRGB(80, 210, 255)
+		nameLbl.TextXAlignment = Enum.TextXAlignment.Left
+		nameLbl.Text = perk.Name
+		nameLbl.Parent = row
+
+		local descLbl = Instance.new("TextLabel")
+		descLbl.Size = UDim2.new(0.6, 0, 0, 40)
+		descLbl.Position = UDim2.new(0, 50, 0, 34)
+		descLbl.BackgroundTransparency = 1
+		descLbl.Font = Enum.Font.Gotham
+		descLbl.TextSize = 12
+		descLbl.TextColor3 = Color3.fromRGB(180, 190, 210)
+		descLbl.TextXAlignment = Enum.TextXAlignment.Left
+		descLbl.TextWrapped = true
+		descLbl.Text = perk.Description
+		descLbl.Parent = row
+
+		local buyBtn = Instance.new("TextButton")
+		buyBtn.Name = "BuyButton"
+		buyBtn.Size = UDim2.new(0, 115, 0, 44)
+		buyBtn.Position = UDim2.new(1, -125, 0.5, -22)
+		buyBtn.BackgroundColor3 = Color3.fromRGB(30, 150, 220)
+		buyBtn.Font = Enum.Font.GothamBlack
+		buyBtn.TextSize = 15
+		buyBtn.TextColor3 = Color3.new(1, 1, 1)
+		buyBtn.Text = string.format("%d ⚙️", perk.Cost)
+		buyBtn.Parent = row
+
+		local bCorner = Instance.new("UICorner")
+		bCorner.CornerRadius = UDim.new(0, 8)
+		bCorner.Parent = buyBtn
+
+		buyBtn.MouseButton1Click:Connect(function()
+			playSound("rbxassetid://5153734608", 1.2)
+			local purchasePerk = Remotes.getEvent("PurchaseGearsPerk")
+			purchasePerk:FireServer(perkId)
+		end)
+
+		gearsPerkRowRefs[perkId] = {
+			BuyButton = buyBtn,
+			StatusLabel = nameLbl,
+		}
+	end
+end
+
+-- 3. Drones Panel Builder
 function MenuController.buildDronesPanel()
 	local panel, body = createStyledPanel("🥚 SCRAPPER DRONES")
 	panels["Drones"] = panel
 
-	-- Top section: Hatch Button
 	local hatchBar = Instance.new("Frame")
 	hatchBar.Size = UDim2.new(1, 0, 0, 70)
 	hatchBar.BackgroundColor3 = Color3.fromRGB(28, 32, 45)
@@ -309,7 +397,6 @@ function MenuController.buildDronesPanel()
 		hatchRemote:FireServer()
 	end)
 
-	-- Pet Inventory Title
 	local invTitle = Instance.new("TextLabel")
 	invTitle.Name = "InvTitle"
 	invTitle.Size = UDim2.new(1, 0, 0, 24)
@@ -322,7 +409,6 @@ function MenuController.buildDronesPanel()
 	invTitle.Text = "YOUR DRONES (EQUIPPED: 0/3):"
 	invTitle.Parent = body
 
-	-- Scroll section for owned pets
 	petListScroll = Instance.new("ScrollingFrame")
 	petListScroll.Name = "PetList"
 	petListScroll.Size = UDim2.new(1, 0, 1, -110)
@@ -336,7 +422,7 @@ function MenuController.buildDronesPanel()
 	list.Parent = petListScroll
 end
 
--- 3. Rebirth Panel Builder
+-- 4. Rebirth Panel Builder
 function MenuController.buildRebirthPanel()
 	local panel, body = createStyledPanel("🌀 PRESTIGE & REBIRTH")
 	panels["Rebirth"] = panel
@@ -348,7 +434,7 @@ function MenuController.buildRebirthPanel()
 	desc.TextSize = 15
 	desc.TextColor3 = Color3.fromRGB(200, 210, 230)
 	desc.TextWrapped = true
-	desc.Text = "Rebirth resets your current Scrap in exchange for permanent stat multipliers (+50% per Rebirth) and exclusive Gears (⚙️)!"
+	desc.Text = "Rebirth resets your current Scrap in exchange for permanent stat multipliers (+50% per Rebirth) and exclusive Gears (⚙️) to spend in the Gears Prestige Shop!"
 	desc.Parent = body
 
 	local statFrame = Instance.new("Frame")
@@ -396,12 +482,11 @@ function MenuController.buildRebirthPanel()
 	end)
 end
 
--- 4. Rewards Panel Builder
+-- 5. Rewards Panel Builder
 function MenuController.buildRewardsPanel()
 	local panel, body = createStyledPanel("🎁 DAILY REWARDS & CODES")
 	panels["Rewards"] = panel
 
-	-- Daily Reward Button
 	local dailyBtn = Instance.new("TextButton")
 	dailyBtn.Size = UDim2.new(1, 0, 0, 65)
 	dailyBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
@@ -421,7 +506,6 @@ function MenuController.buildRewardsPanel()
 		claimRemote:FireServer()
 	end)
 
-	-- Promo Code input
 	local codeLabel = Instance.new("TextLabel")
 	codeLabel.Size = UDim2.new(1, 0, 0, 30)
 	codeLabel.Position = UDim2.new(0, 0, 0, 95)
@@ -430,7 +514,7 @@ function MenuController.buildRewardsPanel()
 	codeLabel.TextSize = 15
 	codeLabel.TextColor3 = Color3.new(1, 1, 1)
 	codeLabel.TextXAlignment = Enum.TextXAlignment.Left
-	codeLabel.Text = "Redeem Promo Code (Try RELEASE or SCRAPPER):"
+	codeLabel.Text = "Redeem Promo Code (RELEASE / SCRAPPER / GEARS):"
 	codeLabel.Parent = body
 
 	local codeBox = Instance.new("TextBox")
@@ -499,7 +583,28 @@ function MenuController.updateUI(data: Types.PlayerData)
 		end
 	end
 
-	-- 2. Update Drones list
+	-- 2. Update Gears Shop
+	if gearsShopHeaderLabel then
+		gearsShopHeaderLabel.Text = string.format("AVAILABLE: %d ⚙️ GEARS (EARN FROM REBIRTHS)", data.Gears or 0)
+	end
+	for perkId, refs in pairs(gearsPerkRowRefs) do
+		local perk = Config.GearsShop[perkId]
+		local isOwned = data.GearsPerks and data.GearsPerks[perkId]
+
+		if isOwned then
+			refs.BuyButton.Text = "ACTIVE ✅"
+			refs.BuyButton.BackgroundColor3 = Color3.fromRGB(50, 170, 90)
+		else
+			refs.BuyButton.Text = string.format("%d ⚙️", perk.Cost)
+			if (data.Gears or 0) >= perk.Cost then
+				refs.BuyButton.BackgroundColor3 = Color3.fromRGB(30, 150, 220)
+			else
+				refs.BuyButton.BackgroundColor3 = Color3.fromRGB(130, 60, 60)
+			end
+		end
+	end
+
+	-- 3. Update Drones list
 	if petListScroll then
 		for _, child in ipairs(petListScroll:GetChildren()) do
 			if child:IsA("Frame") then child:Destroy() end
@@ -574,7 +679,7 @@ function MenuController.updateUI(data: Types.PlayerData)
 		end
 	end
 
-	-- 3. Update Rebirth Panel
+	-- 4. Update Rebirth Panel
 	if rebirthInfoLabel then
 		local rebirths = data.Rebirths or 0
 		local cost = math.floor(Config.Rebirth.BaseCost * (Config.Rebirth.CostMultiplier ^ rebirths))
@@ -695,12 +800,12 @@ function MenuController.showHatchReveal(info: any)
 	end)
 end
 
--- Side Icon Navigation Bar
+-- Side Navigation Bar with 5 icons
 function MenuController.buildIconBar()
 	local bar = Instance.new("Frame")
 	bar.Name = "SideIconBar"
-	bar.Size = UDim2.new(0, 64, 0, 280)
-	bar.Position = UDim2.new(0, 20, 0.5, -140)
+	bar.Size = UDim2.new(0, 64, 0, 330)
+	bar.Position = UDim2.new(0, 20, 0.5, -165)
 	bar.BackgroundColor3 = Color3.fromRGB(18, 20, 26)
 	bar.BackgroundTransparency = 0.15
 	bar.BorderSizePixel = 0
@@ -723,6 +828,7 @@ function MenuController.buildIconBar()
 
 	local buttons = {
 		{ Name = "Upgrades", Icon = "🛒", Color = Color3.fromRGB(40, 190, 80) },
+		{ Name = "GearsShop", Icon = "⚙️", Color = Color3.fromRGB(50, 170, 255) },
 		{ Name = "Drones", Icon = "🥚", Color = Color3.fromRGB(255, 150, 0) },
 		{ Name = "Rebirth", Icon = "🌀", Color = Color3.fromRGB(80, 130, 255) },
 		{ Name = "Rewards", Icon = "🎁", Color = Color3.fromRGB(240, 70, 120) },
@@ -758,17 +864,18 @@ function MenuController.init()
 
 	MenuController.buildIconBar()
 	MenuController.buildUpgradesPanel()
+	MenuController.buildGearsShopPanel()
 	MenuController.buildDronesPanel()
 	MenuController.buildRebirthPanel()
 	MenuController.buildRewardsPanel()
 
-	-- 1. Sync Data Listener: Fixes upgrade levels not updating!
+	-- Sync Data listener
 	local syncEvent = Remotes.getEvent("SyncData")
 	syncEvent.OnClientEvent:Connect(function(data)
 		MenuController.updateUI(data)
 	end)
 
-	-- 2. Initial fetch
+	-- Initial fetch
 	local getFunction = Remotes.getFunction("GetPlayerData")
 	task.spawn(function()
 		local initialData = getFunction:InvokeServer()
@@ -777,7 +884,7 @@ function MenuController.init()
 		end
 	end)
 
-	-- 3. Notifications Toast
+	-- Notification Toast
 	local notifEvent = Remotes.getEvent("ShowNotification")
 	notifEvent.OnClientEvent:Connect(function(title, message, color)
 		playSound("rbxassetid://5153734608", 1.4)
@@ -826,13 +933,12 @@ function MenuController.init()
 		end)
 	end)
 
-	-- 4. Hatch Reveal Listener
 	local hatchResultEvent = Remotes.getEvent("HatchResult")
 	hatchResultEvent.OnClientEvent:Connect(function(info)
 		MenuController.showHatchReveal(info)
 	end)
 
-	print("[MenuController] Initialized with real-time UI synchronization.")
+	print("[MenuController] Initialized with Gears Prestige Shop and Real-Time Sync.")
 end
 
 return MenuController

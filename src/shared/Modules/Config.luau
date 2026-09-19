@@ -208,6 +208,45 @@ local Config = {
 		} :: { Types.PetTemplate },
 	},
 
+	-- Gears Prestige Shop (High-value permanent perks)
+	GearsShop = {
+		AutoScrap = {
+			Id = "AutoScrap",
+			Name = "Auto-Scrapper Protocol",
+			Description = "Hands-free dismantling! Automatically strikes nearest scrap pile every 1.5s.",
+			Cost = 3,
+			Icon = "🤖",
+		},
+		SuperLuck = {
+			Id = "SuperLuck",
+			Name = "Quantum Luck Core",
+			Description = "Permanently doubles the probability of Rare, Epic, Legendary, and Mythic drops!",
+			Cost = 5,
+			Icon = "🍀",
+		},
+		SpeedDemon = {
+			Id = "SpeedDemon",
+			Name = "Hydraulic Thrusters",
+			Description = "Permanently enhances character sprint speed to 26 WalkSpeed!",
+			Cost = 2,
+			Icon = "⚡",
+		},
+		QuantumDrone = {
+			Id = "QuantumDrone",
+			Name = "Apex Quantum Drone",
+			Description = "Grants an exclusive Mythic companion with a massive +15.0x Scrap multiplier!",
+			Cost = 8,
+			Icon = "👑",
+		},
+		ScrapSurge = {
+			Id = "ScrapSurge",
+			Name = "Scrap Overcharge",
+			Description = "Permanently grants an extra +100% (+1.0x) bonus Scrap multiplier on all actions.",
+			Cost = 4,
+			Icon = "💥",
+		},
+	} :: { [string]: Types.GearsPerk },
+
 	-- Promo codes
 	Codes = {
 		["RELEASE"] = { Type = "Scrap", Amount = 500 },

@@ -18,6 +18,7 @@ local REMOTE_EVENTS = {
 	"CodeResult",
 	"UnlockZone",
 	"TeleportZone",
+	"PurchaseGearsPerk",
 	"SendTrade",
 	"TradeUpdate",
 	"ShowNotification",

@@ -28,6 +28,14 @@ export type UpgradeConfig = {
 	EffectPerLevel: number,
 }
 
+export type GearsPerk = {
+	Id: string,
+	Name: string,
+	Description: string,
+	Cost: number,
+	Icon: string,
+}
+
 export type PetTemplate = {
 	Id: string,
 	Name: string,
@@ -52,6 +60,7 @@ export type PlayerData = {
 	CurrentZone: number,
 	MaxZoneReached: number,
 	Upgrades: { [string]: number },
+	GearsPerks: { [string]: boolean },
 	Pets: { OwnedPet },
 	EquippedPetCount: number,
 	InventoryCount: number,

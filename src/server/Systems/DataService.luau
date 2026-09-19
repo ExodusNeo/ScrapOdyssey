@@ -57,6 +57,7 @@ local function getDefaultData(): Types.PlayerData
 			ScrapSpeed = 1,
 			BackpackCapacity = 1,
 		},
+		GearsPerks = {},
 		Pets = {},
 		EquippedPetCount = 0,
 		InventoryCount = 0,

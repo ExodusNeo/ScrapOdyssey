@@ -37,6 +37,11 @@ function CurrencyService.getMultiplier(player: Player): number
 		end
 	end
 
+	-- 5. Gears Prestige Perk: ScrapSurge (+100% permanent bonus)
+	if data.GearsPerks and data.GearsPerks["ScrapSurge"] then
+		multiplier = multiplier + 1.0
+	end
+
 	return math.max(1.0, multiplier)
 end
 
