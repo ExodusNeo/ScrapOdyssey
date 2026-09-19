@@ -20,10 +20,11 @@ function ActionService.buildTool(toolId: string): Tool
 	local conf = Config.getTool(toolId) or Config.Tools[1]
 
 	local tool = Instance.new("Tool")
-	tool.Name = "ScrapperTool"
+	tool.Name = conf.Name
 	tool.ToolTip = string.format("%s (Damage: %d)", conf.Name, conf.Damage)
 	tool.RequiresHandle = true
 	tool.CanBeDropped = false
+	tool.GripPos = Vector3.new(0, -0.6, 0)
 	tool:SetAttribute("IsScrapperTool", true)
 	tool:SetAttribute("ToolId", conf.Id)
 	tool:SetAttribute("Damage", conf.Damage)
@@ -292,12 +293,13 @@ end
 function ActionService.giveScrapperTool(player: Player)
 	local data = DataService.get(player)
 	local toolId = data and data.EquippedTool or "OmniWrench"
+	local conf = Config.getTool(toolId) or Config.Tools[1]
 
-	-- Clear out any existing tools in Character & Backpack
+	-- Clear out any existing scrapper tools in Character & Backpack
 	local character = player.Character
 	if character then
 		for _, item in ipairs(character:GetChildren()) do
-			if item:IsA("Tool") and (item:GetAttribute("IsScrapperTool") or item.Name == "ScrapperTool" or item.Name == "PlasmaDismantler" or item.Name == "OmniScrapper") then
+			if item:IsA("Tool") and (item:GetAttribute("IsScrapperTool") or item:GetAttribute("ToolId") ~= nil or item.Name == "ScrapperTool" or item.Name == conf.Name) then
 				item:Destroy()
 			end
 		end
@@ -306,13 +308,26 @@ function ActionService.giveScrapperTool(player: Player)
 	local backpack = player:FindFirstChild("Backpack") or player:WaitForChild("Backpack", 5)
 	if backpack then
 		for _, item in ipairs(backpack:GetChildren()) do
-			if item:IsA("Tool") and (item:GetAttribute("IsScrapperTool") or item.Name == "ScrapperTool" or item.Name == "PlasmaDismantler" or item.Name == "OmniScrapper") then
+			if item:IsA("Tool") and (item:GetAttribute("IsScrapperTool") or item:GetAttribute("ToolId") ~= nil or item.Name == "ScrapperTool" or item.Name == conf.Name) then
 				item:Destroy()
 			end
 		end
 
 		local tool = ActionService.buildTool(toolId)
 		tool.Parent = backpack
+
+		-- Auto-equip tool to character's hand if humanoid exists
+		if character then
+			local humanoid = character:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				task.defer(function()
+					if tool.Parent == backpack and character.Parent then
+						humanoid:EquipTool(tool)
+					end
+				end)
+			end
+		end
+		print(string.format("[ActionService] Successfully granted %s (%s) to %s", conf.Name, toolId, player.Name))
 	end
 end
 
@@ -320,7 +335,13 @@ end
 function ActionService.equipTool(player: Player, toolId: string)
 	local data = DataService.get(player)
 	if not data then return end
-	if not data.OwnedTools or not data.OwnedTools[toolId] then return end
+	if not data.OwnedTools then
+		data.OwnedTools = { ["OmniWrench"] = true }
+	end
+	if toolId == "OmniWrench" then
+		data.OwnedTools["OmniWrench"] = true
+	end
+	if not data.OwnedTools[toolId] then return end
 
 	data.EquippedTool = toolId
 	DataService.sync(player)
@@ -596,20 +617,36 @@ function ActionService.init()
 		end
 	end)
 
-	-- Give tool on join and spawn
-	Players.PlayerAdded:Connect(function(player)
-		player.CharacterAdded:Connect(function()
-			ActionService.giveScrapperTool(player)
-		end)
-		if player.Character then
-			ActionService.giveScrapperTool(player)
-		end
-	end)
+	-- StarterPack default tool ensures Roblox natively populates hotbar slot 1 on spawn
+	local starterPack = game:GetService("StarterPack")
+	local defaultTool = starterPack:FindFirstChild("Omni-Wrench")
+	if not defaultTool then
+		local sTool = ActionService.buildTool("OmniWrench")
+		sTool.Parent = starterPack
+	end
 
-	for _, player in ipairs(Players:GetPlayers()) do
+	-- Give tool on join and spawn (with delay to let engine finish backpack reset)
+	local function hookPlayer(player: Player)
+		player.CharacterAdded:Connect(function(character)
+			task.wait(0.2)
+			if player.Parent and character.Parent then
+				ActionService.giveScrapperTool(player)
+			end
+		end)
+
 		if player.Character then
-			ActionService.giveScrapperTool(player)
+			task.spawn(function()
+				task.wait(0.2)
+				if player.Parent and player.Character then
+					ActionService.giveScrapperTool(player)
+				end
+			end)
 		end
+	end
+
+	Players.PlayerAdded:Connect(hookPlayer)
+	for _, player in ipairs(Players:GetPlayers()) do
+		hookPlayer(player)
 	end
 
 	-- AutoScrap Perk Loop: background automatic harvesting for players with the perk!

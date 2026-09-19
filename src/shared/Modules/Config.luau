@@ -1,7 +1,8 @@
 --!strict
 local Types = require(script.Parent.Types)
 
-local Config = {
+local Config
+Config = {
 	GameTitle = "Scrap Odyssey",
 	Version = "1.0.0",
 	Debug = true,

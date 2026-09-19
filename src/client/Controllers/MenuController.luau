@@ -1187,16 +1187,20 @@ function MenuController.buildToolArmoryPanel()
 		actionBtn.MouseButton1Click:Connect(function()
 			if not currentData then return end
 			local isOwned = (currentData.OwnedTools and currentData.OwnedTools[tool.Id]) or (tool.Cost == 0)
-			local isEquipped = currentData.EquippedTool == tool.Id
-			if isEquipped then return end
 
 			playSound("rbxassetid://6895079853", 1.2)
 			if isOwned then
 				local equipEvent = Remotes.getEvent("EquipTool")
 				equipEvent:FireServer(tool.Id)
+				showToast(string.format("Equipped %s (%s)!", tool.Name, tool.Emoji), tool.Color)
 			else
-				local buyEvent = Remotes.getEvent("PurchaseTool")
-				buyEvent:FireServer(tool.Id)
+				if (currentData.Scrap or 0) < tool.Cost then
+					local diff = tool.Cost - (currentData.Scrap or 0)
+					showToast(string.format("Need %s more Scrap to forge %s!", formatNumber(diff), tool.Name), Color3.fromRGB(255, 75, 75))
+				else
+					local buyEvent = Remotes.getEvent("PurchaseTool")
+					buyEvent:FireServer(tool.Id)
+				end
 			end
 		end)
 
