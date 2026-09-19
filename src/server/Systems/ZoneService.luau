@@ -651,6 +651,80 @@ function ZoneService.constructCentralHub()
 	ZoneService.constructZoneSign(hubFolder, Vector3.new(0, 0, 0), Config.Zones[1])
 end
 
+-- Configure a scrap pile dynamically between Standard and Dense variant
+function ZoneService.applyNodeVariant(model: Model, zone: Types.ZoneConfig, isDense: boolean)
+	local maxHP = isDense and (zone.DenseHP or 6) or (zone.BaseHP or 3)
+	local yieldMult = isDense and (zone.DenseYieldMultiplier or 2.0) or 1.0
+	local baseYield = math.floor(zone.BaseYield * yieldMult)
+
+	model:SetAttribute("ZoneId", zone.Id)
+	model:SetAttribute("BaseYield", baseYield)
+	model:SetAttribute("MaxHP", maxHP)
+	model:SetAttribute("CurrentHP", maxHP)
+	model:SetAttribute("IsDense", isDense)
+
+	local core = model:FindFirstChild("Core") :: Part?
+	if core then
+		core.Size = isDense and Vector3.new(2.4, 2.4, 2.4) or Vector3.new(1.8, 1.8, 1.8)
+		core.Position = Vector3.new(core.Position.X, isDense and 3.6 or 3.4, core.Position.Z)
+		core.Color = isDense and Color3.fromRGB(255, 195, 45) or zone.Color
+		core.Transparency = 0
+
+		local light = core:FindFirstChildOfClass("PointLight")
+		if light then
+			light.Color = isDense and Color3.fromRGB(255, 215, 60) or zone.Color
+			light.Brightness = isDense and 0.85 or 0.4
+			light.Range = isDense and 10 or 6
+		end
+	end
+
+	local halo = model:FindFirstChild("DenseHalo") :: Part?
+	if halo then
+		halo.Transparency = isDense and 0.2 or 1
+		halo.Color = Color3.fromRGB(255, 215, 60)
+		if core then
+			halo.Position = core.Position
+		end
+	end
+
+	local basePart = model:FindFirstChild("Base") :: Part?
+	if basePart then
+		basePart.Transparency = 0
+	end
+
+	local statusLabel = model:FindFirstChild("StatusLabel", true) :: TextLabel?
+	if statusLabel then
+		statusLabel.Text = isDense and string.format("⭐ DENSE %s ⭐", zone.Name:upper()) or string.format("🔨 %s", zone.Name:upper())
+		statusLabel.TextColor3 = isDense and Color3.fromRGB(255, 215, 50) or Color3.new(1, 1, 1)
+	end
+
+	local hpLabel = model:FindFirstChild("HpLabel", true) :: TextLabel?
+	if hpLabel then
+		hpLabel.Text = string.format("[ %d / %d HP ]", maxHP, maxHP)
+		hpLabel.TextColor3 = isDense and Color3.fromRGB(255, 230, 160) or Color3.fromRGB(200, 220, 240)
+	end
+
+	local healthBarFill = model:FindFirstChild("HealthBarFill", true) :: Frame?
+	if healthBarFill then
+		healthBarFill.Size = UDim2.new(1, 0, 1, 0)
+		healthBarFill.BackgroundColor3 = Color3.fromRGB(40, 215, 95)
+	end
+
+	local root = model:FindFirstChild("Hitbox")
+	local badge = root and root:FindFirstChild("InfoGui") and root.InfoGui:FindFirstChild("Frame") :: Frame?
+	local bStroke = badge and badge:FindFirstChildOfClass("UIStroke")
+	if bStroke then
+		bStroke.Color = isDense and Color3.fromRGB(255, 200, 50) or zone.Color
+		bStroke.Thickness = isDense and 2 or 1.5
+	end
+
+	local prompt = root and root:FindFirstChild("ScrapPrompt") :: ProximityPrompt?
+	if prompt then
+		prompt.ObjectText = isDense and string.format("Dense %s Cache", zone.Name) or zone.Name
+		prompt.ActionText = "Strike Scrap (E)"
+	end
+end
+
 -- 3. Create Multi-Part High Detail Scrap Nodes with Health
 function ZoneService.createScrapPile(zone: Types.ZoneConfig, position: Vector3, index: number): Model
 	local model = Instance.new("Model")
@@ -706,39 +780,32 @@ function ZoneService.createScrapPile(zone: Types.ZoneConfig, position: Vector3, 
 	girder.Material = Enum.Material.DiamondPlate
 	girder.Parent = model
 
-	local isDense = (index == 4)
-	local maxHP = isDense and (zone.DenseHP or 6) or (zone.BaseHP or 3)
-	local yieldMult = isDense and (zone.DenseYieldMultiplier or 2.0) or 1.0
-	local baseYield = math.floor(zone.BaseYield * yieldMult)
-
 	local core = Instance.new("Part")
 	core.Name = "Core"
-	core.Size = isDense and Vector3.new(2.4, 2.4, 2.4) or Vector3.new(1.8, 1.8, 1.8)
-	core.Position = position + Vector3.new(0, isDense and 3.6 or 3.4, 0)
+	core.Size = Vector3.new(1.8, 1.8, 1.8)
+	core.Position = position + Vector3.new(0, 3.4, 0)
 	core.Anchored = true
-	core.Color = isDense and Color3.fromRGB(255, 195, 45) or zone.Color
+	core.Color = zone.Color
 	core.Material = Enum.Material.SmoothPlastic
 	core.Parent = model
 
-	if isDense then
-		local halo = Instance.new("Part")
-		halo.Name = "DenseHalo"
-		halo.Shape = Enum.PartType.Cylinder
-		halo.Size = Vector3.new(0.4, 4.0, 4.0)
-		halo.Position = core.Position
-		halo.Orientation = Vector3.new(0, 0, 90)
-		halo.Anchored = true
-		halo.Color = Color3.fromRGB(255, 215, 60)
-		halo.Material = Enum.Material.Neon
-		halo.Transparency = 0.2
-		halo.CanCollide = false
-		halo.Parent = model
-	end
+	local halo = Instance.new("Part")
+	halo.Name = "DenseHalo"
+	halo.Shape = Enum.PartType.Cylinder
+	halo.Size = Vector3.new(0.4, 4.0, 4.0)
+	halo.Position = core.Position
+	halo.Orientation = Vector3.new(0, 0, 90)
+	halo.Anchored = true
+	halo.Color = Color3.fromRGB(255, 215, 60)
+	halo.Material = Enum.Material.Neon
+	halo.Transparency = 1
+	halo.CanCollide = false
+	halo.Parent = model
 
 	local light = Instance.new("PointLight")
-	light.Color = isDense and Color3.fromRGB(255, 215, 60) or zone.Color
-	light.Brightness = isDense and 0.8 or 0.4
-	light.Range = isDense and 10 or 6
+	light.Color = zone.Color
+	light.Brightness = 0.4
+	light.Range = 6
 	light.Parent = core
 
 	local gui = Instance.new("BillboardGui")
@@ -759,8 +826,8 @@ function ZoneService.createScrapPile(zone: Types.ZoneConfig, position: Vector3, 
 	bCorner.Parent = badge
 
 	local bStroke = Instance.new("UIStroke")
-	bStroke.Color = isDense and Color3.fromRGB(255, 200, 50) or zone.Color
-	bStroke.Thickness = isDense and 2 or 1.5
+	bStroke.Color = zone.Color
+	bStroke.Thickness = 1.5
 	bStroke.Parent = badge
 
 	local label = Instance.new("TextLabel")
@@ -768,10 +835,10 @@ function ZoneService.createScrapPile(zone: Types.ZoneConfig, position: Vector3, 
 	label.Size = UDim2.new(1, -8, 0, 18)
 	label.Position = UDim2.new(0, 4, 0, 4)
 	label.BackgroundTransparency = 1
-	label.TextColor3 = isDense and Color3.fromRGB(255, 215, 50) or Color3.new(1, 1, 1)
+	label.TextColor3 = Color3.new(1, 1, 1)
 	label.Font = Enum.Font.GothamBlack
 	label.TextSize = 12
-	label.Text = isDense and string.format("⭐ DENSE %s ⭐", zone.Name:upper()) or string.format("🔨 %s", zone.Name:upper())
+	label.Text = string.format("🔨 %s", zone.Name:upper())
 	label.Parent = badge
 
 	-- Dynamic Graphical Health Bar
@@ -806,23 +873,21 @@ function ZoneService.createScrapPile(zone: Types.ZoneConfig, position: Vector3, 
 	hpLabel.Font = Enum.Font.GothamBold
 	hpLabel.TextSize = 11
 	hpLabel.TextColor3 = Color3.fromRGB(200, 220, 240)
-	hpLabel.Text = string.format("[ %d / %d HP ]", maxHP, maxHP)
+	hpLabel.Text = "[ HP ]"
 	hpLabel.Parent = badge
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "ScrapPrompt"
-	prompt.ObjectText = isDense and string.format("Dense %s Cache", zone.Name) or zone.Name
+	prompt.ObjectText = zone.Name
 	prompt.ActionText = "Strike Scrap (E)"
 	prompt.HoldDuration = 0.1
 	prompt.MaxActivationDistance = 15
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = root
 
-	model:SetAttribute("ZoneId", zone.Id)
-	model:SetAttribute("BaseYield", baseYield)
-	model:SetAttribute("MaxHP", maxHP)
-	model:SetAttribute("CurrentHP", maxHP)
-	model:SetAttribute("IsDense", isDense)
+	-- Randomize initial dense node per zone (25% RNG per pile)
+	local isDenseInitial = (math.random(1, 4) == 1)
+	ZoneService.applyNodeVariant(model, zone, isDenseInitial)
 
 	return model
 end

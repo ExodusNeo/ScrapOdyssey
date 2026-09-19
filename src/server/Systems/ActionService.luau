@@ -591,28 +591,16 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 		local halo = nodeModel:FindFirstChild("DenseHalo") :: BasePart?
 		if halo then halo.Transparency = 1 end
 
-		-- Respawn after 2.5 seconds
+		-- Respawn after 2.5 seconds with fresh RNG Dense roll
 		task.delay(2.5, function()
 			if nodeModel and nodeModel.Parent then
-				nodeModel:SetAttribute("CurrentHP", maxHP)
-				if corePart then corePart.Transparency = 0 end
-				if basePart then basePart.Transparency = 0 end
-				local rHalo = nodeModel:FindFirstChild("DenseHalo") :: BasePart?
-				if rHalo then rHalo.Transparency = 0.2 end
-				local isDenseNode = nodeModel:GetAttribute("IsDense")
-				local titleText = isDenseNode and string.format("⭐ DENSE %s ⭐", zone.Name:upper()) or string.format("🔨 %s", zone.Name:upper())
-				if statusLabel then
-					statusLabel.Text = titleText
-				end
-				local rHpLabel = nodeModel:FindFirstChild("HpLabel", true) :: TextLabel?
-				if rHpLabel then
-					rHpLabel.Text = string.format("[ %d / %d HP ]", maxHP, maxHP)
-				end
-				local rBarFill = nodeModel:FindFirstChild("HealthBarFill", true) :: Frame?
-				if rBarFill then
-					rBarFill.Size = UDim2.new(1, 0, 1, 0)
-					rBarFill.BackgroundColor3 = Color3.fromRGB(40, 215, 95)
-				end
+				local rZoneId = nodeModel:GetAttribute("ZoneId") or 1
+				local rZone = Config.Zones[rZoneId] or zone
+				local isDenseRoll = (math.random() <= 0.28) -- 28% RNG chance on every respawn!
+
+				local ZoneService = require(script.Parent.ZoneService)
+				ZoneService.applyNodeVariant(nodeModel, rZone, isDenseRoll)
+
 				nodeCooldown[nodeModel] = false
 			end
 		end)
