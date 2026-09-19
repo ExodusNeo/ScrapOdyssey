@@ -1,25 +1,49 @@
 {
-  "name": "MyRobloxGame",
+  "name": "ScrapOdyssey",
   "tree": {
     "$className": "DataModel",
     "ServerScriptService": {
       "$className": "ServerScriptService",
-      "Server": {
-        "$path": "src/server"
+      "Main": {
+        "$path": "src/server/Main.server.luau"
+      },
+      "Systems": {
+        "$path": "src/server/Systems"
       }
     },
     "ReplicatedStorage": {
       "$className": "ReplicatedStorage",
-      "Shared": {
-        "$path": "src/shared"
+      "Modules": {
+        "$path": "src/shared/Modules"
+      },
+      "Remotes": {
+        "$path": "src/shared/Remotes"
+      },
+      "Assets": {
+        "$path": "src/shared/Assets"
+      }
+    },
+    "ServerStorage": {
+      "$className": "ServerStorage",
+      "Templates": {
+        "$path": "src/server_storage/Templates"
+      }
+    },
+    "StarterGui": {
+      "$className": "StarterGui",
+      "MainUI": {
+        "$path": "src/client/gui/MainUI"
       }
     },
     "StarterPlayer": {
       "$className": "StarterPlayer",
       "StarterPlayerScripts": {
         "$className": "StarterPlayerScripts",
-        "Client": {
-          "$path": "src/client"
+        "ClientMain": {
+          "$path": "src/client/ClientMain.client.luau"
+        },
+        "Controllers": {
+          "$path": "src/client/Controllers"
         }
       }
     }
