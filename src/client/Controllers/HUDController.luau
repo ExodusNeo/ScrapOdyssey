@@ -258,7 +258,7 @@ function HUDController.updateCurrencies(data: Types.PlayerData)
 
 		if backpack >= maxCap then
 			cargoFill.BackgroundColor3 = Color3.fromRGB(240, 50, 60)
-			cargoLabel.Text = string.format("🎒 FULL! (%d/%d) — RECYCLE AT HUB!", backpack, maxCap)
+			cargoLabel.Text = string.format("🎒 FULL! (%d/%d) — RECYCLE AT DEPOSIT PAD!", backpack, maxCap)
 			cargoLabel.TextColor3 = Color3.fromRGB(255, 220, 220)
 		elseif ratio >= 0.8 then
 			cargoFill.BackgroundColor3 = Color3.fromRGB(255, 170, 30)
@@ -275,6 +275,30 @@ function HUDController.updateCurrencies(data: Types.PlayerData)
 	if multLabel then
 		local rebirthMult = 1 + (data.Rebirths * 0.5)
 		multLabel.Text = string.format("⚡ MULT: %.1fx", rebirthMult)
+	end
+
+	-- Instant client-side gate collision disable for reached zones
+	HUDController.updateGateBarriers(data.MaxZoneReached or 1)
+end
+
+function HUDController.updateGateBarriers(maxZone: number)
+	local bridgesFolder = Workspace:FindFirstChild("Bridges")
+	if not bridgesFolder then return end
+
+	for z = 2, maxZone do
+		local gateModel = bridgesFolder:FindFirstChild("Gate_Zone" .. tostring(z))
+		if gateModel then
+			local barrier = gateModel:FindFirstChild("Forcefield") :: BasePart?
+			if barrier then
+				barrier.CanCollide = false
+				barrier.Transparency = 1
+			end
+			for _, desc in ipairs(gateModel:GetDescendants()) do
+				if desc:IsA("ProximityPrompt") then
+					desc.Enabled = false
+				end
+			end
+		end
 	end
 end
 
@@ -347,6 +371,17 @@ function HUDController.init()
 		local initialData = getFunction:InvokeServer()
 		if initialData then
 			HUDController.updateCurrencies(initialData)
+		end
+	end)
+
+	-- Listen for dynamic Bridges creation
+	Workspace.ChildAdded:Connect(function(child)
+		if child.Name == "Bridges" then
+			task.wait(0.2)
+			local data = getFunction:InvokeServer()
+			if data then
+				HUDController.updateGateBarriers(data.MaxZoneReached or 1)
+			end
 		end
 	end)
 

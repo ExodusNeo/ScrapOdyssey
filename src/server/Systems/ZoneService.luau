@@ -157,7 +157,147 @@ local function createPortalPad(parent: Instance, position: Vector3, zoneId: numb
 	end)
 end
 
--- 2. Build the Central Town Hub (Plaza, Pedestals, Recycler Machine, Props)
+-- 2. Helper to build an Industrial Scrap Recycler with furnace core, smokestacks, and green deposit pad
+function ZoneService.constructRecycler(parent: Instance, basePos: Vector3, zoneId: number): Model
+	local recyclerModel = Instance.new("Model")
+	recyclerModel.Name = "ScrapRecycler_Zone" .. tostring(zoneId)
+
+	local baseUnit = Instance.new("Part")
+	baseUnit.Name = "BaseUnit"
+	baseUnit.Size = Vector3.new(12, 8, 12)
+	baseUnit.Position = basePos + Vector3.new(0, 4, 0)
+	baseUnit.Anchored = true
+	baseUnit.Material = Enum.Material.DiamondPlate
+	baseUnit.Color = Color3.fromRGB(35, 38, 48)
+	baseUnit.Parent = recyclerModel
+
+	local furnaceWindow = Instance.new("Part")
+	furnaceWindow.Name = "FurnaceCore"
+	furnaceWindow.Size = Vector3.new(5, 3.5, 0.4)
+	furnaceWindow.Position = basePos + Vector3.new(0, 3.2, 6.2)
+	furnaceWindow.Anchored = true
+	furnaceWindow.Material = Enum.Material.Neon
+	furnaceWindow.Color = Color3.fromRGB(255, 120, 20)
+	furnaceWindow.Parent = recyclerModel
+
+	local fLight = Instance.new("PointLight")
+	fLight.Color = Color3.fromRGB(255, 130, 30)
+	fLight.Brightness = 2.5
+	fLight.Range = 16
+	fLight.Parent = furnaceWindow
+
+	local funnel = Instance.new("Part")
+	funnel.Name = "Funnel"
+	funnel.Shape = Enum.PartType.Cylinder
+	funnel.Size = Vector3.new(3, 8.5, 8.5)
+	funnel.Position = basePos + Vector3.new(0, 9.5, 0)
+	funnel.Orientation = Vector3.new(0, 0, 90)
+	funnel.Anchored = true
+	funnel.Material = Enum.Material.Neon
+	funnel.Color = Color3.fromRGB(255, 180, 50)
+	funnel.Parent = recyclerModel
+
+	local steam = Instance.new("ParticleEmitter")
+	steam.Name = "Steam"
+	steam.Color = ColorSequence.new(Color3.fromRGB(200, 200, 210))
+	steam.Size = NumberSequence.new(1.5, 4.0)
+	steam.Transparency = NumberSequence.new(0.3, 1.0)
+	steam.Rate = 12
+	steam.Lifetime = NumberRange.new(2, 3.5)
+	steam.Speed = NumberRange.new(4, 7)
+	steam.SpreadAngle = Vector2.new(20, 20)
+	steam.Acceleration = Vector3.new(0, 3, 0)
+	steam.Parent = funnel
+
+	-- Smokestacks
+	local stackCoords = { basePos + Vector3.new(-5.2, 8, 0), basePos + Vector3.new(5.2, 8, 0) }
+	for _, sPos in ipairs(stackCoords) do
+		local stack = Instance.new("Part")
+		stack.Name = "Smokestack"
+		stack.Shape = Enum.PartType.Cylinder
+		stack.Size = Vector3.new(10, 1.8, 1.8)
+		stack.Position = sPos
+		stack.Orientation = Vector3.new(0, 0, 90)
+		stack.Anchored = true
+		stack.Material = Enum.Material.Metal
+		stack.Color = Color3.fromRGB(25, 27, 34)
+		stack.Parent = recyclerModel
+	end
+
+	-- Recycler Billboard
+	local rbb = Instance.new("BillboardGui")
+	rbb.Size = UDim2.new(0, 260, 0, 60)
+	rbb.StudsOffset = Vector3.new(0, 7.5, 0)
+	rbb.AlwaysOnTop = true
+	rbb.Parent = baseUnit
+
+	local rTitle = Instance.new("TextLabel")
+	rTitle.Size = UDim2.new(1, 0, 1, 0)
+	rTitle.BackgroundTransparency = 1
+	rTitle.Font = Enum.Font.GothamBlack
+	rTitle.TextSize = 22
+	rTitle.TextColor3 = Color3.fromRGB(255, 215, 0)
+	rTitle.TextStrokeTransparency = 0.2
+	rTitle.TextStrokeColor3 = Color3.new(0, 0, 0)
+	rTitle.Text = string.format("⚙️ SCRAP RECYCLER %s⚙️\n[DEPOSIT & SELL CARGO]", zoneId > 1 and ("(Z" .. tostring(zoneId) .. ") ") or "")
+	rTitle.Parent = rbb
+
+	-- Deposit Sell Pad
+	local depositPad = Instance.new("Part")
+	depositPad.Name = "RecyclerDepositPad"
+	depositPad.Size = Vector3.new(14, 0.4, 10)
+	depositPad.Position = basePos + Vector3.new(0, 0.2, 7)
+	depositPad.Anchored = true
+	depositPad.CanCollide = true
+	depositPad.Material = Enum.Material.Neon
+	depositPad.Color = Color3.fromRGB(40, 230, 120)
+	depositPad.Parent = recyclerModel
+
+	local depositPrompt = Instance.new("ProximityPrompt")
+	depositPrompt.Name = "RecyclePrompt"
+	depositPrompt.ObjectText = "Scrap Recycler"
+	depositPrompt.ActionText = "Sell Cargo"
+	depositPrompt.HoldDuration = 0.1
+	depositPrompt.MaxActivationDistance = 14
+	depositPrompt.RequiresLineOfSight = false
+	depositPrompt.Parent = depositPad
+
+	depositPrompt.Triggered:Connect(function(player)
+		local CurrencyService = require(script.Parent.CurrencyService)
+		CurrencyService.recycleBackpack(player)
+	end)
+
+	local sellDebounce: { [Player]: number } = {}
+	depositPad.Touched:Connect(function(hit)
+		local char = hit.Parent
+		if not char then return end
+		if hit.Name ~= "HumanoidRootPart" and hit.Name ~= "UpperTorso" and hit.Name ~= "Torso" then
+			return
+		end
+		local player = Players:GetPlayerFromCharacter(char)
+		if not player then return end
+
+		local now = os.clock()
+		if sellDebounce[player] and (now - sellDebounce[player]) < 1.5 then
+			return
+		end
+		sellDebounce[player] = now
+
+		local data = DataService.get(player)
+		-- Silently ignore if cargo is already 0, so walking across doesn't spam "Cargo Empty" notifications!
+		if not data or (data.Backpack or 0) <= 0 then
+			return
+		end
+
+		local CurrencyService = require(script.Parent.CurrencyService)
+		CurrencyService.recycleBackpack(player)
+	end)
+
+	recyclerModel.Parent = parent
+	return recyclerModel
+end
+
+-- 3. Build the Central Town Hub (Plaza, Pedestals, Recycler Machine, Props)
 function ZoneService.constructCentralHub()
 	local hubFolder = Workspace:FindFirstChild("CentralHub") :: Folder
 	if not hubFolder then
@@ -236,141 +376,7 @@ function ZoneService.constructCentralHub()
 	if decal then decal:Destroy() end
 
 	-- Scrap Recycler Machine & Sell Pad
-	local recyclerModel = Instance.new("Model")
-	recyclerModel.Name = "ScrapRecycler"
-
-	local baseUnit = Instance.new("Part")
-	baseUnit.Name = "BaseUnit"
-	baseUnit.Size = Vector3.new(12, 8, 12)
-	baseUnit.Position = Vector3.new(0, 4, -15)
-	baseUnit.Anchored = true
-	baseUnit.Material = Enum.Material.DiamondPlate
-	baseUnit.Color = Color3.fromRGB(35, 38, 48)
-	baseUnit.Parent = recyclerModel
-
-	local furnaceWindow = Instance.new("Part")
-	furnaceWindow.Name = "FurnaceCore"
-	furnaceWindow.Size = Vector3.new(5, 3.5, 0.4)
-	furnaceWindow.Position = Vector3.new(0, 3.2, -8.8)
-	furnaceWindow.Anchored = true
-	furnaceWindow.Material = Enum.Material.Neon
-	furnaceWindow.Color = Color3.fromRGB(255, 120, 20)
-	furnaceWindow.Parent = recyclerModel
-
-	local fLight = Instance.new("PointLight")
-	fLight.Color = Color3.fromRGB(255, 130, 30)
-	fLight.Brightness = 2.5
-	fLight.Range = 16
-	fLight.Parent = furnaceWindow
-
-	local funnel = Instance.new("Part")
-	funnel.Name = "Funnel"
-	funnel.Shape = Enum.PartType.Cylinder
-	funnel.Size = Vector3.new(3, 8.5, 8.5)
-	funnel.Position = Vector3.new(0, 9.5, -15)
-	funnel.Orientation = Vector3.new(0, 0, 90)
-	funnel.Anchored = true
-	funnel.Material = Enum.Material.Neon
-	funnel.Color = Color3.fromRGB(255, 180, 50)
-	funnel.Parent = recyclerModel
-
-	local steam = Instance.new("ParticleEmitter")
-	steam.Name = "Steam"
-	steam.Color = ColorSequence.new(Color3.fromRGB(200, 200, 210))
-	steam.Size = NumberSequence.new(1.5, 4.0)
-	steam.Transparency = NumberSequence.new(0.3, 1.0)
-	steam.Rate = 12
-	steam.Lifetime = NumberRange.new(2, 3.5)
-	steam.Speed = NumberRange.new(4, 7)
-	steam.SpreadAngle = Vector2.new(20, 20)
-	steam.Acceleration = Vector3.new(0, 3, 0)
-	steam.Parent = funnel
-
-	-- Smokestacks
-	local stackCoords = { Vector3.new(-5.2, 8, -15), Vector3.new(5.2, 8, -15) }
-	for _, sPos in ipairs(stackCoords) do
-		local stack = Instance.new("Part")
-		stack.Name = "Smokestack"
-		stack.Shape = Enum.PartType.Cylinder
-		stack.Size = Vector3.new(10, 1.8, 1.8)
-		stack.Position = sPos
-		stack.Orientation = Vector3.new(0, 0, 90)
-		stack.Anchored = true
-		stack.Material = Enum.Material.Metal
-		stack.Color = Color3.fromRGB(25, 27, 34)
-		stack.Parent = recyclerModel
-	end
-
-	-- Recycler Billboard
-	local rbb = Instance.new("BillboardGui")
-	rbb.Size = UDim2.new(0, 260, 0, 60)
-	rbb.StudsOffset = Vector3.new(0, 7.5, 0)
-	rbb.AlwaysOnTop = true
-	rbb.Parent = baseUnit
-
-	local rTitle = Instance.new("TextLabel")
-	rTitle.Size = UDim2.new(1, 0, 1, 0)
-	rTitle.BackgroundTransparency = 1
-	rTitle.Font = Enum.Font.GothamBlack
-	rTitle.TextSize = 22
-	rTitle.TextColor3 = Color3.fromRGB(255, 215, 0)
-	rTitle.TextStrokeTransparency = 0.2
-	rTitle.TextStrokeColor3 = Color3.new(0, 0, 0)
-	rTitle.Text = "⚙️ SCRAP RECYCLER ⚙️\n[DEPOSIT & SELL CARGO]"
-	rTitle.Parent = rbb
-
-	-- Deposit Sell Pad
-	local depositPad = Instance.new("Part")
-	depositPad.Name = "RecyclerDepositPad"
-	depositPad.Size = Vector3.new(14, 0.4, 10)
-	depositPad.Position = Vector3.new(0, 0.2, -8)
-	depositPad.Anchored = true
-	depositPad.CanCollide = true
-	depositPad.Material = Enum.Material.Neon
-	depositPad.Color = Color3.fromRGB(40, 230, 120)
-	depositPad.Parent = recyclerModel
-
-	local depositPrompt = Instance.new("ProximityPrompt")
-	depositPrompt.Name = "RecyclePrompt"
-	depositPrompt.ObjectText = "Scrap Recycler"
-	depositPrompt.ActionText = "Sell Cargo"
-	depositPrompt.HoldDuration = 0.1
-	depositPrompt.MaxActivationDistance = 14
-	depositPrompt.RequiresLineOfSight = false
-	depositPrompt.Parent = depositPad
-
-	depositPrompt.Triggered:Connect(function(player)
-		local CurrencyService = require(script.Parent.CurrencyService)
-		CurrencyService.recycleBackpack(player)
-	end)
-
-	local sellDebounce: { [Player]: number } = {}
-	depositPad.Touched:Connect(function(hit)
-		local char = hit.Parent
-		if not char then return end
-		if hit.Name ~= "HumanoidRootPart" and hit.Name ~= "UpperTorso" and hit.Name ~= "Torso" then
-			return
-		end
-		local player = Players:GetPlayerFromCharacter(char)
-		if not player then return end
-
-		local now = os.clock()
-		if sellDebounce[player] and (now - sellDebounce[player]) < 1.5 then
-			return
-		end
-		sellDebounce[player] = now
-
-		local data = DataService.get(player)
-		-- Silently ignore if cargo is already 0, so walking across doesn't spam "Cargo Empty" notifications!
-		if not data or (data.Backpack or 0) <= 0 then
-			return
-		end
-
-		local CurrencyService = require(script.Parent.CurrencyService)
-		CurrencyService.recycleBackpack(player)
-	end)
-
-	recyclerModel.Parent = hubFolder
+	ZoneService.constructRecycler(hubFolder, Vector3.new(0, 0, -15), 1)
 
 	-- Drone Incubator Pedestals
 	local eggConfigs = {
@@ -646,11 +652,11 @@ function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Ve
 	curbWS.Position = centerPos + Vector3.new(-49, 0.3, 30.5)
 	curbWS.Parent = folder
 
-	-- Zone Signboard
+	-- Zone Signboard (Elevated above the zone recycler)
 	local sign = Instance.new("Part")
 	sign.Name = "ZoneSign"
 	sign.Size = Vector3.new(24, 8, 1.5)
-	sign.Position = centerPos + Vector3.new(0, 10, -42)
+	sign.Position = centerPos + Vector3.new(0, 13, -46)
 	sign.Anchored = true
 	sign.Color = Color3.fromRGB(18, 20, 28)
 	sign.Material = Enum.Material.SmoothPlastic
@@ -675,6 +681,9 @@ function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Ve
 	signText.Text = string.format("ZONE %d: %s\n%s", zone.Id, zone.Name:upper(), zone.Description)
 	signText.Parent = signBox
 
+	-- Scrap Recycler Machine & Deposit Sell Pad on this zone platform
+	ZoneService.constructRecycler(folder, centerPos + Vector3.new(0, 0, -36), zone.Id)
+
 	-- 4 Scrap Nodes per zone
 	local offsets = {
 		Vector3.new(-22, 0, -22),
@@ -689,8 +698,8 @@ function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Ve
 		table.insert(activeNodes, pile)
 	end
 
-	-- Fast Travel Portal on this platform
-	createPortalPad(folder, centerPos + Vector3.new(-28, 0.3, 28), zone.Id)
+	-- Fast Travel Portal on this platform (Safely placed in the corner at (-38, 38) with >22 studs clearance from scrap nodes)
+	createPortalPad(folder, centerPos + Vector3.new(-38, 0.3, 38), zone.Id)
 end
 
 -- 5. Construct Seamless Connecting Bridges with Solid Safety Guardrails
@@ -710,6 +719,11 @@ function ZoneService.constructBridge(zoneId: number)
 		bridgeFolder.Name = "Bridges"
 		bridgeFolder.Parent = Workspace
 	end
+
+	local oldBridge = bridgeFolder:FindFirstChild(string.format("Bridge_%d_to_%d", zoneId - 1, zoneId))
+	if oldBridge then oldBridge:Destroy() end
+	local oldGate = bridgeFolder:FindFirstChild("Gate_Zone" .. tostring(zoneId))
+	if oldGate then oldGate:Destroy() end
 
 	-- Solid Bridge Floor
 	local bridge = Instance.new("Part")
@@ -901,6 +915,12 @@ function ZoneService.unlockZone(player: Player, zoneId: number): boolean
 	if not zone then return false end
 
 	if (data.MaxZoneReached or 1) >= zoneId then
+		local gate = zoneGates[zoneId]
+		if gate and gate.Barrier then
+			gate.Barrier.CanCollide = false
+			gate.Barrier.Transparency = 1
+			gate.Prompt.Enabled = false
+		end
 		return true
 	end
 
@@ -979,6 +999,14 @@ end
 
 function ZoneService.init()
 	ZoneService.setupLighting()
+
+	-- Clean up old bridges and duplicate gates
+	local oldBridges = Workspace:FindFirstChild("Bridges")
+	if oldBridges then
+		oldBridges:Destroy()
+	end
+	table.clear(zoneGates)
+
 	ZoneService.constructCentralHub()
 
 	-- Construct outer zones (Zone 2 to 5)
@@ -991,6 +1019,25 @@ function ZoneService.init()
 
 	-- Void fall safety net
 	ZoneService.setupVoidProtection()
+
+	-- Gate auto-open for players who already unlocked the zone
+	Players.PlayerAdded:Connect(function(player)
+		task.delay(1.5, function()
+			if not player.Parent then return end
+			local data = DataService.get(player)
+			if data then
+				local maxZ = data.MaxZoneReached or 1
+				for z = 2, maxZ do
+					local gate = zoneGates[z]
+					if gate and gate.Barrier then
+						gate.Barrier.CanCollide = false
+						gate.Barrier.Transparency = 1
+						gate.Prompt.Enabled = false
+					end
+				end
+			end
+		end)
+	end)
 
 	-- Remote event listener for TeleportZone
 	if RunService:IsServer() then

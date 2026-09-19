@@ -35,7 +35,7 @@ local function createPart(
 	p.CanQuery = false
 	p.Massless = true
 	p.CastShadow = false
-	p.Anchored = false
+	p.Anchored = true
 	p.Parent = parent
 	return p
 end
@@ -48,18 +48,6 @@ local function weldParts(partA: BasePart, partB: BasePart, offsetCFrame: CFrame)
 	wc.Part1 = partB
 	wc.Parent = partB
 	return wc
-end
-
--- Helper to create a rotating weld (used for spinning rotors and orbiting shards)
-local function createSpinWeld(partA: BasePart, partB: BasePart, offsetCFrame: CFrame, spinRateDeg: number): Weld
-	local w = Instance.new("Weld")
-	w.Part0 = partA
-	w.Part1 = partB
-	w.C0 = offsetCFrame
-	w.C1 = CFrame.new()
-	w:SetAttribute("SpinRate", spinRateDeg)
-	w.Parent = partB
-	return w
 end
 
 -- Creates a multi-part Sci-Fi Drone Model tailored to each drone template
@@ -117,7 +105,10 @@ function PetService.createDroneModel(template: Types.PetTemplate?): Model
 		weldParts(core, mast, CFrame.new(0, 0.8, 0) * CFrame.Angles(0, 0, math.rad(90)))
 
 		local rotorBlades = createPart(droneModel, "RotorBlades", Vector3.new(1.6, 0.06, 0.22), Color3.fromRGB(45, 45, 50), Enum.Material.SmoothPlastic)
-		createSpinWeld(core, rotorBlades, CFrame.new(0, 1.08, 0), 22)
+		rotorBlades.CFrame = core.CFrame * CFrame.new(0, 1.08, 0)
+		rotorBlades:SetAttribute("SpinType", "Rotor")
+		rotorBlades:SetAttribute("SpinOffset", Vector3.new(0, 1.08, 0))
+		rotorBlades:SetAttribute("SpinRate", 22)
 
 		-- Bottom exhaust with subtle smoke puff
 		local exhaust = createPart(droneModel, "Exhaust", Vector3.new(0.3, 0.38, 0.38), Color3.fromRGB(60, 60, 65), Enum.Material.DiamondPlate, Enum.PartType.Cylinder)
@@ -300,11 +291,7 @@ function PetService.createDroneModel(template: Types.PetTemplate?): Model
 		local hornR = createPart(droneModel, "HornR", Vector3.new(0.18, 0.7, 0.3), Color3.fromRGB(255, 30, 90), Enum.Material.Neon)
 		weldParts(core, hornR, CFrame.new(0.35, 0.75, -0.1) * CFrame.Angles(math.rad(-15), 0, math.rad(20)))
 
-		-- 4 Orbiting Shards anchored via rotating weld
-		local shardOrbitRotator = createPart(droneModel, "OrbitHub", Vector3.new(0.2, 0.2, 0.2), Color3.fromRGB(0,0,0))
-		shardOrbitRotator.Transparency = 1
-		createSpinWeld(core, shardOrbitRotator, CFrame.new(), 14)
-
+		-- 4 Orbiting Shards
 		local shardPositions = {
 			Vector3.new(-1.3, 0, 0),
 			Vector3.new(1.3, 0, 0),
@@ -314,7 +301,10 @@ function PetService.createDroneModel(template: Types.PetTemplate?): Model
 
 		for sIdx, sPos in ipairs(shardPositions) do
 			local shard = createPart(droneModel, "Shard_" .. sIdx, Vector3.new(0.28, 0.55, 0.28), Color3.fromRGB(255, 40, 100), Enum.Material.Neon)
-			weldParts(shardOrbitRotator, shard, CFrame.new(sPos) * CFrame.Angles(math.rad(25), math.rad(45), 0))
+			shard.CFrame = core.CFrame * CFrame.new(sPos) * CFrame.Angles(math.rad(25), math.rad(45), 0)
+			shard:SetAttribute("SpinType", "Orbit")
+			shard:SetAttribute("OrbitPos", sPos)
+			shard:SetAttribute("SpinRate", 14)
 		end
 
 		local light = Instance.new("PointLight")
@@ -537,19 +527,17 @@ function PetService.updateVisualDrones(player: Player)
 		end
 
 		local droneModel = PetService.createDroneModel(template)
-		local core = droneModel.PrimaryPart
-		if core then
-			core.CFrame = rootPart.CFrame * CFrame.new(0, 2, 5)
-		end
+		local initialCF = rootPart.CFrame * CFrame.new(0, 2, 5)
+		droneModel:PivotTo(initialCF)
 
 		droneModel.Parent = Workspace
 		table.insert(spawnedDrones[player], droneModel)
 
-		-- Collect any rotating welds for this drone (e.g. rotors, orbiting singularity shards)
-		local spinningWelds: { Weld } = {}
+		-- Collect any animated spinning parts for this drone (e.g. rotors, orbiting singularity shards)
+		local spinningParts: { BasePart } = {}
 		for _, desc in ipairs(droneModel:GetDescendants()) do
-			if desc:IsA("Weld") and desc:GetAttribute("SpinRate") ~= nil then
-				table.insert(spinningWelds, desc)
+			if desc:IsA("BasePart") and desc:GetAttribute("SpinType") ~= nil then
+				table.insert(spinningParts, desc)
 			end
 		end
 
@@ -569,15 +557,21 @@ function PetService.updateVisualDrones(player: Player)
 				local lookPos = targetPosCF.Position + rootCF.LookVector * 10
 				local targetCF = CFrame.lookAt(targetPosCF.Position, lookPos)
 
-				if core and core.Parent then
-					core.CFrame = core.CFrame:Lerp(targetCF, 0.18)
-				end
+				droneModel:PivotTo(droneModel:GetPivot():Lerp(targetCF, 0.18))
 
-				-- Spin any animated parts
-				for _, w in ipairs(spinningWelds) do
-					if w.Parent then
-						local rate = (w:GetAttribute("SpinRate") :: number) or 10
-						w.C0 = w.C0 * CFrame.Angles(0, math.rad(rate), 0)
+				-- Spin any animated parts in lockstep relative to the core
+				for _, sp in ipairs(spinningParts) do
+					if sp.Parent and core and core.Parent then
+						local spinType = sp:GetAttribute("SpinType")
+						local rate = (sp:GetAttribute("SpinRate") :: number) or 10
+						local angle = math.rad(now * rate * 30 % 360)
+						if spinType == "Rotor" then
+							local offset = (sp:GetAttribute("SpinOffset") :: Vector3) or Vector3.new(0, 1.08, 0)
+							sp.CFrame = core.CFrame * CFrame.new(offset) * CFrame.Angles(0, angle, 0)
+						elseif spinType == "Orbit" then
+							local orbitPos = (sp:GetAttribute("OrbitPos") :: Vector3) or Vector3.new(1.3, 0, 0)
+							sp.CFrame = core.CFrame * CFrame.Angles(0, angle, 0) * CFrame.new(orbitPos) * CFrame.Angles(math.rad(25), math.rad(45), 0)
+						end
 					end
 				end
 

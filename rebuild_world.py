@@ -5,8 +5,11 @@ def rebuild():
     print("Rebuilding Central Hub in Studio...")
     code = """
     local SSS = game:GetService("ServerScriptService")
-    local ZoneService = require(SSS.Systems.ZoneService)
+    local clone = SSS.Systems.ZoneService:Clone()
+    clone.Parent = SSS.Systems
+    local ZoneService = require(clone)
     ZoneService.init()
+    clone:Destroy()
     return "Hub, Lighting, Recycler, Egg Pods, and Zones successfully constructed in Studio!"
     """
     res = client.execute_luau(code)
