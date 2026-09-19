@@ -39,8 +39,8 @@ local function giveScrapperTool(player: Player)
 	battery.Name = "PowerBattery"
 	battery.Size = Vector3.new(0.85, 0.7, 0.85)
 	battery.Position = handle.Position + Vector3.new(0, -1.6, 0)
-	battery.Material = Enum.Material.Neon
-	battery.Color = Color3.fromRGB(0, 220, 255)
+	battery.Material = Enum.Material.SmoothPlastic
+	battery.Color = Color3.fromRGB(0, 190, 225)
 	battery.Parent = tool
 
 	local weldBat = Instance.new("WeldConstraint")
@@ -94,8 +94,8 @@ local function giveScrapperTool(player: Player)
 	blade.Name = "Tip"
 	blade.Size = Vector3.new(0.65, 1.2, 0.3)
 	blade.Position = head.Position + Vector3.new(0, 1.0, 0)
-	blade.Material = Enum.Material.Neon
-	blade.Color = Color3.fromRGB(255, 190, 50)
+	blade.Material = Enum.Material.SmoothPlastic
+	blade.Color = Color3.fromRGB(240, 175, 45)
 	blade.Parent = tool
 
 	local weldBlade = Instance.new("WeldConstraint")

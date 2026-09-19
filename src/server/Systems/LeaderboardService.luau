@@ -25,14 +25,14 @@ function LeaderboardService.createInWorldBoard()
 	boardPart.Color = Color3.fromRGB(20, 20, 25)
 	boardPart.Parent = model
 
-	-- Neon border
+	-- Stylized border
 	local border = Instance.new("Part")
 	border.Name = "Border"
 	border.Size = Vector3.new(16.4, 12.4, 0.8)
 	border.Position = Vector3.new(0, 9, -20.1)
 	border.Anchored = true
-	border.Material = Enum.Material.Neon
-	border.Color = Color3.fromRGB(255, 170, 0)
+	border.Material = Enum.Material.SmoothPlastic
+	border.Color = Color3.fromRGB(200, 140, 30)
 	border.Parent = model
 
 	surfaceGui = Instance.new("SurfaceGui")

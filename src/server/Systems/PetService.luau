@@ -84,14 +84,8 @@ function PetService.createDroneModel(template: Types.PetTemplate?): Model
 		local eyeRim = createPart(droneModel, "EyeRim", Vector3.new(0.2, 0.6, 0.6), Color3.fromRGB(40, 40, 40), Enum.Material.Metal, Enum.PartType.Cylinder)
 		weldParts(core, eyeRim, CFrame.new(0, 0.1, -0.62) * CFrame.Angles(0, math.rad(90), 0))
 
-		local eyeLens = createPart(droneModel, "EyeLens", Vector3.new(0.25, 0.42, 0.42), Color3.fromRGB(255, 140, 20), Enum.Material.Neon, Enum.PartType.Cylinder)
+		local eyeLens = createPart(droneModel, "EyeLens", Vector3.new(0.25, 0.42, 0.42), Color3.fromRGB(225, 135, 30), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 		weldParts(core, eyeLens, CFrame.new(0, 0.1, -0.68) * CFrame.Angles(0, math.rad(90), 0))
-
-		local light = Instance.new("PointLight")
-		light.Color = Color3.fromRGB(255, 140, 20)
-		light.Range = 6
-		light.Brightness = 1.2
-		light.Parent = eyeLens
 
 		-- Side ear stabilizers
 		local earL = createPart(droneModel, "EarL", Vector3.new(0.4, 0.35, 0.35), Color3.fromRGB(110, 85, 65), Enum.Material.CorrodedMetal, Enum.PartType.Cylinder)
@@ -115,7 +109,7 @@ function PetService.createDroneModel(template: Types.PetTemplate?): Model
 		weldParts(core, exhaust, CFrame.new(0, -0.68, 0) * CFrame.Angles(0, 0, math.rad(90)))
 
 	elseif petId == "drone_spark" then
-		-- SPARK DRONE: Sleek aerodynamic carbon hull, neon lime stripes, glowing visor, twin wing hover nacelles
+		-- SPARK DRONE: Sleek aerodynamic carbon hull, lime stripes, clean visor, twin wing hover nacelles
 		local body = createPart(droneModel, "Body", Vector3.new(1.2, 0.55, 1.4), Color3.fromRGB(35, 40, 45), Enum.Material.SmoothPlastic)
 		body.CastShadow = true
 		weldParts(core, body, CFrame.new())
@@ -123,10 +117,10 @@ function PetService.createDroneModel(template: Types.PetTemplate?): Model
 		local topArmor = createPart(droneModel, "TopArmor", Vector3.new(0.85, 0.18, 1.1), Color3.fromRGB(55, 60, 68), Enum.Material.SmoothPlastic)
 		weldParts(core, topArmor, CFrame.new(0, 0.28, 0))
 
-		local neonStripe = createPart(droneModel, "Stripe", Vector3.new(0.2, 0.08, 1.25), Color3.fromRGB(80, 255, 140), Enum.Material.Neon)
+		local neonStripe = createPart(droneModel, "Stripe", Vector3.new(0.2, 0.08, 1.25), Color3.fromRGB(60, 200, 125), Enum.Material.SmoothPlastic)
 		weldParts(core, neonStripe, CFrame.new(0, 0.38, 0))
 
-		local visor = createPart(droneModel, "Visor", Vector3.new(0.9, 0.18, 0.15), Color3.fromRGB(80, 255, 140), Enum.Material.Neon)
+		local visor = createPart(droneModel, "Visor", Vector3.new(0.9, 0.18, 0.15), Color3.fromRGB(60, 200, 125), Enum.Material.SmoothPlastic)
 		weldParts(core, visor, CFrame.new(0, 0.05, -0.72))
 
 		-- Twin Outrigger Wings & Hover Nacelles
@@ -136,7 +130,7 @@ function PetService.createDroneModel(template: Types.PetTemplate?): Model
 		local nacelleL = createPart(droneModel, "NacelleL", Vector3.new(0.4, 0.55, 0.55), Color3.fromRGB(35, 40, 45), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 		weldParts(core, nacelleL, CFrame.new(-1.2, 0, 0) * CFrame.Angles(math.rad(90), 0, 0))
 
-		local ringL = createPart(droneModel, "RingL", Vector3.new(0.44, 0.38, 0.38), Color3.fromRGB(80, 255, 140), Enum.Material.Neon, Enum.PartType.Cylinder)
+		local ringL = createPart(droneModel, "RingL", Vector3.new(0.44, 0.38, 0.38), Color3.fromRGB(60, 200, 125), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 		weldParts(core, ringL, CFrame.new(-1.2, 0, 0) * CFrame.Angles(math.rad(90), 0, 0))
 
 		local wingR = createPart(droneModel, "WingR", Vector3.new(0.65, 0.08, 0.6), Color3.fromRGB(45, 50, 55), Enum.Material.Metal)
@@ -145,17 +139,11 @@ function PetService.createDroneModel(template: Types.PetTemplate?): Model
 		local nacelleR = createPart(droneModel, "NacelleR", Vector3.new(0.4, 0.55, 0.55), Color3.fromRGB(35, 40, 45), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 		weldParts(core, nacelleR, CFrame.new(1.2, 0, 0) * CFrame.Angles(math.rad(90), 0, 0))
 
-		local ringR = createPart(droneModel, "RingR", Vector3.new(0.44, 0.38, 0.38), Color3.fromRGB(80, 255, 140), Enum.Material.Neon, Enum.PartType.Cylinder)
+		local ringR = createPart(droneModel, "RingR", Vector3.new(0.44, 0.38, 0.38), Color3.fromRGB(60, 200, 125), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 		weldParts(core, ringR, CFrame.new(1.2, 0, 0) * CFrame.Angles(math.rad(90), 0, 0))
 
-		local light = Instance.new("PointLight")
-		light.Color = Color3.fromRGB(80, 255, 140)
-		light.Range = 7
-		light.Brightness = 1.5
-		light.Parent = visor
-
 	elseif petId == "drone_welder" then
-		-- PLASMA WELDER: Heavy industrial diamond plate chassis, dual glowing plasma fuel tanks, forward plasma blowtorch
+		-- PLASMA WELDER: Heavy industrial diamond plate chassis, dual cyan fuel tanks, forward plasma blowtorch
 		local body = createPart(droneModel, "Body", Vector3.new(1.25, 0.95, 1.3), Color3.fromRGB(65, 75, 85), Enum.Material.DiamondPlate)
 		body.CastShadow = true
 		weldParts(core, body, CFrame.new())
@@ -163,14 +151,14 @@ function PetService.createDroneModel(template: Types.PetTemplate?): Model
 		local armorBlue = createPart(droneModel, "ArmorBlue", Vector3.new(1.3, 0.55, 0.85), Color3.fromRGB(50, 150, 255), Enum.Material.SmoothPlastic)
 		weldParts(core, armorBlue, CFrame.new(0, 0.12, 0))
 
-		local visor = createPart(droneModel, "Visor", Vector3.new(0.8, 0.2, 0.15), Color3.fromRGB(0, 220, 255), Enum.Material.Neon)
+		local visor = createPart(droneModel, "Visor", Vector3.new(0.8, 0.2, 0.15), Color3.fromRGB(0, 180, 230), Enum.Material.SmoothPlastic)
 		weldParts(core, visor, CFrame.new(0, 0.15, -0.68))
 
 		-- Dual rear plasma tanks
-		local tankL = createPart(droneModel, "TankL", Vector3.new(0.9, 0.38, 0.38), Color3.fromRGB(0, 180, 255), Enum.Material.Neon, Enum.PartType.Cylinder)
+		local tankL = createPart(droneModel, "TankL", Vector3.new(0.9, 0.38, 0.38), Color3.fromRGB(0, 140, 210), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 		weldParts(core, tankL, CFrame.new(-0.48, 0.2, 0.65) * CFrame.Angles(0, 0, math.rad(90)))
 
-		local tankR = createPart(droneModel, "TankR", Vector3.new(0.9, 0.38, 0.38), Color3.fromRGB(0, 180, 255), Enum.Material.Neon, Enum.PartType.Cylinder)
+		local tankR = createPart(droneModel, "TankR", Vector3.new(0.9, 0.38, 0.38), Color3.fromRGB(0, 140, 210), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 		weldParts(core, tankR, CFrame.new(0.48, 0.2, 0.65) * CFrame.Angles(0, 0, math.rad(90)))
 
 		-- Articulated forward plasma torch arm
@@ -180,14 +168,8 @@ function PetService.createDroneModel(template: Types.PetTemplate?): Model
 		local nozzle = createPart(droneModel, "TorchNozzle", Vector3.new(0.3, 0.25, 0.25), Color3.fromRGB(80, 80, 85), Enum.Material.DiamondPlate, Enum.PartType.Cylinder)
 		weldParts(core, nozzle, CFrame.new(0.45, -0.2, -1.25) * CFrame.Angles(math.rad(90), 0, 0))
 
-		local flame = createPart(droneModel, "TorchFlame", Vector3.new(0.26, 0.26, 0.35), Color3.fromRGB(190, 245, 255), Enum.Material.Neon, Enum.PartType.Ball)
+		local flame = createPart(droneModel, "TorchFlame", Vector3.new(0.26, 0.26, 0.35), Color3.fromRGB(160, 225, 255), Enum.Material.SmoothPlastic, Enum.PartType.Ball)
 		weldParts(core, flame, CFrame.new(0.45, -0.2, -1.45))
-
-		local light = Instance.new("PointLight")
-		light.Color = Color3.fromRGB(50, 200, 255)
-		light.Range = 8
-		light.Brightness = 2.0
-		light.Parent = flame
 
 	elseif petId == "drone_hound" then
 		-- SCRAP HOUND: Angular predatory cyber chassis, angled cyber ears, violet visor, twin ion thrusters
@@ -198,7 +180,7 @@ function PetService.createDroneModel(template: Types.PetTemplate?): Model
 		local head = createPart(droneModel, "Head", Vector3.new(0.85, 0.55, 0.75), Color3.fromRGB(55, 45, 75), Enum.Material.Metal)
 		weldParts(core, head, CFrame.new(0, 0.1, -0.95))
 
-		local visor = createPart(droneModel, "Visor", Vector3.new(0.72, 0.16, 0.15), Color3.fromRGB(200, 50, 255), Enum.Material.Neon)
+		local visor = createPart(droneModel, "Visor", Vector3.new(0.72, 0.16, 0.15), Color3.fromRGB(200, 50, 255), Enum.Material.SmoothPlastic)
 		weldParts(core, visor, CFrame.new(0, 0.15, -1.35))
 
 		-- Angled cybernetic ears
@@ -212,20 +194,14 @@ function PetService.createDroneModel(template: Types.PetTemplate?): Model
 		local jetL = createPart(droneModel, "JetL", Vector3.new(0.5, 0.35, 0.35), Color3.fromRGB(35, 30, 45), Enum.Material.Metal, Enum.PartType.Cylinder)
 		weldParts(core, jetL, CFrame.new(-0.36, 0.05, 0.9) * CFrame.Angles(math.rad(90), 0, 0))
 
-		local plumeL = createPart(droneModel, "PlumeL", Vector3.new(0.4, 0.25, 0.25), Color3.fromRGB(200, 50, 255), Enum.Material.Neon, Enum.PartType.Cylinder)
+		local plumeL = createPart(droneModel, "PlumeL", Vector3.new(0.4, 0.25, 0.25), Color3.fromRGB(175, 45, 230), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 		weldParts(core, plumeL, CFrame.new(-0.36, 0.05, 1.1) * CFrame.Angles(math.rad(90), 0, 0))
 
 		local jetR = createPart(droneModel, "JetR", Vector3.new(0.5, 0.35, 0.35), Color3.fromRGB(35, 30, 45), Enum.Material.Metal, Enum.PartType.Cylinder)
 		weldParts(core, jetR, CFrame.new(0.36, 0.05, 0.9) * CFrame.Angles(math.rad(90), 0, 0))
 
-		local plumeR = createPart(droneModel, "PlumeR", Vector3.new(0.4, 0.25, 0.25), Color3.fromRGB(200, 50, 255), Enum.Material.Neon, Enum.PartType.Cylinder)
+		local plumeR = createPart(droneModel, "PlumeR", Vector3.new(0.4, 0.25, 0.25), Color3.fromRGB(175, 45, 230), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 		weldParts(core, plumeR, CFrame.new(0.36, 0.05, 1.1) * CFrame.Angles(math.rad(90), 0, 0))
-
-		local light = Instance.new("PointLight")
-		light.Color = Color3.fromRGB(200, 50, 255)
-		light.Range = 8
-		light.Brightness = 1.8
-		light.Parent = visor
 
 	elseif petId == "drone_mech" then
 		-- CYBER MECH: Heavy military chassis in gold & charcoal, central pulsing reactor, dual wing blasters
@@ -237,10 +213,10 @@ function PetService.createDroneModel(template: Types.PetTemplate?): Model
 		weldParts(core, chestArmor, CFrame.new(0, 0.1, 0))
 
 		-- Central Glowing Reactor
-		local reactor = createPart(droneModel, "Reactor", Vector3.new(0.2, 0.55, 0.55), Color3.fromRGB(255, 210, 40), Enum.Material.Neon, Enum.PartType.Cylinder)
+		local reactor = createPart(droneModel, "Reactor", Vector3.new(0.2, 0.55, 0.55), Color3.fromRGB(230, 175, 30), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 		weldParts(core, reactor, CFrame.new(0, 0.1, -0.72) * CFrame.Angles(0, math.rad(90), 0))
 
-		local visor = createPart(droneModel, "Visor", Vector3.new(0.75, 0.16, 0.15), Color3.fromRGB(255, 60, 40), Enum.Material.Neon)
+		local visor = createPart(droneModel, "Visor", Vector3.new(0.75, 0.16, 0.15), Color3.fromRGB(225, 50, 35), Enum.Material.SmoothPlastic)
 		weldParts(core, visor, CFrame.new(0, 0.42, -0.65))
 
 		-- Dual Heavy Wing Pylons & Plasma Blaster Cannons
@@ -250,7 +226,7 @@ function PetService.createDroneModel(template: Types.PetTemplate?): Model
 		local gunL = createPart(droneModel, "GunL", Vector3.new(1.3, 0.22, 0.22), Color3.fromRGB(80, 85, 90), Enum.Material.DiamondPlate, Enum.PartType.Cylinder)
 		weldParts(core, gunL, CFrame.new(-1.3, 0.05, -0.3) * CFrame.Angles(math.rad(90), 0, 0))
 
-		local tipL = createPart(droneModel, "TipL", Vector3.new(0.25, 0.24, 0.24), Color3.fromRGB(255, 170, 0), Enum.Material.Neon, Enum.PartType.Cylinder)
+		local tipL = createPart(droneModel, "TipL", Vector3.new(0.25, 0.24, 0.24), Color3.fromRGB(225, 150, 20), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 		weldParts(core, tipL, CFrame.new(-1.3, 0.05, -0.98) * CFrame.Angles(math.rad(90), 0, 0))
 
 		local wingR = createPart(droneModel, "WingR", Vector3.new(1.15, 0.12, 0.7), Color3.fromRGB(50, 52, 60), Enum.Material.Metal)
@@ -259,18 +235,12 @@ function PetService.createDroneModel(template: Types.PetTemplate?): Model
 		local gunR = createPart(droneModel, "GunR", Vector3.new(1.3, 0.22, 0.22), Color3.fromRGB(80, 85, 90), Enum.Material.DiamondPlate, Enum.PartType.Cylinder)
 		weldParts(core, gunR, CFrame.new(1.3, 0.05, -0.3) * CFrame.Angles(math.rad(90), 0, 0))
 
-		local tipR = createPart(droneModel, "TipR", Vector3.new(0.25, 0.24, 0.24), Color3.fromRGB(255, 170, 0), Enum.Material.Neon, Enum.PartType.Cylinder)
+		local tipR = createPart(droneModel, "TipR", Vector3.new(0.25, 0.24, 0.24), Color3.fromRGB(225, 150, 20), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 		weldParts(core, tipR, CFrame.new(1.3, 0.05, -0.98) * CFrame.Angles(math.rad(90), 0, 0))
 
 		-- Bottom repulsor turbine
-		local repulsor = createPart(droneModel, "Repulsor", Vector3.new(0.15, 0.95, 0.95), Color3.fromRGB(255, 180, 30), Enum.Material.Neon, Enum.PartType.Cylinder)
+		local repulsor = createPart(droneModel, "Repulsor", Vector3.new(0.15, 0.95, 0.95), Color3.fromRGB(225, 160, 25), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 		weldParts(core, repulsor, CFrame.new(0, -0.65, 0) * CFrame.Angles(0, 0, math.rad(90)))
-
-		local light = Instance.new("PointLight")
-		light.Color = Color3.fromRGB(255, 180, 40)
-		light.Range = 10
-		light.Brightness = 2.2
-		light.Parent = reactor
 
 	elseif petId == "drone_titan" then
 		-- VOID TITAN: Cosmic dark matter singularity core, void crimson energy, floating crown crest, 4 orbiting void shards!
@@ -278,17 +248,17 @@ function PetService.createDroneModel(template: Types.PetTemplate?): Model
 		body.CastShadow = true
 		weldParts(core, body, CFrame.new())
 
-		local singularity = createPart(droneModel, "Singularity", Vector3.new(0.85, 0.85, 0.85), Color3.fromRGB(255, 30, 90), Enum.Material.Neon, Enum.PartType.Ball)
+		local singularity = createPart(droneModel, "Singularity", Vector3.new(0.85, 0.85, 0.85), Color3.fromRGB(160, 25, 70), Enum.Material.SmoothPlastic, Enum.PartType.Ball)
 		weldParts(core, singularity, CFrame.new())
 
-		local eye = createPart(droneModel, "VoidEye", Vector3.new(0.2, 0.45, 0.45), Color3.fromRGB(255, 255, 255), Enum.Material.Neon, Enum.PartType.Cylinder)
+		local eye = createPart(droneModel, "VoidEye", Vector3.new(0.2, 0.45, 0.45), Color3.fromRGB(235, 235, 240), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 		weldParts(core, eye, CFrame.new(0, 0.05, -0.62) * CFrame.Angles(0, math.rad(90), 0))
 
 		-- Void Crown Horns
-		local hornL = createPart(droneModel, "HornL", Vector3.new(0.18, 0.7, 0.3), Color3.fromRGB(255, 30, 90), Enum.Material.Neon)
+		local hornL = createPart(droneModel, "HornL", Vector3.new(0.18, 0.7, 0.3), Color3.fromRGB(180, 25, 70), Enum.Material.SmoothPlastic)
 		weldParts(core, hornL, CFrame.new(-0.35, 0.75, -0.1) * CFrame.Angles(math.rad(-15), 0, math.rad(-20)))
 
-		local hornR = createPart(droneModel, "HornR", Vector3.new(0.18, 0.7, 0.3), Color3.fromRGB(255, 30, 90), Enum.Material.Neon)
+		local hornR = createPart(droneModel, "HornR", Vector3.new(0.18, 0.7, 0.3), Color3.fromRGB(180, 25, 70), Enum.Material.SmoothPlastic)
 		weldParts(core, hornR, CFrame.new(0.35, 0.75, -0.1) * CFrame.Angles(math.rad(-15), 0, math.rad(20)))
 
 		-- 4 Orbiting Shards
@@ -300,32 +270,20 @@ function PetService.createDroneModel(template: Types.PetTemplate?): Model
 		}
 
 		for sIdx, sPos in ipairs(shardPositions) do
-			local shard = createPart(droneModel, "Shard_" .. sIdx, Vector3.new(0.28, 0.55, 0.28), Color3.fromRGB(255, 40, 100), Enum.Material.Neon)
+			local shard = createPart(droneModel, "Shard_" .. sIdx, Vector3.new(0.28, 0.55, 0.28), Color3.fromRGB(180, 30, 80), Enum.Material.SmoothPlastic)
 			shard.CFrame = core.CFrame * CFrame.new(sPos) * CFrame.Angles(math.rad(25), math.rad(45), 0)
 			shard:SetAttribute("SpinType", "Orbit")
 			shard:SetAttribute("OrbitPos", sPos)
 			shard:SetAttribute("SpinRate", 14)
 		end
 
-		local light = Instance.new("PointLight")
-		light.Color = Color3.fromRGB(255, 30, 90)
-		light.Range = 12
-		light.Brightness = 2.5
-		light.Parent = singularity
-
 	else
 		-- Fallback generator for custom or Gears perks drones
-		local body = createPart(droneModel, "Body", Vector3.new(1.2, 1.2, 1.2), petColor, Enum.Material.Neon, Enum.PartType.Ball)
+		local body = createPart(droneModel, "Body", Vector3.new(1.2, 1.2, 1.2), petColor, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
 		weldParts(core, body, CFrame.new())
 
-		local eye = createPart(droneModel, "Eye", Vector3.new(0.2, 0.45, 0.45), Color3.fromRGB(255, 255, 255), Enum.Material.Neon, Enum.PartType.Cylinder)
+		local eye = createPart(droneModel, "Eye", Vector3.new(0.2, 0.45, 0.45), Color3.fromRGB(240, 240, 245), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 		weldParts(core, eye, CFrame.new(0, 0.05, -0.58) * CFrame.Angles(0, math.rad(90), 0))
-
-		local light = Instance.new("PointLight")
-		light.Color = petColor
-		light.Range = 8
-		light.Brightness = 1.8
-		light.Parent = body
 	end
 
 	-- 2. Sci-Fi Floating BillboardGui Tag

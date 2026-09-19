@@ -25,17 +25,17 @@ local ZONE_CENTERS = {
 	[5] = Vector3.new(640, 0, 0),
 }
 
--- 1. AAA Lighting Setup (Warm Stylized Twilight)
+-- 1. Calm, Eye-Friendly Lighting Setup (Soft Daylight without harsh glare or eye-strain)
 function ZoneService.setupLighting()
 	pcall(function()
 		Lighting.Technology = Enum.Technology.Future
 	end)
-	Lighting.Brightness = 2.2
-	Lighting.ClockTime = 16.5 -- Stylized Golden Twilight
-	Lighting.GeographicLatitude = 40
-	Lighting.OutdoorAmbient = Color3.fromRGB(70, 75, 90)
-	Lighting.Ambient = Color3.fromRGB(50, 55, 65)
-	Lighting.ShadowSoftness = 0.25
+	Lighting.Brightness = 1.15
+	Lighting.ClockTime = 14.5 -- Comfortable afternoon sunlight
+	Lighting.GeographicLatitude = 30
+	Lighting.OutdoorAmbient = Color3.fromRGB(85, 90, 100)
+	Lighting.Ambient = Color3.fromRGB(70, 75, 85)
+	Lighting.ShadowSoftness = 0.4
 
 	-- Clear old post-processing effects
 	for _, child in ipairs(Lighting:GetChildren()) do
@@ -45,38 +45,37 @@ function ZoneService.setupLighting()
 	end
 
 	local atmosphere = Instance.new("Atmosphere")
-	atmosphere.Density = 0.28
-	atmosphere.Offset = 0.2
-	atmosphere.Color = Color3.fromRGB(200, 190, 210)
-	atmosphere.Decay = Color3.fromRGB(150, 110, 140)
-	atmosphere.Glare = 0.3
-	atmosphere.Haze = 0.6
+	atmosphere.Density = 0.15
+	atmosphere.Offset = 0.0
+	atmosphere.Color = Color3.fromRGB(190, 200, 215)
+	atmosphere.Decay = Color3.fromRGB(160, 170, 185)
+	atmosphere.Glare = 0 -- NO sun glare piercing the camera
+	atmosphere.Haze = 0 -- Clean, crisp air without blinding haze
 	atmosphere.Parent = Lighting
 
+	-- Extremely subtle bloom to prevent glowing eye-bleed
 	local bloom = Instance.new("BloomEffect")
-	bloom.Intensity = 0.5
-	bloom.Size = 20
-	bloom.Threshold = 1.2
+	bloom.Intensity = 0.04
+	bloom.Size = 8
+	bloom.Threshold = 2.2
 	bloom.Parent = Lighting
 
+	-- Clean, natural color profile without oversaturated neons
 	local cc = Instance.new("ColorCorrectionEffect")
-	cc.Brightness = 0.03
-	cc.Contrast = 0.12
-	cc.Saturation = 0.25
-	cc.TintColor = Color3.fromRGB(255, 250, 245)
+	cc.Brightness = 0.0
+	cc.Contrast = 0.04
+	cc.Saturation = 0.02
+	cc.TintColor = Color3.fromRGB(255, 255, 255)
 	cc.Parent = Lighting
 
-	local sunRays = Instance.new("SunRaysEffect")
-	sunRays.Intensity = 0.12
-	sunRays.Spread = 0.8
-	sunRays.Parent = Lighting
+	-- Note: SunRaysEffect is intentionally omitted to eliminate blinding sun glare!
 
 	local sky = Instance.new("Sky")
-	sky.SunAngularSize = 14
+	sky.SunAngularSize = 11
 	sky.MoonAngularSize = 10
 	sky.Parent = Lighting
 
-	print("[ZoneService] Polished lighting configured.")
+	print("[ZoneService] Eye-friendly soft lighting configured.")
 end
 
 -- Helper to create a Fast-Travel Portal Pad on any platform
@@ -89,8 +88,8 @@ local function createPortalPad(parent: Instance, position: Vector3, zoneId: numb
 	pad.Orientation = Vector3.new(0, 0, 90)
 	pad.Anchored = true
 	pad.CanCollide = true
-	pad.Material = Enum.Material.Neon
-	pad.Color = Color3.fromRGB(180, 70, 255)
+	pad.Material = Enum.Material.SmoothPlastic
+	pad.Color = Color3.fromRGB(150, 90, 215)
 	pad.Parent = parent
 
 	local padRim = Instance.new("Part")
@@ -176,14 +175,14 @@ function ZoneService.constructRecycler(parent: Instance, basePos: Vector3, zoneI
 	furnaceWindow.Size = Vector3.new(5, 3.5, 0.4)
 	furnaceWindow.Position = basePos + Vector3.new(0, 3.2, 6.2)
 	furnaceWindow.Anchored = true
-	furnaceWindow.Material = Enum.Material.Neon
-	furnaceWindow.Color = Color3.fromRGB(255, 120, 20)
+	furnaceWindow.Material = Enum.Material.SmoothPlastic
+	furnaceWindow.Color = Color3.fromRGB(225, 115, 30)
 	furnaceWindow.Parent = recyclerModel
 
 	local fLight = Instance.new("PointLight")
 	fLight.Color = Color3.fromRGB(255, 130, 30)
-	fLight.Brightness = 2.5
-	fLight.Range = 16
+	fLight.Brightness = 0.5
+	fLight.Range = 8
 	fLight.Parent = furnaceWindow
 
 	local funnel = Instance.new("Part")
@@ -193,8 +192,8 @@ function ZoneService.constructRecycler(parent: Instance, basePos: Vector3, zoneI
 	funnel.Position = basePos + Vector3.new(0, 9.5, 0)
 	funnel.Orientation = Vector3.new(0, 0, 90)
 	funnel.Anchored = true
-	funnel.Material = Enum.Material.Neon
-	funnel.Color = Color3.fromRGB(255, 180, 50)
+	funnel.Material = Enum.Material.Metal
+	funnel.Color = Color3.fromRGB(55, 60, 70)
 	funnel.Parent = recyclerModel
 
 	local steam = Instance.new("ParticleEmitter")
@@ -249,8 +248,8 @@ function ZoneService.constructRecycler(parent: Instance, basePos: Vector3, zoneI
 	depositPad.Position = basePos + Vector3.new(0, 0.2, 7)
 	depositPad.Anchored = true
 	depositPad.CanCollide = true
-	depositPad.Material = Enum.Material.Neon
-	depositPad.Color = Color3.fromRGB(40, 230, 120)
+	depositPad.Material = Enum.Material.SmoothPlastic
+	depositPad.Color = Color3.fromRGB(45, 165, 95)
 	depositPad.Parent = recyclerModel
 
 	local depositPrompt = Instance.new("ProximityPrompt")
@@ -369,8 +368,8 @@ function ZoneService.constructCentralHub()
 	spawn.Size = Vector3.new(12, 0.5, 12)
 	spawn.Position = Vector3.new(0, 0.25, 15)
 	spawn.Anchored = true
-	spawn.Material = Enum.Material.Neon
-	spawn.Color = Color3.fromRGB(40, 140, 255)
+	spawn.Material = Enum.Material.SmoothPlastic
+	spawn.Color = Color3.fromRGB(45, 115, 195)
 	spawn.Duration = 0
 	local decal = spawn:FindFirstChildOfClass("Decal")
 	if decal then decal:Destroy() end
@@ -438,7 +437,7 @@ function ZoneService.constructCentralHub()
 		egg.Position = eggInfo.Pos + Vector3.new(0, 4.3, 0)
 		egg.Anchored = true
 		egg.CanCollide = false
-		egg.Material = Enum.Material.Neon
+		egg.Material = Enum.Material.SmoothPlastic
 		egg.Color = eggInfo.Color
 		egg.Parent = hubFolder
 
@@ -545,13 +544,13 @@ function ZoneService.createScrapPile(zone: Types.ZoneConfig, position: Vector3, 
 	core.Position = position + Vector3.new(0, 3.4, 0)
 	core.Anchored = true
 	core.Color = zone.Color
-	core.Material = Enum.Material.Neon
+	core.Material = Enum.Material.SmoothPlastic
 	core.Parent = model
 
 	local light = Instance.new("PointLight")
 	light.Color = zone.Color
-	light.Brightness = 2.2
-	light.Range = 14
+	light.Brightness = 0.4
+	light.Range = 6
 	light.Parent = core
 
 	local gui = Instance.new("BillboardGui")
@@ -626,12 +625,12 @@ function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Ve
 	platform.Color = Color3.fromRGB(42, 45, 54)
 	platform.Parent = folder
 
-	-- Elevated border trims
+	-- Elevated border trims (SmoothPlastic matte finish, no eye-straining glow)
 	local trimN = Instance.new("Part")
 	trimN.Size = Vector3.new(100, 0.6, 2)
 	trimN.Position = centerPos + Vector3.new(0, 0.3, -49)
 	trimN.Anchored = true
-	trimN.Material = Enum.Material.Neon
+	trimN.Material = Enum.Material.SmoothPlastic
 	trimN.Color = zone.Color
 	trimN.Parent = folder
 
@@ -644,7 +643,7 @@ function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Ve
 	curbWN.Size = Vector3.new(2, 0.6, 39)
 	curbWN.Position = centerPos + Vector3.new(-49, 0.3, -30.5)
 	curbWN.Anchored = true
-	curbWN.Material = Enum.Material.Neon
+	curbWN.Material = Enum.Material.SmoothPlastic
 	curbWN.Color = zone.Color
 	curbWN.Parent = folder
 
@@ -749,7 +748,7 @@ function ZoneService.constructBridge(zoneId: number)
 	neonStripN.Size = Vector3.new(bridgeLength, 0.4, 0.4)
 	neonStripN.Position = Vector3.new(bridgeX, 3.4, -(bridgeWidth / 2) + 0.75)
 	neonStripN.Anchored = true
-	neonStripN.Material = Enum.Material.Neon
+	neonStripN.Material = Enum.Material.SmoothPlastic
 	neonStripN.Color = targetZone.Color
 	neonStripN.Parent = bridgeFolder
 
@@ -767,7 +766,7 @@ function ZoneService.constructBridge(zoneId: number)
 	neonStripS.Size = Vector3.new(bridgeLength, 0.4, 0.4)
 	neonStripS.Position = Vector3.new(bridgeX, 3.4, (bridgeWidth / 2) - 0.75)
 	neonStripS.Anchored = true
-	neonStripS.Material = Enum.Material.Neon
+	neonStripS.Material = Enum.Material.SmoothPlastic
 	neonStripS.Color = targetZone.Color
 	neonStripS.Parent = bridgeFolder
 

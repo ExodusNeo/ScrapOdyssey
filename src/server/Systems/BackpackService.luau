@@ -123,7 +123,8 @@ function BackpackService.updateCharacterBackpack(player: Player)
 	core.Size = Vector3.new(1.3 * scale, 0.42 * scale, 0.42 * scale)
 	core.Orientation = frame.Orientation + Vector3.new(0, 0, 90)
 	core.Position = frame.Position + frame.CFrame.LookVector * (0.35 * scale)
-	core.Material = Enum.Material.Neon
+	core.Material = Enum.Material.SmoothPlastic
+	core.Color = Color3.fromRGB(50, 180, 100)
 	core.CanCollide = false
 	core.Massless = true
 	core.Parent = model
@@ -133,11 +134,11 @@ function BackpackService.updateCharacterBackpack(player: Player)
 	weldCore.Part1 = core
 	weldCore.Parent = core
 
-	-- Gauge light
+	-- Gauge light (Subtle soft accent, no camera flaring)
 	local light = Instance.new("PointLight")
 	light.Name = "CoreLight"
-	light.Range = 8 * scale
-	light.Brightness = 1.8
+	light.Range = 3 * scale
+	light.Brightness = 0.2
 	light.Parent = core
 
 	-- 5. Top Exhaust Nozzles
