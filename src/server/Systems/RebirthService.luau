@@ -1,5 +1,6 @@
 --!strict
 local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Modules.Config)
@@ -25,17 +26,49 @@ function RebirthService.rebirth(player: Player): boolean
 		return false
 	end
 
-	-- Reset scrap, increment rebirth, award gears
-	local gearsEarned = Config.Rebirth.GearsRewardFormula(data.Rebirths)
+	-- 1. Reset volatile currencies & cargo
 	data.Scrap = 0
+	data.Backpack = 0
+
+	-- 2. Reset standard upgrades to Level 1
+	data.Upgrades = {
+		ScrapPower = 1,
+		ScrapSpeed = 1,
+		BackpackCapacity = 1,
+	}
+
+	-- 3. Reset zones back to Zone 1
+	data.CurrentZone = 1
+	data.MaxZoneReached = 1
+
+	-- 4. Award permanent Rebirth tier & Prestige Gears
+	local gearsEarned = Config.Rebirth.GearsRewardFormula(data.Rebirths)
 	data.Rebirths = data.Rebirths + 1
 	data.Gears = data.Gears + gearsEarned
 
+	-- 5. Teleport player back to spawn
+	local character = player.Character
+	if character and character:FindFirstChild("HumanoidRootPart") then
+		local spawn = Workspace:FindFirstChild("SpawnLocation")
+		if spawn and spawn:IsA("BasePart") then
+			character.HumanoidRootPart.CFrame = spawn.CFrame + Vector3.new(0, 3.5, 0)
+		else
+			character.HumanoidRootPart.CFrame = CFrame.new(0, 3.5, 15)
+		end
+	end
+
+	-- 6. Shrink physical backpack back to Level 1 starter size
+	pcall(function()
+		local BackpackService = require(script.Parent.BackpackService)
+		BackpackService.updateCharacterBackpack(player)
+	end)
+
+	-- 7. Sync and notify
 	CurrencyService.updateLeaderstats(player)
 	DataService.sync(player)
 
 	local notif = Remotes.getEvent("ShowNotification")
-	notif:FireClient(player, "REBIRTH ACHIEVED!", string.format("You reached Rebirth %d! +%d Gears awarded!", data.Rebirths, gearsEarned), Color3.fromRGB(255, 215, 0))
+	notif:FireClient(player, "PRESTIGE REBIRTH!", string.format("Rebirth %d reached! +%d Gears awarded! Upgrades & Zones reset for your new run.", data.Rebirths, gearsEarned), Color3.fromRGB(255, 215, 0))
 
 	return true
 end

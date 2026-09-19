@@ -427,15 +427,15 @@ function MenuController.buildRebirthPanel()
 	desc.Size = UDim2.new(1, 0, 0, 75)
 	desc.BackgroundTransparency = 1
 	desc.Font = Enum.Font.Gotham
-	desc.TextSize = 15
+	desc.TextSize = 13
 	desc.TextColor3 = Color3.fromRGB(200, 210, 230)
 	desc.TextWrapped = true
-	desc.Text = "Rebirth resets your current Scrap in exchange for permanent stat multipliers (+50% per Rebirth) and exclusive Gears (⚙️) to spend in the Gears Prestige Shop!"
+	desc.Text = "⚡ PRESTIGE REBIRTH RULES:\n• RESETS: Scrap, Cargo, Regular Upgrades (to Lvl 1), & Zones.\n• KEEPS: All Drones, Gears, & Prestige Perks!\n• AWARDS: +50% Permanent Multiplier & Prestige Gears (⚙️)!"
 	desc.Parent = body
 
 	local statFrame = Instance.new("Frame")
 	statFrame.Size = UDim2.new(1, 0, 0, 130)
-	statFrame.Position = UDim2.new(0, 0, 0, 90)
+	statFrame.Position = UDim2.new(0, 0, 0, 96)
 	statFrame.BackgroundColor3 = Color3.fromRGB(26, 30, 42)
 	statFrame.BorderSizePixel = 0
 	statFrame.Parent = body
