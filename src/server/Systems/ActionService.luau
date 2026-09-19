@@ -272,8 +272,10 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 
 		local strikeScrap = math.max(1, math.floor((baseYield * tier.Multiplier) * 0.35))
 		local spaceLeft = math.max(0, maxCapacity - (data.Backpack or 0))
+		local added = math.min(spaceLeft, strikeScrap)
 		data.Backpack = (data.Backpack or 0) + added
 		DataService.sync(player)
+		CurrencyService.updateLeaderstats(player)
 
 		pcall(function()
 			local BackpackService = require(script.Parent.BackpackService)
@@ -299,8 +301,10 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 
 		local breakScrap = math.floor((baseYield * tier.Multiplier) * 1.5)
 		local spaceLeft = math.max(0, maxCapacity - (data.Backpack or 0))
+		local added = math.min(spaceLeft, breakScrap)
 		data.Backpack = (data.Backpack or 0) + added
 		DataService.sync(player)
+		CurrencyService.updateLeaderstats(player)
 
 		pcall(function()
 			local BackpackService = require(script.Parent.BackpackService)

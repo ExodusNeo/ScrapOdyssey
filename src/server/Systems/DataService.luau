@@ -86,6 +86,13 @@ function DataService.loadData(player: Player): Types.PlayerData
 	if not data then
 		data = getDefaultData()
 		print(string.format("[DataService] Created fresh profile for %s", player.Name))
+	else
+		-- Reconcile missing fields on legacy saves
+		if data.Backpack == nil then data.Backpack = 0 end
+		if not data.Upgrades then data.Upgrades = {} end
+		if not data.Upgrades.BackpackCapacity then data.Upgrades.BackpackCapacity = 1 end
+		if not data.Upgrades.ScrapPower then data.Upgrades.ScrapPower = 1 end
+		if not data.Upgrades.ScrapSpeed then data.Upgrades.ScrapSpeed = 1 end
 	end
 
 	sessionData[player.UserId] = data
@@ -111,7 +118,7 @@ function DataService.sync(player: Player)
 end
 
 function DataService.saveData(player: Player): boolean
-	local data = sessionData[player]
+	local data = sessionData[player.UserId]
 	if not data then return false end
 
 	if isDataStoreAvailable and dataStore then

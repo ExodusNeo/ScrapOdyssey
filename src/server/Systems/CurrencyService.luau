@@ -129,6 +129,16 @@ function CurrencyService.updateLeaderstats(player: Player)
 		gearsStat.Parent = leaderstats
 	end
 	gearsStat.Value = data.Gears
+
+	local cargoStat = leaderstats:FindFirstChild("Cargo") :: StringValue
+	if not cargoStat then
+		cargoStat = Instance.new("StringValue")
+		cargoStat.Name = "Cargo"
+		cargoStat.Parent = leaderstats
+	end
+	local bagLevel = (data.Upgrades and data.Upgrades["BackpackCapacity"]) or 1
+	local maxCap = Config.getBackpackCapacity(bagLevel)
+	cargoStat.Value = string.format("%d/%d", data.Backpack or 0, maxCap)
 end
 
 function CurrencyService.formatNumber(n: number): string
