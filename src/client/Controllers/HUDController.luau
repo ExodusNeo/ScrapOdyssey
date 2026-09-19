@@ -312,8 +312,8 @@ function HUDController.spawnRewardPopup(info: any)
 	local textColor: Color3
 	if isBreak then
 		if info.IsOrbital then
-			text = string.format("🚀 POD SALVAGED! +%s 🔩\n[+%d GEARS BONUS]", formatNumber(info.ScrapEarned), math.random(8, 15))
-			textColor = Color3.fromRGB(255, 140, 20)
+			text = string.format("🚀 POD SALVAGED!\n+%s 🔩 | +%d ⚙️\n[%d%% DMG]", formatNumber(info.ScrapEarned), info.GearsEarned or 1, info.DamagePercent or 100)
+			textColor = Color3.fromRGB(255, 170, 20)
 		elseif isDense then
 			text = string.format("💥 CLEARED! +%s 🔩\n[%s]", formatNumber(info.ScrapEarned), info.TierName or "DENSE")
 			textColor = Color3.fromRGB(0, 240, 255)
@@ -322,8 +322,8 @@ function HUDController.spawnRewardPopup(info: any)
 			textColor = Color3.fromRGB(80, 240, 140)
 		end
 	elseif info.IsOrbital then
-		text = string.format("🚀 +%s 🔩", formatNumber(info.ScrapEarned))
-		textColor = Color3.fromRGB(255, 150, 30)
+		text = string.format("💥 -%d HP", info.DamageDealt or 1)
+		textColor = Color3.fromRGB(255, 130, 20)
 	elseif isDense then
 		-- Clean dense scrap display: NO "CRIT" text or crit styling, just clean scrap number in dense cyan!
 		text = string.format("+%s 🔩", formatNumber(info.ScrapEarned))

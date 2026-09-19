@@ -530,20 +530,24 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 		end
 
 		local damageRatio = math.clamp(toolDamage / maxHP, 0.15, 1.0)
-		local strikeScrap = math.max(1, math.floor((baseYield * tier.Multiplier) * (damageRatio * 0.75)))
-		local spaceLeft = math.max(0, maxCapacity - (data.Backpack or 0))
-		local added = math.min(spaceLeft, strikeScrap)
-		data.Backpack = (data.Backpack or 0) + added
-		DataService.sync(player)
-		CurrencyService.updateLeaderstats(player)
+		local strikeScrap = 0
+		local added = 0
 
-		pcall(function()
-			local BackpackService = require(script.Parent.BackpackService)
-			BackpackService.updateCoreColor(player)
-		end)
+		if isOrbital then
+			local EventService = require(script.Parent.EventService)
+			EventService.recordDamage(player, toolDamage)
+		else
+			strikeScrap = math.max(1, math.floor((baseYield * tier.Multiplier) * (damageRatio * 0.75)))
+			local spaceLeft = math.max(0, maxCapacity - (data.Backpack or 0))
+			added = math.min(spaceLeft, strikeScrap)
+			data.Backpack = (data.Backpack or 0) + added
+			DataService.sync(player)
+			CurrencyService.updateLeaderstats(player)
 
-		if isOrbital and math.random() <= 0.25 then
-			CurrencyService.addGears(player, 1)
+			pcall(function()
+				local BackpackService = require(script.Parent.BackpackService)
+				BackpackService.updateCoreColor(player)
+			end)
 		end
 
 		local actionCompletedEvent = Remotes.getEvent("ActionCompleted")
@@ -551,6 +555,7 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 			IsBreak = false,
 			IsDense = (isDense == true),
 			IsOrbital = isOrbital,
+			DamageDealt = toolDamage,
 			MaxHP = maxHP,
 			CurrentHP = currentHP,
 			TierName = isOrbital and "ORBITAL RAID" or (isDense and "Dense Hit" or "Hit"),
@@ -564,6 +569,80 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 		nodeModel:SetAttribute("CurrentHP", 0)
 		nodeCooldown[nodeModel] = true
 
+		if isOrbital then
+			local EventService = require(script.Parent.EventService)
+			EventService.recordDamage(player, toolDamage)
+
+			local totalScrapPool = nodeModel:GetAttribute("TotalScrapPool") or 80000
+			local totalGearsPool = nodeModel:GetAttribute("TotalGearsPool") or 40
+			local contribs, totalDmg = EventService.getContributions()
+			if totalDmg <= 0 then totalDmg = 1 end
+
+			local sortedContributors: { { Player: Player, Damage: number } } = {}
+			for contribPlayer, dmg in pairs(contribs) do
+				table.insert(sortedContributors, { Player = contribPlayer, Damage = dmg })
+			end
+			table.sort(sortedContributors, function(a, b) return a.Damage > b.Damage end)
+
+			for _, entry in ipairs(sortedContributors) do
+				local cPlayer = entry.Player
+				if cPlayer and cPlayer.Parent then
+					local fraction = math.clamp(entry.Damage / totalDmg, 0, 1)
+					local scrapReward = math.max(1000, math.floor(totalScrapPool * fraction))
+					local gearsReward = math.max(1, math.floor(totalGearsPool * fraction))
+					local pct = math.floor(fraction * 100)
+
+					CurrencyService.addScrap(cPlayer, scrapReward, true)
+					CurrencyService.addGears(cPlayer, gearsReward)
+
+					local actionCompletedEvent = Remotes.getEvent("ActionCompleted")
+					actionCompletedEvent:FireClient(cPlayer, {
+						IsBreak = true,
+						IsOrbital = true,
+						ScrapEarned = scrapReward,
+						GearsEarned = gearsReward,
+						DamagePercent = pct,
+						Position = nodeHitbox.Position + Vector3.new(0, 4, 0),
+					})
+
+					local notif = Remotes.getEvent("ShowNotification")
+					notif:FireClient(
+						cPlayer,
+						"🎉 RAID REWARD CLAIMED!",
+						string.format("Contribution: %d%% (%d DMG)\n+%d Scrap 🔩 | +%d Gears ⚙️", pct, entry.Damage, scrapReward, gearsReward),
+						Color3.fromRGB(255, 170, 20)
+					)
+				end
+			end
+
+			-- Top MVP Contributors global announcement
+			local topList = {}
+			for rank, entry in ipairs(sortedContributors) do
+				if rank > 3 then break end
+				local fraction = math.clamp(entry.Damage / totalDmg, 0, 1)
+				local pct = math.floor(fraction * 100)
+				local medal = (rank == 1 and "🥇") or (rank == 2 and "🥈") or "🥉"
+				table.insert(topList, string.format("%s %s (%d%%)", medal, entry.Player.Name, pct))
+			end
+
+			local notifAll = Remotes.getEvent("ShowNotification")
+			notifAll:FireAllClients(
+				"🚀 ORBITAL DROP POD DESTROYED!",
+				string.format("Raid Pod neutralized!\nTop Scrappers: %s", #topList > 0 and table.concat(topList, " | ") or player.Name),
+				Color3.fromRGB(255, 140, 20)
+			)
+
+			pcall(function()
+				EventService.clearActivePod(nodeModel)
+			end)
+			task.delay(1.5, function()
+				if nodeModel and nodeModel.Parent then
+					nodeModel:Destroy()
+				end
+			end)
+			return
+		end
+
 		if statusLabel then
 			statusLabel.Text = "✨ HARVESTED! ✨"
 		end
@@ -576,7 +655,6 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 			barFill.Size = UDim2.new(0, 0, 1, 0)
 		end
 
-		local isOrbital = nodeModel:GetAttribute("IsOrbitalPod") == true
 		local breakScrap = math.floor((baseYield * tier.Multiplier) * 1.5)
 		local spaceLeft = math.max(0, maxCapacity - (data.Backpack or 0))
 		local added = math.min(spaceLeft, breakScrap)
@@ -593,11 +671,11 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 		actionCompletedEvent:FireClient(player, {
 			IsBreak = true,
 			IsDense = (isDense == true),
-			IsOrbital = isOrbital,
+			IsOrbital = false,
 			MaxHP = maxHP,
 			CurrentHP = 0,
-			TierName = isOrbital and "ORBITAL CACHE CLAIMED" or (isDense and ("DENSE " .. tier.Name) or tier.Name),
-			TierColor = isOrbital and Color3.fromRGB(255, 140, 20) or (isDense and Color3.fromRGB(0, 240, 255) or tier.Color),
+			TierName = isDense and ("DENSE " .. tier.Name) or tier.Name,
+			TierColor = isDense and Color3.fromRGB(0, 240, 255) or tier.Color,
 			ScrapEarned = added,
 			SoundPitch = tier.SoundPitch,
 			Position = nodeHitbox.Position + Vector3.new(0, 4, 0),
@@ -613,27 +691,6 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 		if basePart then basePart.Transparency = 0.8 end
 		local halo = nodeModel:FindFirstChild("DenseHalo") :: BasePart?
 		if halo then halo.Transparency = 1 end
-
-		if isOrbital then
-			local bonusGears = math.random(8, 15)
-			CurrencyService.addGears(player, bonusGears)
-			local notif = Remotes.getEvent("ShowNotification")
-			notif:FireAllClients(
-				"🚀 ORBITAL POD NEUTRALIZED!",
-				string.format("%s dismantled the Orbital Drop Pod and claimed +%d Gears! ⚙️", player.Name, bonusGears),
-				Color3.fromRGB(255, 140, 20)
-			)
-			pcall(function()
-				local EventService = require(script.Parent.EventService)
-				EventService.clearActivePod(nodeModel)
-			end)
-			task.delay(1.2, function()
-				if nodeModel and nodeModel.Parent then
-					nodeModel:Destroy()
-				end
-			end)
-			return
-		end
 
 		-- Respawn after 2.5 seconds with fresh RNG Dense roll (standard piles only)
 		task.delay(2.5, function()

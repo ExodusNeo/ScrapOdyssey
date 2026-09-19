@@ -469,10 +469,10 @@ function ZoneService.constructCentralHub()
 		c:Destroy()
 	end
 
-	-- Main Plaza Floor: 100 x 4 x 100 centered at (0, -2, 0) -> X spans -50 to +50
+	-- Main Plaza Floor: 100 x 4 x 170 centered at (0, -2, 0) -> X spans -50 to +50, Z spans -85 to +85
 	local plaza = Instance.new("Part")
 	plaza.Name = "PlazaGround"
-	plaza.Size = Vector3.new(100, 4, 100)
+	plaza.Size = Vector3.new(100, 4, 170)
 	plaza.Position = Vector3.new(0, -2, 0)
 	plaza.Anchored = true
 	plaza.Material = Enum.Material.Concrete
@@ -485,36 +485,36 @@ function ZoneService.constructCentralHub()
 	local curbNorth = Instance.new("Part")
 	curbNorth.Name = "CurbN"
 	curbNorth.Size = Vector3.new(100, curbHeight, curbThickness)
-	curbNorth.Position = Vector3.new(0, 0.3, -48.5)
+	curbNorth.Position = Vector3.new(0, 0.3, -83.5)
 	curbNorth.Anchored = true
 	curbNorth.Material = Enum.Material.SmoothPlastic
 	curbNorth.Color = Color3.fromRGB(255, 170, 0)
 	curbNorth.Parent = hubFolder
 
 	local curbSouth = curbNorth:Clone()
-	curbSouth.Position = Vector3.new(0, 0.3, 48.5)
+	curbSouth.Position = Vector3.new(0, 0.3, 83.5)
 	curbSouth.Parent = hubFolder
 
 	local curbWest = Instance.new("Part")
 	curbWest.Name = "CurbW"
-	curbWest.Size = Vector3.new(curbThickness, curbHeight, 100)
+	curbWest.Size = Vector3.new(curbThickness, curbHeight, 170)
 	curbWest.Position = Vector3.new(-48.5, 0.3, 0)
 	curbWest.Anchored = true
 	curbWest.Material = Enum.Material.SmoothPlastic
 	curbWest.Color = Color3.fromRGB(255, 170, 0)
 	curbWest.Parent = hubFolder
 
-	-- East edge opening curb segments (Bridge connects at X = 50, width = 22)
+	-- East edge opening curb segments (Bridge connects at X = 50, width = 22 from Z = -11 to +11)
 	local curbEastNorth = Instance.new("Part")
-	curbEastNorth.Size = Vector3.new(curbThickness, curbHeight, 39)
-	curbEastNorth.Position = Vector3.new(48.5, 0.3, -30.5)
+	curbEastNorth.Size = Vector3.new(curbThickness, curbHeight, 74)
+	curbEastNorth.Position = Vector3.new(48.5, 0.3, -48)
 	curbEastNorth.Anchored = true
 	curbEastNorth.Material = Enum.Material.SmoothPlastic
 	curbEastNorth.Color = Color3.fromRGB(255, 170, 0)
 	curbEastNorth.Parent = hubFolder
 
 	local curbEastSouth = curbEastNorth:Clone()
-	curbEastSouth.Position = Vector3.new(48.5, 0.3, 30.5)
+	curbEastSouth.Position = Vector3.new(48.5, 0.3, 48)
 	curbEastSouth.Parent = hubFolder
 
 	-- Spawn Location in Plaza Center
@@ -1407,10 +1407,10 @@ function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Ve
 		c:Destroy()
 	end
 
-	-- Solid Non-flickering Platform Floor: 100 x 4 x 100
+	-- Solid Non-flickering Platform Floor: 100 x 4 x 170 (X spans -50 to +50, Z spans -85 to +85)
 	local platform = Instance.new("Part")
 	platform.Name = "Platform"
-	platform.Size = Vector3.new(100, 4, 100)
+	platform.Size = Vector3.new(100, 4, 170)
 	platform.Position = centerPos - Vector3.new(0, 2, 0)
 	platform.Anchored = true
 	platform.Material = Enum.Material.Concrete
@@ -1421,19 +1421,10 @@ function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Ve
 	local curbThickness = 2
 	local curbHeight = 0.6
 
-	local curbE = Instance.new("Part")
-	curbE.Name = "CurbE"
-	curbE.Size = Vector3.new(curbThickness, curbHeight, 100)
-	curbE.Position = centerPos + Vector3.new(49, 0.3, 0)
-	curbE.Anchored = true
-	curbE.Material = Enum.Material.SmoothPlastic
-	curbE.Color = zone.Color
-	curbE.Parent = folder
-
 	local curbN = Instance.new("Part")
 	curbN.Name = "CurbN"
 	curbN.Size = Vector3.new(100, curbHeight, curbThickness)
-	curbN.Position = centerPos + Vector3.new(0, 0.3, -49)
+	curbN.Position = centerPos + Vector3.new(0, 0.3, -83.5)
 	curbN.Anchored = true
 	curbN.Material = Enum.Material.SmoothPlastic
 	curbN.Color = zone.Color
@@ -1441,35 +1432,59 @@ function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Ve
 
 	local curbS = curbN:Clone()
 	curbS.Name = "CurbS"
-	curbS.Position = centerPos + Vector3.new(0, 0.3, 49)
+	curbS.Position = centerPos + Vector3.new(0, 0.3, 83.5)
 	curbS.Parent = folder
 
 	-- Outer Safety Border Trim
 	local trimN = Instance.new("Part")
 	trimN.Name = "TrimN"
 	trimN.Size = Vector3.new(100, 0.6, 2)
-	trimN.Position = centerPos + Vector3.new(0, 0.3, -49)
+	trimN.Position = centerPos + Vector3.new(0, 0.3, -83.5)
 	trimN.Anchored = true
 	trimN.Material = Enum.Material.SmoothPlastic
 	trimN.Color = zone.Color
 	trimN.Parent = folder
 
 	local trimS = trimN:Clone()
-	trimS.Position = centerPos + Vector3.new(0, 0.3, 49)
+	trimS.Position = centerPos + Vector3.new(0, 0.3, 83.5)
 	trimS.Parent = folder
 
-	-- West Curb Opening (Bridge from previous zone connects at X = centerPos.X - 50, width = 22)
+	-- West Curb Opening (Bridge from previous zone connects at X = centerPos.X - 50, width = 22 from Z = -11 to +11)
 	local curbWN = Instance.new("Part")
-	curbWN.Size = Vector3.new(2, 0.6, 39)
-	curbWN.Position = centerPos + Vector3.new(-49, 0.3, -30.5)
+	curbWN.Size = Vector3.new(2, 0.6, 74)
+	curbWN.Position = centerPos + Vector3.new(-49, 0.3, -48)
 	curbWN.Anchored = true
 	curbWN.Material = Enum.Material.SmoothPlastic
 	curbWN.Color = zone.Color
 	curbWN.Parent = folder
 
 	local curbWS = curbWN:Clone()
-	curbWS.Position = centerPos + Vector3.new(-49, 0.3, 30.5)
+	curbWS.Position = centerPos + Vector3.new(-49, 0.3, 48)
 	curbWS.Parent = folder
+
+	-- East Curb (Solid for Zone 5, or Bridge opening for Zones 2-4)
+	if zone.Id == 5 then
+		local curbE = Instance.new("Part")
+		curbE.Name = "CurbE"
+		curbE.Size = Vector3.new(curbThickness, curbHeight, 170)
+		curbE.Position = centerPos + Vector3.new(49, 0.3, 0)
+		curbE.Anchored = true
+		curbE.Material = Enum.Material.SmoothPlastic
+		curbE.Color = zone.Color
+		curbE.Parent = folder
+	else
+		local curbEN = Instance.new("Part")
+		curbEN.Size = Vector3.new(2, 0.6, 74)
+		curbEN.Position = centerPos + Vector3.new(49, 0.3, -48)
+		curbEN.Anchored = true
+		curbEN.Material = Enum.Material.SmoothPlastic
+		curbEN.Color = zone.Color
+		curbEN.Parent = folder
+
+		local curbES = curbEN:Clone()
+		curbES.Position = centerPos + Vector3.new(49, 0.3, 48)
+		curbES.Parent = folder
+	end
 
 	-- Towering High-Definition Sci-Fi Gantry Billboard for this zone
 	ZoneService.constructZoneSign(folder, centerPos, zone)

@@ -12,11 +12,13 @@ local Remotes = require(ReplicatedStorage.Modules.Remotes)
 local EventService = {}
 
 local activePodModel: Model? = nil
-local nextEventTimer = 0
 
--- Zone center coordinates on the X-axis matching ZoneService platforms
--- Platforms are at X = (zoneId - 1) * 160, Y = 1.0 (top surface), Z = 0
-local ZONE_LANDING_CENTERS: { [number]: Vector3 } = {
+-- Damage tracking per player for the active Drop Pod raid
+local playerContributions: { [Player]: number } = {}
+local totalRaidDamage = 0
+
+-- Zone center coordinates on the X-axis (platforms are 100 x 170)
+local ZONE_CENTERS: { [number]: Vector3 } = {
 	[1] = Vector3.new(0, 1.0, 0),
 	[2] = Vector3.new(160, 1.0, 0),
 	[3] = Vector3.new(320, 1.0, 0),
@@ -24,19 +26,104 @@ local ZONE_LANDING_CENTERS: { [number]: Vector3 } = {
 	[5] = Vector3.new(640, 1.0, 0),
 }
 
--- Construct 3D High-Tech Orbital Salvage Drop Pod
-local function constructPodModel(landingPos: Vector3, zoneId: number, zoneName: string): Model
+function EventService.recordDamage(player: Player, amount: number)
+	playerContributions[player] = (playerContributions[player] or 0) + amount
+	totalRaidDamage = totalRaidDamage + amount
+end
+
+function EventService.getContributions(): ({ [Player]: number }, number)
+	return playerContributions, totalRaidDamage
+end
+
+function EventService.resetContributions()
+	table.clear(playerContributions)
+	totalRaidDamage = 0
+end
+
+-- Collect positions of all interactable objects (Recyclers, Forges, Eggs, Portals, Spawns, and Scrap Piles)
+local function getInteractables(): { Vector3 }
+	local positions: { Vector3 } = {}
+
+	for _, desc in ipairs(Workspace:GetDescendants()) do
+		if desc:IsA("ProximityPrompt") then
+			local p = desc.Parent
+			if p and p:IsA("BasePart") then
+				table.insert(positions, p.Position)
+			end
+		elseif desc:IsA("SpawnLocation") then
+			table.insert(positions, desc.Position)
+		elseif desc.Name == "SellPad" or desc.Name == "PortalPad" or desc.Name == "ForgeTable" then
+			if desc:IsA("BasePart") then
+				table.insert(positions, desc.Position)
+			end
+		elseif desc:IsA("Model") and string.sub(desc.Name, 1, 10) == "ScrapPile_" and not desc:GetAttribute("IsOrbitalPod") then
+			local hb = desc:FindFirstChild("Hitbox") or desc:FindFirstChild("Base")
+			if hb and hb:IsA("BasePart") then
+				table.insert(positions, hb.Position)
+			end
+		end
+	end
+
+	return positions
+end
+
+-- Pick a random spawn position anywhere across the expanded map that is safely away from all interactables
+local function pickRandomLandingPosition(): (Vector3, string, number)
+	local interactables = getInteractables()
+	local minClearance = 24 -- Minimum distance from any interactable
+
+	-- Attempt 50 random candidates across all zones and the expanded 100 x 170 grounds
+	for _ = 1, 50 do
+		local zoneId = math.random(1, 5)
+		local zoneCenter = ZONE_CENTERS[zoneId] or Vector3.new(0, 1.0, 0)
+		local zone = Config.Zones[zoneId] or Config.Zones[1]
+
+		-- Pick coordinate across the expanded land bounds:
+		-- X: [-40, 40] from zone center, Z: [-75, 75]
+		local candX = zoneCenter.X + math.random(-40, 40)
+		local candZ = math.random(-75, 75)
+		local candidate = Vector3.new(candX, 1.0, candZ)
+
+		local safe = true
+		for _, ipos in ipairs(interactables) do
+			local dist = (Vector3.new(candidate.X, 0, candidate.Z) - Vector3.new(ipos.X, 0, ipos.Z)).Magnitude
+			if dist < minClearance then
+				safe = false
+				break
+			end
+		end
+
+		if safe then
+			local sector = candZ > 30 and "Southern Wastelands" or (candZ < -30 and "Northern Outpost" or "Open Courtyard")
+			local locationName = string.format("%s of %s", sector, zone.Name)
+			return candidate, locationName, zoneId
+		end
+	end
+
+	-- Guaranteed open fallback in the southern expanse of a random zone
+	local fbZoneId = math.random(1, 5)
+	local fbCenter = ZONE_CENTERS[fbZoneId] or Vector3.new(0, 1.0, 0)
+	local fbZone = Config.Zones[fbZoneId] or Config.Zones[1]
+	local fbPos = fbCenter + Vector3.new(math.random(-25, 25), 1.0, 58)
+	return fbPos, string.format("Southern Wastelands of %s", fbZone.Name), fbZoneId
+end
+
+-- Construct 3D High-Tech Orbital Raid Drop Pod
+local function constructPodModel(landingPos: Vector3, locationName: string): Model
 	local pod = Instance.new("Model")
 	pod.Name = "ScrapPile_OrbitalPod"
 
-	local maxHP = 120 + zoneId * 60
-	local baseYield = 1500 + zoneId * 2000
+	-- Substantially higher HP for a collaborative server raid boss event
+	local maxHP = 2500
+	local totalScrapPool = 80000
+	local totalGearsPool = 40
 
 	pod:SetAttribute("IsOrbitalPod", true)
-	pod:SetAttribute("ZoneId", zoneId)
 	pod:SetAttribute("MaxHP", maxHP)
 	pod:SetAttribute("CurrentHP", maxHP)
-	pod:SetAttribute("BaseYield", baseYield)
+	pod:SetAttribute("TotalScrapPool", totalScrapPool)
+	pod:SetAttribute("TotalGearsPool", totalGearsPool)
+	pod:SetAttribute("LocationName", locationName)
 
 	-- 1. Hitbox (Root detection & PrimaryPart)
 	local hitbox = Instance.new("Part")
@@ -79,7 +166,7 @@ local function constructPodModel(landingPos: Vector3, zoneId: number, zoneName: 
 	coreLight.Name = "CoreLight"
 	coreLight.Color = Color3.fromRGB(255, 140, 30)
 	coreLight.Brightness = 4.5
-	coreLight.Range = 24
+	coreLight.Range = 28
 	coreLight.Shadows = false
 	coreLight.Parent = core
 
@@ -112,7 +199,22 @@ local function constructPodModel(landingPos: Vector3, zoneId: number, zoneName: 
 		stripe.Parent = pod
 	end
 
-	-- 5. Exhaust Fire & Smoke Emitter
+	-- 5. Sky Beacon: Soaring vertical light beam visible across the whole map
+	local beacon = Instance.new("Part")
+	beacon.Name = "SkyBeacon"
+	beacon.Shape = Enum.PartType.Cylinder
+	beacon.Size = Vector3.new(240, 2.5, 2.5)
+	beacon.CFrame = CFrame.new(landingPos + Vector3.new(0, 120, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	beacon.Material = Enum.Material.Neon
+	beacon.Color = Color3.fromRGB(255, 140, 20)
+	beacon.Transparency = 0.5
+	beacon.Anchored = true
+	beacon.CanCollide = false
+	beacon.CanQuery = false
+	beacon.CanTouch = false
+	beacon.Parent = pod
+
+	-- 6. Exhaust Fire Emitter
 	local att = Instance.new("Attachment")
 	att.Position = Vector3.new(0, 3.0, 0)
 	att.Parent = core
@@ -139,29 +241,28 @@ local function constructPodModel(landingPos: Vector3, zoneId: number, zoneName: 
 	fire.Rate = 20
 	fire.Parent = att
 
-	-- 6. Interactive ProximityPrompt
+	-- 7. Interactive ProximityPrompt
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "ScrapPrompt"
-	prompt.ObjectText = "🚀 ORBITAL DROP POD"
-	prompt.ActionText = "Salvage Pod"
+	prompt.ObjectText = "🚀 ORBITAL RAID POD"
+	prompt.ActionText = "Dismantle Pod"
 	prompt.HoldDuration = 0.05
 	prompt.MaxActivationDistance = 24
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = hitbox
 
-	-- Direct server trigger connection for prompt
 	prompt.Triggered:Connect(function(player)
 		local ActionService = require(script.Parent.ActionService)
 		ActionService.performScrapAction(player, pod)
 	end)
 
-	-- 7. High-Visibility Boss Health Bar Billboard
+	-- 8. High-Visibility Boss Health Bar Billboard
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "HealthBillboard"
-	billboard.Size = UDim2.new(0, 260, 0, 75)
-	billboard.StudsOffset = Vector3.new(0, 9.5, 0)
+	billboard.Size = UDim2.new(0, 280, 0, 80)
+	billboard.StudsOffset = Vector3.new(0, 10, 0)
 	billboard.AlwaysOnTop = true
-	billboard.MaxDistance = 140
+	billboard.MaxDistance = 200
 	billboard.Parent = hitbox
 
 	local bg = Instance.new("Frame")
@@ -187,10 +288,10 @@ local function constructPodModel(landingPos: Vector3, zoneId: number, zoneName: 
 	titleLabel.Position = UDim2.new(0, 0, 0, 4)
 	titleLabel.BackgroundTransparency = 1
 	titleLabel.Font = Enum.Font.GothamBlack
-	titleLabel.TextSize = 14
+	titleLabel.TextSize = 13
 	titleLabel.TextColor3 = Color3.fromRGB(255, 160, 40)
 	titleLabel.TextStrokeTransparency = 0.2
-	titleLabel.Text = string.format("🔥 ORBITAL POD (%s) 🔥", zoneName:upper())
+	titleLabel.Text = "🔥 ORBITAL RAID POD 🔥"
 	titleLabel.Parent = bg
 
 	local hpLabel = Instance.new("TextLabel")
@@ -207,7 +308,7 @@ local function constructPodModel(landingPos: Vector3, zoneId: number, zoneName: 
 	local barBG = Instance.new("Frame")
 	barBG.Name = "HealthBarBG"
 	barBG.Size = UDim2.new(1, -20, 0, 14)
-	barBG.Position = UDim2.new(0, 10, 0, 48)
+	barBG.Position = UDim2.new(0, 10, 0, 50)
 	barBG.BackgroundColor3 = Color3.fromRGB(35, 40, 50)
 	barBG.BorderSizePixel = 0
 	barBG.ClipsDescendants = true
@@ -228,51 +329,57 @@ local function constructPodModel(landingPos: Vector3, zoneId: number, zoneName: 
 	barFC.CornerRadius = UDim.new(0, 5)
 	barFC.Parent = barFill
 
-	-- Automatic cleanup callback when model is destroyed
 	pod.Destroying:Connect(function()
 		if activePodModel == pod then
 			activePodModel = nil
+			EventService.resetContributions()
 		end
 	end)
 
 	return pod
 end
 
--- Trigger a Drop Pod Crash Event
-function EventService.triggerDropPod(preferredZoneId: number?): Model?
+-- Trigger a Drop Pod Crash Event anywhere on the map
+function EventService.triggerDropPod(forcedPos: Vector3?): Model?
 	if activePodModel and activePodModel.Parent then
 		print("[EventService] An Orbital Drop Pod is already active! Waiting for it to resolve.")
 		return activePodModel
 	end
 
-	-- Pick zone (random 1 to 5, or preferred)
-	local zoneId = preferredZoneId or math.random(1, 5)
-	local zone = Config.Zones[zoneId] or Config.Zones[1]
-	local baseCenter = ZONE_LANDING_CENTERS[zoneId] or Vector3.new(0, 1.0, 0)
+	EventService.resetContributions()
 
-	-- Add small landing offset within the safe central courtyard of the platform
-	local offset = Vector3.new(math.random(-5, 5), 0, math.random(-5, 5))
-	local landingPos = baseCenter + offset
+	-- Pick random position anywhere across the expanded land, avoiding all interactable objects
+	local landingPos: Vector3
+	local locationName: string
+	local zoneId: number
 
-	print(string.format("[EventService] Triggering Orbital Drop Pod in %s at %s", zone.Name, tostring(landingPos)))
+	if forcedPos then
+		landingPos = forcedPos
+		locationName = "Custom Coords"
+		zoneId = 1
+	else
+		landingPos, locationName, zoneId = pickRandomLandingPosition()
+	end
+
+	print(string.format("[EventService] Triggering Orbital Drop Pod at %s (Position: %s)", locationName, tostring(landingPos)))
 
 	-- 1. Broadcast global warning siren & notification
 	local notif = Remotes.getEvent("ShowNotification")
 	notif:FireAllClients(
 		"⚠️ ORBITAL SALVAGE DETECTED!",
-		string.format("High-Density Drop Pod crashing into %s! Raid it for massive Scrap & bonus Gears!", zone.Name:upper()),
+		string.format("Raid Pod crashing into %s! Dismantle it together to split the massive Scrap & Gears pool!", locationName:upper()),
 		Color3.fromRGB(255, 140, 20)
 	)
 
 	local announceEvent = Remotes.getEvent("OrbitalEventAnnounce")
 	announceEvent:FireAllClients({
 		ZoneId = zoneId,
-		ZoneName = zone.Name,
+		ZoneName = locationName,
 		LandingPosition = landingPos,
 	})
 
 	-- 2. Build the pod model and parent to Workspace
-	local pod = constructPodModel(landingPos, zoneId, zone.Name)
+	local pod = constructPodModel(landingPos, locationName)
 	activePodModel = pod
 	pod.Parent = Workspace
 
@@ -282,7 +389,6 @@ function EventService.triggerDropPod(preferredZoneId: number?): Model?
 	local startPivot = targetPivot + Vector3.new(0, dropHeight, 0)
 	pod:PivotTo(startPivot)
 
-	-- Animate descent to ground over 2.0 seconds with quadratic acceleration
 	task.spawn(function()
 		local descentDuration = 2.0
 		local startTime = os.clock()
@@ -290,16 +396,14 @@ function EventService.triggerDropPod(preferredZoneId: number?): Model?
 		while os.clock() - startTime < descentDuration do
 			local elapsed = os.clock() - startTime
 			local alpha = math.clamp(elapsed / descentDuration, 0, 1)
-			-- Accelerating fall with quadratic curve
 			local currentAltitude = dropHeight * (1 - (alpha * alpha))
 			pod:PivotTo(targetPivot + Vector3.new(0, currentAltitude, 0))
 			task.wait(0.03)
 		end
 
-		-- Snap firmly to exact target pivot
 		pod:PivotTo(targetPivot)
 
-		-- 4. Impact Touchdown: Broadcast impact shockwave
+		-- Impact Touchdown: Broadcast impact shockwave
 		local impactEvent = Remotes.getEvent("OrbitalEventImpact")
 		impactEvent:FireAllClients({
 			LandingPosition = landingPos,
@@ -320,17 +424,18 @@ function EventService.triggerDropPod(preferredZoneId: number?): Model?
 		scorch.CanTouch = false
 		scorch.Parent = pod
 
-		print(string.format("[EventService] Drop Pod touchdown confirmed in %s!", zone.Name))
+		print(string.format("[EventService] Drop Pod touchdown confirmed at %s!", locationName))
 	end)
 
-	-- 5. Auto-Self-Destruct / Despawn if untouched after 180s
-	task.delay(180, function()
+	-- 4. Auto-Self-Destruct / Despawn if untouched after 240s
+	task.delay(240, function()
 		if pod and pod.Parent then
 			local notifEv = Remotes.getEvent("ShowNotification")
-			notifEv:FireAllClients("🚀 POD LAUNCHED", "The unharvested Orbital Drop Pod has departed.", Color3.fromRGB(180, 180, 190))
+			notifEv:FireAllClients("🚀 POD DEPARTED", "The unharvested Orbital Drop Pod has burned up and departed.", Color3.fromRGB(180, 180, 190))
 			pod:Destroy()
 			if activePodModel == pod then
 				activePodModel = nil
+				EventService.resetContributions()
 			end
 		end
 	end)
@@ -345,18 +450,17 @@ end
 function EventService.clearActivePod(podModel: Model?)
 	if not podModel or activePodModel == podModel then
 		activePodModel = nil
+		EventService.resetContributions()
 	end
 end
 
 -- Initialize periodic server event loop
 function EventService.init()
-	-- Periodic loop: triggers an event every 5 to 7 minutes
 	task.spawn(function()
-		-- Initial grace period before first meteor (90 seconds after server start)
 		task.wait(90)
 		while true do
 			EventService.triggerDropPod()
-			local interval = math.random(300, 420) -- 5 to 7 minutes
+			local interval = math.random(300, 420)
 			task.wait(interval)
 		end
 	end)
