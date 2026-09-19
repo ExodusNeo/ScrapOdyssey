@@ -18,6 +18,7 @@ def deploy():
         ("src/server/Systems/ActionService.luau", "ServerScriptService", "Systems", "ActionService", "ModuleScript"),
         
         ("src/server/Systems/ShopService.luau", "ServerScriptService", "Systems", "ShopService", "ModuleScript"),
+        ("src/server/Systems/BackpackService.luau", "ServerScriptService", "Systems", "BackpackService", "ModuleScript"),
         ("src/server/Systems/PetService.luau", "ServerScriptService", "Systems", "PetService", "ModuleScript"),
         ("src/server/Systems/RebirthService.luau", "ServerScriptService", "Systems", "RebirthService", "ModuleScript"),
         ("src/server/Systems/QuestService.luau", "ServerScriptService", "Systems", "QuestService", "ModuleScript"),

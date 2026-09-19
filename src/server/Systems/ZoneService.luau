@@ -144,18 +144,34 @@ function ZoneService.constructCentralHub()
 
 	local baseUnit = Instance.new("Part")
 	baseUnit.Name = "BaseUnit"
-	baseUnit.Size = Vector3.new(10, 8, 10)
+	baseUnit.Size = Vector3.new(12, 8, 12)
 	baseUnit.Position = Vector3.new(0, 4, -15)
 	baseUnit.Anchored = true
-	baseUnit.Material = Enum.Material.Metal
+	baseUnit.Material = Enum.Material.DiamondPlate
 	baseUnit.Color = Color3.fromRGB(35, 38, 48)
 	baseUnit.Parent = recyclerModel
+
+	-- Molten Furnace Core Window
+	local furnaceWindow = Instance.new("Part")
+	furnaceWindow.Name = "FurnaceCore"
+	furnaceWindow.Size = Vector3.new(5, 3.5, 0.4)
+	furnaceWindow.Position = Vector3.new(0, 3.2, -8.8)
+	furnaceWindow.Anchored = true
+	furnaceWindow.Material = Enum.Material.Neon
+	furnaceWindow.Color = Color3.fromRGB(255, 120, 20)
+	furnaceWindow.Parent = recyclerModel
+
+	local fLight = Instance.new("PointLight")
+	fLight.Color = Color3.fromRGB(255, 130, 30)
+	fLight.Brightness = 2.5
+	fLight.Range = 16
+	fLight.Parent = furnaceWindow
 
 	-- Glowing Funnel Top
 	local funnel = Instance.new("Part")
 	funnel.Name = "Funnel"
 	funnel.Shape = Enum.PartType.Cylinder
-	funnel.Size = Vector3.new(3, 8, 8)
+	funnel.Size = Vector3.new(3, 8.5, 8.5)
 	funnel.Position = Vector3.new(0, 9.5, -15)
 	funnel.Orientation = Vector3.new(0, 0, 90)
 	funnel.Anchored = true
@@ -169,17 +185,43 @@ function ZoneService.constructCentralHub()
 	steam.Color = ColorSequence.new(Color3.fromRGB(200, 200, 210))
 	steam.Size = NumberSequence.new(1.5, 4.0)
 	steam.Transparency = NumberSequence.new(0.3, 1.0)
-	steam.Rate = 10
+	steam.Rate = 12
 	steam.Lifetime = NumberRange.new(2, 3.5)
 	steam.Speed = NumberRange.new(4, 7)
 	steam.SpreadAngle = Vector2.new(20, 20)
 	steam.Acceleration = Vector3.new(0, 3, 0)
 	steam.Parent = funnel
 
+	-- Dual Industrial Smokestacks
+	local stackCoords = { Vector3.new(-5.2, 8, -15), Vector3.new(5.2, 8, -15) }
+	for _, sPos in ipairs(stackCoords) do
+		local stack = Instance.new("Part")
+		stack.Name = "Smokestack"
+		stack.Shape = Enum.PartType.Cylinder
+		stack.Size = Vector3.new(10, 1.8, 1.8)
+		stack.Position = sPos
+		stack.Orientation = Vector3.new(0, 0, 90)
+		stack.Anchored = true
+		stack.Material = Enum.Material.Metal
+		stack.Color = Color3.fromRGB(25, 27, 34)
+		stack.Parent = recyclerModel
+
+		local sparks = Instance.new("ParticleEmitter")
+		sparks.Name = "Sparks"
+		sparks.Color = ColorSequence.new(Color3.fromRGB(255, 170, 40))
+		sparks.Size = NumberSequence.new(0.2, 0.4)
+		sparks.Rate = 8
+		sparks.Speed = NumberRange.new(5, 9)
+		sparks.SpreadAngle = Vector2.new(15, 15)
+		sparks.Acceleration = Vector3.new(0, 4, 0)
+		sparks.Lifetime = NumberRange.new(1.0, 1.8)
+		sparks.Parent = stack
+	end
+
 	-- Recycler Billboard Title
 	local rbb = Instance.new("BillboardGui")
-	rbb.Size = UDim2.new(0, 240, 0, 60)
-	rbb.StudsOffset = Vector3.new(0, 7, 0)
+	rbb.Size = UDim2.new(0, 260, 0, 60)
+	rbb.StudsOffset = Vector3.new(0, 7.5, 0)
 	rbb.AlwaysOnTop = true
 	rbb.Parent = baseUnit
 
@@ -255,7 +297,7 @@ function ZoneService.constructCentralHub()
 
 	recyclerModel.Parent = hubFolder
 
-	-- Physical Drone Incubator Pedestals (The ONLY way to hatch drones!)
+	-- Physical Drone Incubator Pedestals (Futuristic Glass Chamber Pods!)
 	local eggConfigs = {
 		{
 			Type = "RustEgg",
@@ -284,32 +326,84 @@ function ZoneService.constructCentralHub()
 	}
 
 	for _, eggInfo in ipairs(eggConfigs) do
+		-- Pedestal Base
 		local pedestal = Instance.new("Part")
 		pedestal.Name = "Pedestal_" .. eggInfo.Type
 		pedestal.Shape = Enum.PartType.Cylinder
-		pedestal.Size = Vector3.new(2.5, 3.5, 3.5)
-		pedestal.Position = eggInfo.Pos + Vector3.new(0, 1.25, 0)
+		pedestal.Size = Vector3.new(2.4, 3.8, 3.8)
+		pedestal.Position = eggInfo.Pos + Vector3.new(0, 1.2, 0)
 		pedestal.Orientation = Vector3.new(0, 0, 90)
 		pedestal.Anchored = true
-		pedestal.Material = Enum.Material.SmoothPlastic
-		pedestal.Color = Color3.fromRGB(30, 32, 42)
+		pedestal.Material = Enum.Material.DiamondPlate
+		pedestal.Color = Color3.fromRGB(28, 30, 38)
 		pedestal.Parent = hubFolder
 
+		-- Glowing Energy Rim on Pedestal
+		local rim = Instance.new("Part")
+		rim.Name = "Rim"
+		rim.Shape = Enum.PartType.Cylinder
+		rim.Size = Vector3.new(0.4, 3.9, 3.9)
+		rim.Position = eggInfo.Pos + Vector3.new(0, 2.3, 0)
+		rim.Orientation = Vector3.new(0, 0, 90)
+		rim.Anchored = true
+		rim.Material = Enum.Material.Neon
+		rim.Color = eggInfo.Color
+		rim.Parent = hubFolder
+
+		-- Transparent Glass Containment Capsule
+		local capsule = Instance.new("Part")
+		capsule.Name = "Capsule"
+		capsule.Shape = Enum.PartType.Cylinder
+		capsule.Size = Vector3.new(3.8, 3.4, 3.4)
+		capsule.Position = eggInfo.Pos + Vector3.new(0, 4.3, 0)
+		capsule.Orientation = Vector3.new(0, 0, 90)
+		capsule.Anchored = true
+		capsule.Material = Enum.Material.Glass
+		capsule.Color = eggInfo.Color
+		capsule.Transparency = 0.55
+		capsule.CanCollide = false
+		capsule.Parent = hubFolder
+
+		-- Capsule Top Cap
+		local cap = Instance.new("Part")
+		cap.Name = "Cap"
+		cap.Shape = Enum.PartType.Cylinder
+		cap.Size = Vector3.new(0.6, 3.6, 3.6)
+		cap.Position = eggInfo.Pos + Vector3.new(0, 6.3, 0)
+		cap.Orientation = Vector3.new(0, 0, 90)
+		cap.Anchored = true
+		cap.Material = Enum.Material.Metal
+		cap.Color = Color3.fromRGB(28, 30, 38)
+		cap.Parent = hubFolder
+
+		-- Floating Levitating Egg Inside Capsule
 		local egg = Instance.new("Part")
 		egg.Name = "DisplayEgg_" .. eggInfo.Type
 		egg.Shape = Enum.PartType.Ball
-		egg.Size = Vector3.new(2.2, 3.0, 2.2)
-		egg.Position = eggInfo.Pos + Vector3.new(0, 3.8, 0)
+		egg.Size = Vector3.new(2.0, 2.8, 2.0)
+		egg.Position = eggInfo.Pos + Vector3.new(0, 4.3, 0)
 		egg.Anchored = true
+		egg.CanCollide = false
 		egg.Material = Enum.Material.Neon
 		egg.Color = eggInfo.Color
 		egg.Parent = hubFolder
 
+		-- Bobbing & Rotating animation loop
+		local baseEggY = eggInfo.Pos.Y + 4.3
+		task.spawn(function()
+			while egg.Parent do
+				local t = os.clock() * 2
+				egg.Position = Vector3.new(eggInfo.Pos.X, baseEggY + math.sin(t) * 0.25, eggInfo.Pos.Z)
+				egg.CFrame = CFrame.new(egg.Position) * CFrame.Angles(0, math.rad(t * 30 % 360), 0)
+				task.wait(0.04)
+			end
+		end)
+
 		local eggBb = Instance.new("BillboardGui")
-		eggBb.Size = UDim2.new(0, 150, 0, 55)
-		eggBb.StudsOffset = Vector3.new(0, 3.2, 0)
+		eggBb.Size = UDim2.new(0, 160, 0, 55)
+		eggBb.StudsOffset = Vector3.new(0, 3.6, 0)
 		eggBb.AlwaysOnTop = true
-		eggBb.Parent = egg
+		eggBb.Parent = capsule
 
 		local eggLbl = Instance.new("TextLabel")
 		eggLbl.Size = UDim2.new(1, 0, 1, 0)
@@ -327,7 +421,7 @@ function ZoneService.constructCentralHub()
 		prompt.HoldDuration = 0.2
 		prompt.MaxActivationDistance = 14
 		prompt.RequiresLineOfSight = false
-		prompt.Parent = egg
+		prompt.Parent = capsule
 
 		prompt.Triggered:Connect(function(player)
 			local PetService = require(script.Parent.PetService)
@@ -385,7 +479,7 @@ local function createScrapPile(zone: Types.ZoneConfig, position: Vector3, index:
 	-- Main heavy scrap mound
 	local base = Instance.new("Part")
 	base.Name = "Base"
-	base.Size = Vector3.new(5.5, 2.8, 5.5)
+	base.Size = Vector3.new(6.0, 2.8, 6.0)
 	base.Position = position + Vector3.new(0, 1.4, 0)
 	base.Anchored = true
 	base.Color = zone.Color
@@ -404,6 +498,29 @@ local function createScrapPile(zone: Types.ZoneConfig, position: Vector3, index:
 	pipe.Material = Enum.Material.Metal
 	pipe.Parent = model
 
+	-- Half-Buried Industrial Fuel Drum
+	local barrel = Instance.new("Part")
+	barrel.Name = "SalvageBarrel"
+	barrel.Shape = Enum.PartType.Cylinder
+	barrel.Size = Vector3.new(2.4, 1.5, 1.5)
+	barrel.Position = position + Vector3.new(-1.6, 1.2, 1.4)
+	barrel.Orientation = Vector3.new(20, 10, 80)
+	barrel.Anchored = true
+	barrel.Color = Color3.fromRGB(130, 45, 40)
+	barrel.Material = Enum.Material.Metal
+	barrel.Parent = model
+
+	-- Angled Steel Support Girder
+	local girder = Instance.new("Part")
+	girder.Name = "SteelGirder"
+	girder.Size = Vector3.new(1.0, 5.0, 1.0)
+	girder.Position = position + Vector3.new(1.4, 2.5, -1.2)
+	girder.Orientation = Vector3.new(35, 25, -20)
+	girder.Anchored = true
+	girder.Color = Color3.fromRGB(55, 60, 70)
+	girder.Material = Enum.Material.DiamondPlate
+	girder.Parent = model
+
 	-- Glowing Power Core
 	local core = Instance.new("Part")
 	core.Name = "Core"
@@ -416,9 +533,19 @@ local function createScrapPile(zone: Types.ZoneConfig, position: Vector3, index:
 
 	local light = Instance.new("PointLight")
 	light.Color = zone.Color
-	light.Brightness = 2.0
-	light.Range = 12
+	light.Brightness = 2.2
+	light.Range = 14
 	light.Parent = core
+
+	local coreSparks = Instance.new("ParticleEmitter")
+	coreSparks.Name = "CoreSparks"
+	coreSparks.Color = ColorSequence.new(zone.Color)
+	coreSparks.Size = NumberSequence.new(0.15, 0.35)
+	coreSparks.Rate = 4
+	coreSparks.Speed = NumberRange.new(1.5, 3.5)
+	coreSparks.SpreadAngle = Vector2.new(180, 180)
+	coreSparks.Lifetime = NumberRange.new(0.4, 0.8)
+	coreSparks.Parent = core
 
 	-- Hit Progress Billboard
 	local gui = Instance.new("BillboardGui")

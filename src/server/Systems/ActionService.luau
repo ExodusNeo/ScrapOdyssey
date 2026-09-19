@@ -26,31 +26,98 @@ local function giveScrapperTool(player: Player)
 	tool.RequiresHandle = true
 	tool.CanBeDropped = false
 
+	-- Ergonomic Main Grip
 	local handle = Instance.new("Part")
 	handle.Name = "Handle"
-	handle.Size = Vector3.new(0.7, 3.2, 0.7)
-	handle.Material = Enum.Material.Metal
-	handle.Color = Color3.fromRGB(35, 38, 48)
+	handle.Size = Vector3.new(0.65, 3.2, 0.65)
+	handle.Material = Enum.Material.Rubber
+	handle.Color = Color3.fromRGB(24, 26, 32)
 	handle.Parent = tool
 
-	local tip = Instance.new("Part")
-	tip.Name = "Tip"
-	tip.Size = Vector3.new(1.3, 1.3, 1.3)
-	tip.Position = handle.Position + Vector3.new(0, 1.8, 0)
-	tip.Material = Enum.Material.Neon
-	tip.Color = Color3.fromRGB(255, 170, 0)
-	tip.Parent = tool
+	-- Energy Battery Cartridge on bottom
+	local battery = Instance.new("Part")
+	battery.Name = "PowerBattery"
+	battery.Size = Vector3.new(0.85, 0.7, 0.85)
+	battery.Position = handle.Position + Vector3.new(0, -1.6, 0)
+	battery.Material = Enum.Material.Neon
+	battery.Color = Color3.fromRGB(0, 220, 255)
+	battery.Parent = tool
 
-	local weld = Instance.new("WeldConstraint")
-	weld.Part0 = handle
-	weld.Part1 = tip
-	weld.Parent = handle
+	local weldBat = Instance.new("WeldConstraint")
+	weldBat.Part0 = handle
+	weldBat.Part1 = battery
+	weldBat.Parent = battery
+
+	-- Heavy Emitter Housing Head
+	local head = Instance.new("Part")
+	head.Name = "EmitterHousing"
+	head.Size = Vector3.new(1.1, 1.2, 1.1)
+	head.Position = handle.Position + Vector3.new(0, 1.8, 0)
+	head.Material = Enum.Material.DiamondPlate
+	head.Color = Color3.fromRGB(50, 55, 65)
+	head.Parent = tool
+
+	local weldHead = Instance.new("WeldConstraint")
+	weldHead.Part0 = handle
+	weldHead.Part1 = head
+	weldHead.Parent = head
+
+	-- Dual Plasma Emitter Prongs
+	local prongL = Instance.new("Part")
+	prongL.Name = "ProngLeft"
+	prongL.Size = Vector3.new(0.25, 1.4, 0.4)
+	prongL.Position = head.Position + Vector3.new(-0.45, 1.1, 0)
+	prongL.Material = Enum.Material.Metal
+	prongL.Color = Color3.fromRGB(255, 170, 0)
+	prongL.Parent = tool
+
+	local weldPL = Instance.new("WeldConstraint")
+	weldPL.Part0 = head
+	weldPL.Part1 = prongL
+	weldPL.Parent = prongL
+
+	local prongR = Instance.new("Part")
+	prongR.Name = "ProngRight"
+	prongR.Size = Vector3.new(0.25, 1.4, 0.4)
+	prongR.Position = head.Position + Vector3.new(0.45, 1.1, 0)
+	prongR.Material = Enum.Material.Metal
+	prongR.Color = Color3.fromRGB(255, 170, 0)
+	prongR.Parent = tool
+
+	local weldPR = Instance.new("WeldConstraint")
+	weldPR.Part0 = head
+	weldPR.Part1 = prongR
+	weldPR.Parent = prongR
+
+	-- Crackling Plasma Core Blade
+	local blade = Instance.new("Part")
+	blade.Name = "Tip"
+	blade.Size = Vector3.new(0.65, 1.2, 0.3)
+	blade.Position = head.Position + Vector3.new(0, 1.0, 0)
+	blade.Material = Enum.Material.Neon
+	blade.Color = Color3.fromRGB(255, 190, 50)
+	blade.Parent = tool
+
+	local weldBlade = Instance.new("WeldConstraint")
+	weldBlade.Part0 = head
+	weldBlade.Part1 = blade
+	weldBlade.Parent = blade
 
 	local light = Instance.new("PointLight")
-	light.Color = Color3.fromRGB(255, 180, 50)
-	light.Brightness = 2.0
-	light.Range = 10
-	light.Parent = tip
+	light.Color = Color3.fromRGB(255, 190, 50)
+	light.Brightness = 2.4
+	light.Range = 12
+	light.Parent = blade
+
+	local sparks = Instance.new("ParticleEmitter")
+	sparks.Name = "PlasmaSparks"
+	sparks.Color = ColorSequence.new(Color3.fromRGB(255, 200, 80))
+	sparks.Size = NumberSequence.new(0.1, 0.25)
+	sparks.Rate = 6
+	sparks.Speed = NumberRange.new(1.0, 2.5)
+	sparks.SpreadAngle = Vector2.new(180, 180)
+	sparks.Lifetime = NumberRange.new(0.3, 0.6)
+	sparks.Parent = blade
 
 	-- Tool Activation LocalScript
 	local toolScript = Instance.new("LocalScript")
@@ -205,9 +272,13 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 
 		local strikeScrap = math.max(1, math.floor((baseYield * tier.Multiplier) * 0.35))
 		local spaceLeft = math.max(0, maxCapacity - (data.Backpack or 0))
-		local added = math.min(spaceLeft, strikeScrap)
 		data.Backpack = (data.Backpack or 0) + added
 		DataService.sync(player)
+
+		pcall(function()
+			local BackpackService = require(script.Parent.BackpackService)
+			BackpackService.updateCoreColor(player)
+		end)
 
 		local actionCompletedEvent = Remotes.getEvent("ActionCompleted")
 		actionCompletedEvent:FireClient(player, {
@@ -228,9 +299,13 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 
 		local breakScrap = math.floor((baseYield * tier.Multiplier) * 1.5)
 		local spaceLeft = math.max(0, maxCapacity - (data.Backpack or 0))
-		local added = math.min(spaceLeft, breakScrap)
 		data.Backpack = (data.Backpack or 0) + added
 		DataService.sync(player)
+
+		pcall(function()
+			local BackpackService = require(script.Parent.BackpackService)
+			BackpackService.updateCoreColor(player)
+		end)
 
 		local actionCompletedEvent = Remotes.getEvent("ActionCompleted")
 		actionCompletedEvent:FireClient(player, {

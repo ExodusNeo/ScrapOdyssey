@@ -35,6 +35,15 @@ function ShopService.purchaseUpgrade(player: Player, upgradeKey: string): boolea
 		data.Upgrades[upgradeKey] = currentLevel + 1
 		DataService.sync(player)
 
+		if upgradeKey == "BackpackCapacity" then
+			local success, BackpackService = pcall(function()
+				return require(script.Parent.BackpackService)
+			end)
+			if success and BackpackService then
+				BackpackService.updateCharacterBackpack(player)
+			end
+		end
+
 		local notif = Remotes.getEvent("ShowNotification")
 		notif:FireClient(player, "Upgrade Purchased!", string.format("%s reached Level %d!", conf.Name, currentLevel + 1), Color3.fromRGB(80, 220, 120))
 		return true

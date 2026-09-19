@@ -562,7 +562,17 @@ function MenuController.updateUI(data: Types.PlayerData)
 		local refs = upgradeRowRefs[key]
 		if refs then
 			local currentLevel = (data.Upgrades and data.Upgrades[key]) or 1
-			refs.LevelLabel.Text = string.format("Level %d / %d", currentLevel, conf.MaxLevel)
+			if key == "BackpackCapacity" then
+				local curCap = Config.getBackpackCapacity(currentLevel)
+				local nxtCap = Config.getBackpackCapacity(currentLevel + 1)
+				if currentLevel >= conf.MaxLevel then
+					refs.LevelLabel.Text = string.format("Level %d / %d • Max Cargo: %d 🔩", currentLevel, conf.MaxLevel, curCap)
+				else
+					refs.LevelLabel.Text = string.format("Level %d / %d • Cargo: %d ➔ %d 🔩", currentLevel, conf.MaxLevel, curCap, nxtCap)
+				end
+			else
+				refs.LevelLabel.Text = string.format("Level %d / %d", currentLevel, conf.MaxLevel)
+			end
 
 			if currentLevel >= conf.MaxLevel then
 				refs.BuyButton.Text = "MAXED"
@@ -823,33 +833,116 @@ function MenuController.buildIconBar()
 	list.Parent = bar
 
 	local buttons = {
-		{ Name = "Upgrades", Icon = "🛒", Color = Color3.fromRGB(40, 190, 80) },
-		{ Name = "GearsShop", Icon = "⚙️", Color = Color3.fromRGB(50, 170, 255) },
-		{ Name = "Drones", Icon = "🥚", Color = Color3.fromRGB(255, 150, 0) },
-		{ Name = "Rebirth", Icon = "🌀", Color = Color3.fromRGB(80, 130, 255) },
-		{ Name = "Rewards", Icon = "🎁", Color = Color3.fromRGB(240, 70, 120) },
+		{ Name = "Upgrades", Label = "UPGRADES", IconId = "rbxassetid://10734950309", Emoji = "🛒", Color = Color3.fromRGB(40, 200, 90) },
+		{ Name = "GearsShop", Label = "PRESTIGE SHOP", IconId = "rbxassetid://10734919335", Emoji = "⚙️", Color = Color3.fromRGB(50, 180, 255) },
+		{ Name = "Drones", Label = "DRONE HANGAR", IconId = "rbxassetid://10734924724", Emoji = "🤖", Color = Color3.fromRGB(255, 160, 20) },
+		{ Name = "Rebirth", Label = "REBIRTH", IconId = "rbxassetid://10734940381", Emoji = "🌀", Color = Color3.fromRGB(90, 140, 255) },
+		{ Name = "Rewards", Label = "DAILY REWARDS", IconId = "rbxassetid://10734938676", Emoji = "🎁", Color = Color3.fromRGB(240, 70, 130) },
 	}
 
 	for _, info in ipairs(buttons) do
 		local btn = Instance.new("TextButton")
 		btn.Name = info.Name .. "Btn"
 		btn.Size = UDim2.new(0, 48, 0, 48)
-		btn.BackgroundColor3 = Color3.fromRGB(28, 32, 44)
-		btn.Font = Enum.Font.GothamBold
-		btn.TextSize = 24
-		btn.Text = info.Icon
+		btn.BackgroundColor3 = Color3.fromRGB(24, 28, 40)
+		btn.Text = ""
+		btn.AutoButtonColor = false
 		btn.Parent = bar
 
 		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(0, 12)
+		corner.CornerRadius = UDim.new(0, 13)
 		corner.Parent = btn
 
 		local stroke = Instance.new("UIStroke")
 		stroke.Color = info.Color
-		stroke.Thickness = 1.5
+		stroke.Thickness = 1.8
 		stroke.Parent = btn
 
+		-- Vector Asset Icon
+		local iconImg = Instance.new("ImageLabel")
+		iconImg.Name = "IconImg"
+		iconImg.Size = UDim2.new(0, 28, 0, 28)
+		iconImg.Position = UDim2.new(0.5, -14, 0.5, -14)
+		iconImg.BackgroundTransparency = 1
+		iconImg.Image = info.IconId
+		iconImg.ImageColor3 = info.Color
+		iconImg.ScaleType = Enum.ScaleType.Fit
+		iconImg.ZIndex = 2
+		iconImg.Parent = btn
+
+		-- Fallback Emoji Label
+		local fallback = Instance.new("TextLabel")
+		fallback.Name = "FallbackEmoji"
+		fallback.Size = UDim2.new(1, 0, 1, 0)
+		fallback.BackgroundTransparency = 1
+		fallback.Font = Enum.Font.GothamBold
+		fallback.TextSize = 22
+		fallback.Text = info.Emoji
+		fallback.Visible = false
+		fallback.ZIndex = 1
+		fallback.Parent = btn
+
+		-- Hover Tooltip Label
+		local tooltip = Instance.new("Frame")
+		tooltip.Name = "Tooltip"
+		tooltip.Size = UDim2.new(0, 130, 0, 30)
+		tooltip.Position = UDim2.new(1, 14, 0.5, -15)
+		tooltip.BackgroundColor3 = Color3.fromRGB(16, 18, 26)
+		tooltip.BackgroundTransparency = 1
+		tooltip.BorderSizePixel = 0
+		tooltip.ZIndex = 10
+		tooltip.Parent = btn
+
+		local tipCorner = Instance.new("UICorner")
+		tipCorner.CornerRadius = UDim.new(0, 8)
+		tipCorner.Parent = tooltip
+
+		local tipStroke = Instance.new("UIStroke")
+		tipStroke.Color = info.Color
+		tipStroke.Thickness = 1.5
+		tipStroke.Transparency = 1
+		tipStroke.Parent = tooltip
+
+		local tipText = Instance.new("TextLabel")
+		tipText.Size = UDim2.new(1, 0, 1, 0)
+		tipText.BackgroundTransparency = 1
+		tipText.Font = Enum.Font.GothamBlack
+		tipText.TextSize = 12
+		tipText.TextColor3 = info.Color
+		tipText.TextTransparency = 1
+		tipText.Text = info.Label
+		tipText.ZIndex = 11
+		tipText.Parent = tooltip
+
+		-- Hover Animations
+		btn.MouseEnter:Connect(function()
+			TweenService:Create(btn, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				Size = UDim2.new(0, 52, 0, 52),
+				BackgroundColor3 = Color3.fromRGB(32, 38, 55),
+			}):Play()
+			TweenService:Create(stroke, TweenInfo.new(0.15), { Thickness = 2.5 }):Play()
+			TweenService:Create(tooltip, TweenInfo.new(0.15), { BackgroundTransparency = 0.1 }):Play()
+			TweenService:Create(tipStroke, TweenInfo.new(0.15), { Transparency = 0 }):Play()
+			TweenService:Create(tipText, TweenInfo.new(0.15), { TextTransparency = 0 }):Play()
+		end)
+
+		btn.MouseLeave:Connect(function()
+			TweenService:Create(btn, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				Size = UDim2.new(0, 48, 0, 48),
+				BackgroundColor3 = Color3.fromRGB(24, 28, 40),
+			}):Play()
+			TweenService:Create(stroke, TweenInfo.new(0.15), { Thickness = 1.8 }):Play()
+			TweenService:Create(tooltip, TweenInfo.new(0.15), { BackgroundTransparency = 1 }):Play()
+			TweenService:Create(tipStroke, TweenInfo.new(0.15), { Transparency = 1 }):Play()
+			TweenService:Create(tipText, TweenInfo.new(0.15), { TextTransparency = 1 }):Play()
+		end)
+
 		btn.MouseButton1Click:Connect(function()
+			playSound("rbxassetid://6895079853", 1.1)
+			-- Click bounce
+			TweenService:Create(btn, TweenInfo.new(0.08, Enum.EasingStyle.Back, Enum.EasingDirection.Out, 0, true), {
+				Size = UDim2.new(0, 42, 0, 42),
+			}):Play()
 			MenuController.openPanel(info.Name)
 		end)
 	end
@@ -880,14 +973,15 @@ function MenuController.init()
 		end
 	end)
 
-	-- Notification Toast
+	-- Notification Toast (Spacious, multi-line, animated slide-in)
 	local notifEvent = Remotes.getEvent("ShowNotification")
 	notifEvent.OnClientEvent:Connect(function(title, message, color)
 		playSound("rbxassetid://5153734608", 1.4)
 		local toast = Instance.new("Frame")
-		toast.Size = UDim2.new(0, 340, 0, 58)
-		toast.Position = UDim2.new(0.5, -170, 0, 20)
-		toast.BackgroundColor3 = Color3.fromRGB(20, 22, 30)
+		toast.Size = UDim2.new(0, 480, 0, 76)
+		toast.Position = UDim2.new(0.5, -240, 0, -90) -- Start above screen for slide-in
+		toast.BackgroundColor3 = Color3.fromRGB(18, 20, 28)
+		toast.BackgroundTransparency = 0.05
 		toast.ZIndex = 99
 		toast.Parent = mainGui
 
@@ -901,30 +995,46 @@ function MenuController.init()
 		tStroke.Parent = toast
 
 		local tTitle = Instance.new("TextLabel")
-		tTitle.Size = UDim2.new(1, -20, 0, 24)
-		tTitle.Position = UDim2.new(0, 12, 0, 6)
+		tTitle.Size = UDim2.new(1, -32, 0, 24)
+		tTitle.Position = UDim2.new(0, 16, 0, 8)
 		tTitle.BackgroundTransparency = 1
 		tTitle.Font = Enum.Font.GothamBlack
-		tTitle.TextSize = 15
+		tTitle.TextSize = 16
 		tTitle.TextColor3 = color or Color3.fromRGB(255, 215, 0)
 		tTitle.TextXAlignment = Enum.TextXAlignment.Left
 		tTitle.Text = title
+		tTitle.ZIndex = 100
 		tTitle.Parent = toast
 
 		local tMsg = Instance.new("TextLabel")
-		tMsg.Size = UDim2.new(1, -20, 0, 20)
-		tMsg.Position = UDim2.new(0, 12, 0, 30)
+		tMsg.Size = UDim2.new(1, -32, 0, 36)
+		tMsg.Position = UDim2.new(0, 16, 0, 32)
 		tMsg.BackgroundTransparency = 1
-		tMsg.Font = Enum.Font.Gotham
+		tMsg.Font = Enum.Font.GothamMedium
 		tMsg.TextSize = 13
 		tMsg.TextColor3 = Color3.fromRGB(220, 225, 235)
 		tMsg.TextXAlignment = Enum.TextXAlignment.Left
+		tMsg.TextYAlignment = Enum.TextYAlignment.Top
+		tMsg.TextWrapped = true
 		tMsg.Text = message
+		tMsg.ZIndex = 100
 		tMsg.Parent = toast
 
-		task.delay(3.5, function()
+		-- Slide-in tween
+		TweenService:Create(toast, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			Position = UDim2.new(0.5, -240, 0, 24),
+		}):Play()
+
+		task.delay(3.8, function()
 			if toast and toast.Parent then
-				toast:Destroy()
+				local slideOut = TweenService:Create(toast, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+					Position = UDim2.new(0.5, -240, 0, -90),
+					BackgroundTransparency = 1,
+				})
+				slideOut:Play()
+				slideOut.Completed:Connect(function()
+					toast:Destroy()
+				end)
 			end
 		end)
 	end)

@@ -172,13 +172,15 @@ function HUDController.createHUD()
 
 	cargoLabel = Instance.new("TextLabel")
 	cargoLabel.Name = "CargoLabel"
-	cargoLabel.Size = UDim2.new(1, 0, 1, 0)
+	cargoLabel.Size = UDim2.new(1, -16, 1, 0)
+	cargoLabel.Position = UDim2.new(0, 8, 0, 0)
 	cargoLabel.BackgroundTransparency = 1
 	cargoLabel.Font = Enum.Font.GothamBlack
 	cargoLabel.TextSize = 13
 	cargoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 	cargoLabel.TextStrokeTransparency = 0.2
 	cargoLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+	cargoLabel.TextWrapped = true
 	cargoLabel.Text = "🎒 CARGO: 0 / 50 🔩"
 	cargoLabel.ZIndex = 2
 	cargoLabel.Parent = cargoContainer

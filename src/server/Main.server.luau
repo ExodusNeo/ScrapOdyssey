@@ -45,6 +45,7 @@ ActionService.init()
 
 -- Initialize progression & retention systems if present
 safeInit("ShopService")
+safeInit("BackpackService")
 safeInit("PetService")
 safeInit("RebirthService")
 safeInit("QuestService")
