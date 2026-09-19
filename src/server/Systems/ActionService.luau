@@ -491,16 +491,38 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 	end
 
 	local tier = ActionService.rollRewardTier(player)
-	local baseYield = zone and zone.BaseYield or 10
+	local baseYield = nodeModel:GetAttribute("BaseYield") or (zone and zone.BaseYield) or 10
+	local isDense = nodeModel:GetAttribute("IsDense")
 
 	if currentHP > 0 then
 		-- Partial Strike: Fill backpack partially
 		nodeModel:SetAttribute("CurrentHP", currentHP)
+		local titleText = isDense and string.format("⭐ DENSE %s ⭐", zone.Name:upper()) or string.format("🔨 %s", zone.Name:upper())
 		if statusLabel then
-			statusLabel.Text = string.format("🔨 %s\n[HP: %d/%d]", zone.Name:upper(), currentHP, maxHP)
+			statusLabel.Text = titleText
+		end
+		local hpLabel = nodeModel:FindFirstChild("HpLabel", true) :: TextLabel?
+		if hpLabel then
+			hpLabel.Text = string.format("[ %d / %d HP ]", currentHP, maxHP)
+		elseif statusLabel then
+			statusLabel.Text = string.format("%s\n[HP: %d/%d]", zone.Name:upper(), currentHP, maxHP)
 		end
 
-		local strikeScrap = math.max(1, math.floor((baseYield * tier.Multiplier) * 0.35))
+		local barFill = nodeModel:FindFirstChild("HealthBarFill", true) :: Frame?
+		if barFill then
+			local pct = math.clamp(currentHP / maxHP, 0, 1)
+			barFill.Size = UDim2.new(pct, 0, 1, 0)
+			if pct > 0.5 then
+				barFill.BackgroundColor3 = Color3.fromRGB(40, 215, 95)
+			elseif pct > 0.25 then
+				barFill.BackgroundColor3 = Color3.fromRGB(245, 175, 30)
+			else
+				barFill.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+			end
+		end
+
+		local damageRatio = math.clamp(toolDamage / maxHP, 0.15, 1.0)
+		local strikeScrap = math.max(1, math.floor((baseYield * tier.Multiplier) * (damageRatio * 0.75)))
 		local spaceLeft = math.max(0, maxCapacity - (data.Backpack or 0))
 		local added = math.min(spaceLeft, strikeScrap)
 		data.Backpack = (data.Backpack or 0) + added
@@ -514,8 +536,8 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 
 		local actionCompletedEvent = Remotes.getEvent("ActionCompleted")
 		actionCompletedEvent:FireClient(player, {
-			TierName = "Hit",
-			TierColor = Color3.fromRGB(200, 200, 200),
+			TierName = isDense and "Dense Hit" or "Hit",
+			TierColor = isDense and Color3.fromRGB(255, 215, 50) or Color3.fromRGB(200, 200, 200),
 			ScrapEarned = added,
 			SoundPitch = 0.9 + math.random() * 0.2,
 			Position = nodeHitbox.Position + Vector3.new(0, 3, 0),
@@ -527,6 +549,14 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 
 		if statusLabel then
 			statusLabel.Text = "✨ HARVESTED! ✨"
+		end
+		local hpLabel = nodeModel:FindFirstChild("HpLabel", true) :: TextLabel?
+		if hpLabel then
+			hpLabel.Text = "[ 0 / " .. tostring(maxHP) .. " HP ]"
+		end
+		local barFill = nodeModel:FindFirstChild("HealthBarFill", true) :: Frame?
+		if barFill then
+			barFill.Size = UDim2.new(0, 0, 1, 0)
 		end
 
 		local breakScrap = math.floor((baseYield * tier.Multiplier) * 1.5)
@@ -543,8 +573,8 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 
 		local actionCompletedEvent = Remotes.getEvent("ActionCompleted")
 		actionCompletedEvent:FireClient(player, {
-			TierName = tier.Name,
-			TierColor = tier.Color,
+			TierName = isDense and ("DENSE " .. tier.Name) or tier.Name,
+			TierColor = isDense and Color3.fromRGB(255, 215, 50) or tier.Color,
 			ScrapEarned = added,
 			SoundPitch = tier.SoundPitch,
 			Position = nodeHitbox.Position + Vector3.new(0, 4, 0),
@@ -558,6 +588,8 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 		-- Collapse node
 		if corePart then corePart.Transparency = 1 end
 		if basePart then basePart.Transparency = 0.8 end
+		local halo = nodeModel:FindFirstChild("DenseHalo") :: BasePart?
+		if halo then halo.Transparency = 1 end
 
 		-- Respawn after 2.5 seconds
 		task.delay(2.5, function()
@@ -565,8 +597,21 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 				nodeModel:SetAttribute("CurrentHP", maxHP)
 				if corePart then corePart.Transparency = 0 end
 				if basePart then basePart.Transparency = 0 end
+				local rHalo = nodeModel:FindFirstChild("DenseHalo") :: BasePart?
+				if rHalo then rHalo.Transparency = 0.2 end
+				local isDenseNode = nodeModel:GetAttribute("IsDense")
+				local titleText = isDenseNode and string.format("⭐ DENSE %s ⭐", zone.Name:upper()) or string.format("🔨 %s", zone.Name:upper())
 				if statusLabel then
-					statusLabel.Text = string.format("🔨 %s\n[HP: %d/%d]", zone.Name:upper(), maxHP, maxHP)
+					statusLabel.Text = titleText
+				end
+				local rHpLabel = nodeModel:FindFirstChild("HpLabel", true) :: TextLabel?
+				if rHpLabel then
+					rHpLabel.Text = string.format("[ %d / %d HP ]", maxHP, maxHP)
+				end
+				local rBarFill = nodeModel:FindFirstChild("HealthBarFill", true) :: Frame?
+				if rBarFill then
+					rBarFill.Size = UDim2.new(1, 0, 1, 0)
+					rBarFill.BackgroundColor3 = Color3.fromRGB(40, 215, 95)
 				end
 				nodeCooldown[nodeModel] = false
 			end

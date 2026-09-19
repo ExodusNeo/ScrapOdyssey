@@ -706,32 +706,52 @@ function ZoneService.createScrapPile(zone: Types.ZoneConfig, position: Vector3, 
 	girder.Material = Enum.Material.DiamondPlate
 	girder.Parent = model
 
+	local isDense = (index == 4)
+	local maxHP = isDense and (zone.DenseHP or 6) or (zone.BaseHP or 3)
+	local yieldMult = isDense and (zone.DenseYieldMultiplier or 2.0) or 1.0
+	local baseYield = math.floor(zone.BaseYield * yieldMult)
+
 	local core = Instance.new("Part")
 	core.Name = "Core"
-	core.Size = Vector3.new(1.8, 1.8, 1.8)
-	core.Position = position + Vector3.new(0, 3.4, 0)
+	core.Size = isDense and Vector3.new(2.4, 2.4, 2.4) or Vector3.new(1.8, 1.8, 1.8)
+	core.Position = position + Vector3.new(0, isDense and 3.6 or 3.4, 0)
 	core.Anchored = true
-	core.Color = zone.Color
+	core.Color = isDense and Color3.fromRGB(255, 195, 45) or zone.Color
 	core.Material = Enum.Material.SmoothPlastic
 	core.Parent = model
 
+	if isDense then
+		local halo = Instance.new("Part")
+		halo.Name = "DenseHalo"
+		halo.Shape = Enum.PartType.Cylinder
+		halo.Size = Vector3.new(0.4, 4.0, 4.0)
+		halo.Position = core.Position
+		halo.Orientation = Vector3.new(0, 0, 90)
+		halo.Anchored = true
+		halo.Color = Color3.fromRGB(255, 215, 60)
+		halo.Material = Enum.Material.Neon
+		halo.Transparency = 0.2
+		halo.CanCollide = false
+		halo.Parent = model
+	end
+
 	local light = Instance.new("PointLight")
-	light.Color = zone.Color
-	light.Brightness = 0.4
-	light.Range = 6
+	light.Color = isDense and Color3.fromRGB(255, 215, 60) or zone.Color
+	light.Brightness = isDense and 0.8 or 0.4
+	light.Range = isDense and 10 or 6
 	light.Parent = core
 
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "InfoGui"
-	gui.Size = UDim2.new(0, 140, 0, 45)
-	gui.StudsOffset = Vector3.new(0, 4.8, 0)
+	gui.Size = UDim2.new(0, 160, 0, 56)
+	gui.StudsOffset = Vector3.new(0, 5.2, 0)
 	gui.AlwaysOnTop = true
 	gui.Parent = root
 
 	local badge = Instance.new("Frame")
 	badge.Size = UDim2.new(1, 0, 1, 0)
-	badge.BackgroundColor3 = Color3.fromRGB(18, 20, 28)
-	badge.BackgroundTransparency = 0.2
+	badge.BackgroundColor3 = Color3.fromRGB(16, 18, 26)
+	badge.BackgroundTransparency = 0.15
 	badge.Parent = gui
 
 	local bCorner = Instance.new("UICorner")
@@ -739,23 +759,59 @@ function ZoneService.createScrapPile(zone: Types.ZoneConfig, position: Vector3, 
 	bCorner.Parent = badge
 
 	local bStroke = Instance.new("UIStroke")
-	bStroke.Color = zone.Color
-	bStroke.Thickness = 1.5
+	bStroke.Color = isDense and Color3.fromRGB(255, 200, 50) or zone.Color
+	bStroke.Thickness = isDense and 2 or 1.5
 	bStroke.Parent = badge
 
 	local label = Instance.new("TextLabel")
 	label.Name = "StatusLabel"
-	label.Size = UDim2.new(1, 0, 1, 0)
+	label.Size = UDim2.new(1, -8, 0, 18)
+	label.Position = UDim2.new(0, 4, 0, 4)
 	label.BackgroundTransparency = 1
-	label.TextColor3 = Color3.new(1, 1, 1)
+	label.TextColor3 = isDense and Color3.fromRGB(255, 215, 50) or Color3.new(1, 1, 1)
 	label.Font = Enum.Font.GothamBlack
-	label.TextSize = 13
-	label.Text = string.format("🔨 %s\n[HP: 3/3]", zone.Name:upper())
+	label.TextSize = 12
+	label.Text = isDense and string.format("⭐ DENSE %s ⭐", zone.Name:upper()) or string.format("🔨 %s", zone.Name:upper())
 	label.Parent = badge
+
+	-- Dynamic Graphical Health Bar
+	local healthBarBG = Instance.new("Frame")
+	healthBarBG.Name = "HealthBarBG"
+	healthBarBG.Size = UDim2.new(1, -16, 0, 8)
+	healthBarBG.Position = UDim2.new(0, 8, 0, 24)
+	healthBarBG.BackgroundColor3 = Color3.fromRGB(24, 26, 36)
+	healthBarBG.BorderSizePixel = 0
+	healthBarBG.Parent = badge
+
+	local hbgCorner = Instance.new("UICorner")
+	hbgCorner.CornerRadius = UDim.new(0, 4)
+	hbgCorner.Parent = healthBarBG
+
+	local healthBarFill = Instance.new("Frame")
+	healthBarFill.Name = "HealthBarFill"
+	healthBarFill.Size = UDim2.new(1, 0, 1, 0)
+	healthBarFill.BackgroundColor3 = Color3.fromRGB(40, 215, 95)
+	healthBarFill.BorderSizePixel = 0
+	healthBarFill.Parent = healthBarBG
+
+	local hbfCorner = Instance.new("UICorner")
+	hbfCorner.CornerRadius = UDim.new(0, 4)
+	hbfCorner.Parent = healthBarFill
+
+	local hpLabel = Instance.new("TextLabel")
+	hpLabel.Name = "HpLabel"
+	hpLabel.Size = UDim2.new(1, 0, 0, 16)
+	hpLabel.Position = UDim2.new(0, 0, 0, 36)
+	hpLabel.BackgroundTransparency = 1
+	hpLabel.Font = Enum.Font.GothamBold
+	hpLabel.TextSize = 11
+	hpLabel.TextColor3 = Color3.fromRGB(200, 220, 240)
+	hpLabel.Text = string.format("[ %d / %d HP ]", maxHP, maxHP)
+	hpLabel.Parent = badge
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "ScrapPrompt"
-	prompt.ObjectText = zone.Name
+	prompt.ObjectText = isDense and string.format("Dense %s Cache", zone.Name) or zone.Name
 	prompt.ActionText = "Strike Scrap (E)"
 	prompt.HoldDuration = 0.1
 	prompt.MaxActivationDistance = 15
@@ -763,9 +819,10 @@ function ZoneService.createScrapPile(zone: Types.ZoneConfig, position: Vector3, 
 	prompt.Parent = root
 
 	model:SetAttribute("ZoneId", zone.Id)
-	model:SetAttribute("BaseYield", zone.BaseYield)
-	model:SetAttribute("MaxHP", 3)
-	model:SetAttribute("CurrentHP", 3)
+	model:SetAttribute("BaseYield", baseYield)
+	model:SetAttribute("MaxHP", maxHP)
+	model:SetAttribute("CurrentHP", maxHP)
+	model:SetAttribute("IsDense", isDense)
 
 	return model
 end

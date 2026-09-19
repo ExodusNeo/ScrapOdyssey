@@ -17,6 +17,9 @@ export type ZoneConfig = {
 	ActionTime: number,
 	Color: Color3,
 	Description: string,
+	BaseHP: number?,
+	DenseHP: number?,
+	DenseYieldMultiplier: number?,
 }
 
 export type UpgradeConfig = {

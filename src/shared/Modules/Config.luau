@@ -83,6 +83,9 @@ Config = {
 			ActionTime = 1.0,
 			Color = Color3.fromRGB(140, 100, 70),
 			Description = "A forgotten depot piled with rusted iron and copper cables.",
+			BaseHP = 3,
+			DenseHP = 6,
+			DenseYieldMultiplier = 2.0,
 		},
 		{
 			Id = 2,
@@ -92,6 +95,9 @@ Config = {
 			ActionTime = 1.2,
 			Color = Color3.fromRGB(90, 120, 140),
 			Description = "Crushed vehicles and electric motor batteries ripe for extraction.",
+			BaseHP = 8,
+			DenseHP = 16,
+			DenseYieldMultiplier = 2.0,
 		},
 		{
 			Id = 3,
@@ -101,6 +107,9 @@ Config = {
 			ActionTime = 1.5,
 			Color = Color3.fromRGB(220, 100, 30),
 			Description = "Abandoned blast furnaces and titanium hydraulic machinery.",
+			BaseHP = 20,
+			DenseHP = 40,
+			DenseYieldMultiplier = 2.2,
 		},
 		{
 			Id = 4,
@@ -110,6 +119,9 @@ Config = {
 			ActionTime = 1.8,
 			Color = Color3.fromRGB(30, 220, 200),
 			Description = "Neon scrap, quantum microchips, and sentient AI circuits.",
+			BaseHP = 50,
+			DenseHP = 100,
+			DenseYieldMultiplier = 2.5,
 		},
 		{
 			Id = 5,
@@ -119,6 +131,9 @@ Config = {
 			ActionTime = 2.0,
 			Color = Color3.fromRGB(160, 50, 255),
 			Description = "Fallen starship wreckage containing antimatter warp drives.",
+			BaseHP = 120,
+			DenseHP = 250,
+			DenseYieldMultiplier = 3.0,
 		},
 	} :: { Types.ZoneConfig },
 
