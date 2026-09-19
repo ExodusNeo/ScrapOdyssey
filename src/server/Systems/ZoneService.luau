@@ -481,6 +481,9 @@ function ZoneService.constructCentralHub()
 		pile.Parent = hubFolder
 		table.insert(activeNodes, pile)
 	end
+
+	-- Thematic Environmental Sci-Fi Props for Zone 1 (Rusty Outpost)
+	ZoneService.buildZone1Props(hubFolder, Vector3.new(0, 0, 0))
 end
 
 -- 3. Create Multi-Part High Detail Scrap Nodes with Health
@@ -602,6 +605,235 @@ function ZoneService.createScrapPile(zone: Types.ZoneConfig, position: Vector3, 
 	return model
 end
 
+-- ============================================================================
+-- THEMATIC ZONE PROPS BUILDERS (Option A: Environmental Storytelling)
+-- ============================================================================
+
+local function createPropPart(parent: Instance, name: string, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material?, partType: Enum.PartType?): Part
+	local p = Instance.new("Part")
+	p.Name = name
+	if partType then
+		p.Shape = partType
+	end
+	p.Size = size
+	p.CFrame = cf
+	p.Color = color
+	p.Material = material or Enum.Material.Metal
+	p.Anchored = true
+	p.CastShadow = true
+	p.Parent = parent
+	return p
+end
+
+-- Zone 1: Rusty Outpost Props (Industrial Salvage Crane, Cargo Shipping Containers, Fuel Silo, Rusted Drums)
+function ZoneService.buildZone1Props(folder: Instance, center: Vector3)
+	local props = Instance.new("Model")
+	props.Name = "ThematicProps_Zone1"
+	props.Parent = folder
+
+	-- 1. Heavy Shipping Container A (North-West, Angled)
+	local c1Pos = center + Vector3.new(-36, 4, -36)
+	local c1Rot = CFrame.Angles(0, math.rad(18), 0)
+	createPropPart(props, "ShippingContainer_A", Vector3.new(12, 8, 20), CFrame.new(c1Pos) * c1Rot, Color3.fromRGB(145, 75, 42), Enum.Material.CorrodedMetal)
+	createPropPart(props, "ContA_Rib1", Vector3.new(12.4, 8.2, 1), CFrame.new(c1Pos + c1Rot * Vector3.new(0, 0, -9.5)) * c1Rot, Color3.fromRGB(50, 45, 45), Enum.Material.Metal)
+	createPropPart(props, "ContA_Rib2", Vector3.new(12.4, 8.2, 1), CFrame.new(c1Pos + c1Rot * Vector3.new(0, 0, 9.5)) * c1Rot, Color3.fromRGB(50, 45, 45), Enum.Material.Metal)
+
+	-- 2. Heavy Shipping Container B (North-East, Weathered Industrial Olive)
+	local c2Pos = center + Vector3.new(36, 4, -36)
+	local c2Rot = CFrame.Angles(0, math.rad(-15), 0)
+	createPropPart(props, "ShippingContainer_B", Vector3.new(12, 8, 20), CFrame.new(c2Pos) * c2Rot, Color3.fromRGB(80, 95, 75), Enum.Material.Metal)
+	createPropPart(props, "ContB_Rib1", Vector3.new(12.4, 8.2, 1), CFrame.new(c2Pos + c2Rot * Vector3.new(0, 0, -9.5)) * c2Rot, Color3.fromRGB(45, 50, 45), Enum.Material.Metal)
+	createPropPart(props, "ContB_Rib2", Vector3.new(12.4, 8.2, 1), CFrame.new(c2Pos + c2Rot * Vector3.new(0, 0, 9.5)) * c2Rot, Color3.fromRGB(45, 50, 45), Enum.Material.Metal)
+
+	-- 3. Heavy Industrial Salvage Crane (South-West)
+	local cranePos = center + Vector3.new(-38, 0, 36)
+	createPropPart(props, "CraneBase", Vector3.new(8, 2, 8), CFrame.new(cranePos + Vector3.new(0, 1, 0)), Color3.fromRGB(40, 42, 48), Enum.Material.Concrete)
+	createPropPart(props, "CraneMast", Vector3.new(3.5, 26, 3.5), CFrame.new(cranePos + Vector3.new(0, 14, 0)), Color3.fromRGB(215, 145, 30), Enum.Material.Metal)
+	createPropPart(props, "CraneBoom", Vector3.new(3, 3, 24), CFrame.new(cranePos + Vector3.new(0, 26, -5)), Color3.fromRGB(215, 145, 30), Enum.Material.Metal)
+	createPropPart(props, "CraneCounterweight", Vector3.new(5, 4, 6), CFrame.new(cranePos + Vector3.new(0, 26, 10)), Color3.fromRGB(55, 55, 60), Enum.Material.Concrete)
+	createPropPart(props, "CraneCable", Vector3.new(0.3, 10, 0.3), CFrame.new(cranePos + Vector3.new(0, 19, -12)), Color3.fromRGB(30, 30, 35), Enum.Material.Metal)
+	createPropPart(props, "CraneMagnet", Vector3.new(1.8, 6, 6), CFrame.new(cranePos + Vector3.new(0, 14, -12)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(65, 65, 75), Enum.Material.Metal, Enum.PartType.Cylinder)
+
+	-- 4. Rusted Coolant Silo (South-East)
+	local siloPos = center + Vector3.new(38, 0, 36)
+	createPropPart(props, "SiloBody", Vector3.new(18, 7.5, 7.5), CFrame.new(siloPos + Vector3.new(0, 9, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(150, 85, 50), Enum.Material.CorrodedMetal, Enum.PartType.Cylinder)
+	createPropPart(props, "SiloDome", Vector3.new(7.5, 5, 7.5), CFrame.new(siloPos + Vector3.new(0, 19, 0)), Color3.fromRGB(130, 75, 45), Enum.Material.Metal, Enum.PartType.Ball)
+	createPropPart(props, "SiloCatwalk", Vector3.new(1, 9, 9), CFrame.new(siloPos + Vector3.new(0, 11, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(50, 50, 55), Enum.Material.Metal, Enum.PartType.Cylinder)
+
+	-- 5. Rusted Oil Drum Clusters
+	local drumOffsets = {
+		Vector3.new(-28, 1.4, -36),
+		Vector3.new(-26, 1.4, -34),
+		Vector3.new(-27, 3.8, -35),
+		Vector3.new(28, 1.4, -36),
+		Vector3.new(26, 1.4, -34),
+	}
+	for i, dOff in ipairs(drumOffsets) do
+		createPropPart(props, "Drum_" .. i, Vector3.new(2.8, 1.8, 1.8), CFrame.new(center + dOff) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(125, 65, 40), Enum.Material.CorrodedMetal, Enum.PartType.Cylinder)
+	end
+end
+
+-- Zone 2: Automotive Graveyard Props (Hydraulic Car-Crusher, Crushed Cyber-Car Stacks, Giant Tire Pyramids, Generator Block)
+function ZoneService.buildZone2Props(folder: Instance, center: Vector3)
+	local props = Instance.new("Model")
+	props.Name = "ThematicProps_Zone2"
+	props.Parent = folder
+
+	-- 1. Heavy Hydraulic Car-Crusher Press (North Center Behind Recycler)
+	local crusherPos = center + Vector3.new(0, 0, -44)
+	createPropPart(props, "CrusherCol1", Vector3.new(2.2, 18, 2.2), CFrame.new(crusherPos + Vector3.new(-9, 9, -3)), Color3.fromRGB(70, 85, 100), Enum.Material.Metal)
+	createPropPart(props, "CrusherCol2", Vector3.new(2.2, 18, 2.2), CFrame.new(crusherPos + Vector3.new(9, 9, -3)), Color3.fromRGB(70, 85, 100), Enum.Material.Metal)
+	createPropPart(props, "CrusherCol3", Vector3.new(2.2, 18, 2.2), CFrame.new(crusherPos + Vector3.new(-9, 9, 3)), Color3.fromRGB(70, 85, 100), Enum.Material.Metal)
+	createPropPart(props, "CrusherCol4", Vector3.new(2.2, 18, 2.2), CFrame.new(crusherPos + Vector3.new(9, 9, 3)), Color3.fromRGB(70, 85, 100), Enum.Material.Metal)
+	createPropPart(props, "CrusherTop", Vector3.new(22, 3.5, 8), CFrame.new(crusherPos + Vector3.new(0, 18, 0)), Color3.fromRGB(45, 55, 65), Enum.Material.Metal)
+	createPropPart(props, "PistonL", Vector3.new(10, 1.8, 1.8), CFrame.new(crusherPos + Vector3.new(-4.5, 12, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(180, 190, 205), Enum.Material.Metal, Enum.PartType.Cylinder)
+	createPropPart(props, "PistonR", Vector3.new(10, 1.8, 1.8), CFrame.new(crusherPos + Vector3.new(4.5, 12, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(180, 190, 205), Enum.Material.Metal, Enum.PartType.Cylinder)
+	createPropPart(props, "CrushRam", Vector3.new(17, 2, 6.5), CFrame.new(crusherPos + Vector3.new(0, 7, 0)), Color3.fromRGB(100, 115, 130), Enum.Material.Metal)
+
+	-- 2. Crushed Cyber-Car Stack (North-West Corner)
+	local carPos1 = center + Vector3.new(-38, 0, -32)
+	createPropPart(props, "CarLower_1", Vector3.new(7.5, 2.2, 12), CFrame.new(carPos1 + Vector3.new(0, 1.1, 0)), Color3.fromRGB(60, 95, 120), Enum.Material.Metal)
+	createPropPart(props, "CarLower_Windshield", Vector3.new(6.5, 1.2, 4), CFrame.new(carPos1 + Vector3.new(0, 2.6, -1)), Color3.fromRGB(20, 30, 40), Enum.Material.SmoothPlastic)
+	local rotCar2 = CFrame.Angles(math.rad(8), math.rad(15), math.rad(-6))
+	createPropPart(props, "CarUpper_1", Vector3.new(7, 2, 11), CFrame.new(carPos1 + Vector3.new(0.5, 3.8, 0)) * rotCar2, Color3.fromRGB(140, 50, 60), Enum.Material.Metal)
+
+	-- 3. Crushed Cyber-Car Stack (North-East Corner)
+	local carPos2 = center + Vector3.new(38, 0, -32)
+	local rotCar3 = CFrame.Angles(math.rad(-6), math.rad(-18), math.rad(8))
+	createPropPart(props, "CarStack2_Base", Vector3.new(8, 2.4, 12), CFrame.new(carPos2 + Vector3.new(0, 1.2, 0)), Color3.fromRGB(160, 120, 40), Enum.Material.Metal)
+	createPropPart(props, "CarStack2_Top", Vector3.new(7.2, 2.1, 10.5), CFrame.new(carPos2 + Vector3.new(-0.4, 4.0, 0)) * rotCar3, Color3.fromRGB(75, 80, 95), Enum.Material.Metal)
+
+	-- 4. Giant Radial Tire Pyramids (South-East & South-Center)
+	local tireClusters = {
+		Vector3.new(38, 0, 34),
+		Vector3.new(0, 0, 42),
+	}
+	for idx, tPos in ipairs(tireClusters) do
+		createPropPart(props, "Tire1_" .. idx, Vector3.new(2.5, 4.5, 4.5), CFrame.new(center + tPos + Vector3.new(-2.5, 2.25, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(25, 26, 30), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+		createPropPart(props, "Tire2_" .. idx, Vector3.new(2.5, 4.5, 4.5), CFrame.new(center + tPos + Vector3.new(2.5, 2.25, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(25, 26, 30), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+		createPropPart(props, "Tire3_" .. idx, Vector3.new(2.5, 4.5, 4.5), CFrame.new(center + tPos + Vector3.new(0, 5.5, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(25, 26, 30), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+	end
+end
+
+-- Zone 3: Industrial Foundry Props (Blast Smelting Chimneys, Molten Slag Crucible, Overhead Conveyor Truss, Ingot Stacks)
+function ZoneService.buildZone3Props(folder: Instance, center: Vector3)
+	local props = Instance.new("Model")
+	props.Name = "ThematicProps_Zone3"
+	props.Parent = folder
+
+	-- 1. Twin Blast Smelting Chimney Kilns (North edge)
+	local chimneyOffsets = { Vector3.new(-18, 0, -44), Vector3.new(18, 0, -44) }
+	for idx, cOff in ipairs(chimneyOffsets) do
+		local chPos = center + cOff
+		createPropPart(props, "Chimney_" .. idx, Vector3.new(24, 7, 7), CFrame.new(chPos + Vector3.new(0, 12, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(65, 48, 42), Enum.Material.Metal, Enum.PartType.Cylinder)
+		createPropPart(props, "ChimneyRim_" .. idx, Vector3.new(2, 8.2, 8.2), CFrame.new(chPos + Vector3.new(0, 23.5, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(45, 35, 32), Enum.Material.Metal, Enum.PartType.Cylinder)
+		local hatch = createPropPart(props, "FurnaceHatch_" .. idx, Vector3.new(3.5, 3, 0.6), CFrame.new(chPos + Vector3.new(0, 2.5, 3.6)), Color3.fromRGB(245, 110, 20), Enum.Material.SmoothPlastic)
+		local light = Instance.new("PointLight")
+		light.Color = Color3.fromRGB(255, 140, 30)
+		light.Brightness = 0.4
+		light.Range = 8
+		light.Parent = hatch
+	end
+
+	-- 2. Molten Slag Crucible Cauldron (North-West)
+	local crucPos = center + Vector3.new(-38, 0, -32)
+	createPropPart(props, "CrucibleStandL", Vector3.new(1.8, 8, 1.8), CFrame.new(crucPos + Vector3.new(-4.5, 4, 0)), Color3.fromRGB(50, 48, 55), Enum.Material.Metal)
+	createPropPart(props, "CrucibleStandR", Vector3.new(1.8, 8, 1.8), CFrame.new(crucPos + Vector3.new(4.5, 4, 0)), Color3.fromRGB(50, 48, 55), Enum.Material.Metal)
+	createPropPart(props, "CruciblePot", Vector3.new(6, 6.5, 6.5), CFrame.new(crucPos + Vector3.new(0, 4.5, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(40, 38, 45), Enum.Material.Metal, Enum.PartType.Cylinder)
+	createPropPart(props, "MoltenSlag", Vector3.new(0.5, 5.5, 5.5), CFrame.new(crucPos + Vector3.new(0, 7.2, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(255, 105, 20), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+
+	-- 3. Overhead Conveyor Truss Span (South Border)
+	local convPos = center + Vector3.new(0, 0, 42)
+	createPropPart(props, "ConvTowerL", Vector3.new(2.5, 16, 2.5), CFrame.new(convPos + Vector3.new(-18, 8, 0)), Color3.fromRGB(180, 85, 25), Enum.Material.Metal)
+	createPropPart(props, "ConvTowerR", Vector3.new(2.5, 16, 2.5), CFrame.new(convPos + Vector3.new(18, 8, 0)), Color3.fromRGB(180, 85, 25), Enum.Material.Metal)
+	createPropPart(props, "ConvTrack", Vector3.new(38, 2.5, 3.5), CFrame.new(convPos + Vector3.new(0, 16, 0)), Color3.fromRGB(190, 95, 30), Enum.Material.Metal)
+
+	-- 4. Titanium Ingot Pallet Stack (South-East)
+	local palletPos = center + Vector3.new(38, 0, 32)
+	createPropPart(props, "Pallet", Vector3.new(8, 0.8, 8), CFrame.new(palletPos + Vector3.new(0, 0.4, 0)), Color3.fromRGB(120, 85, 55), Enum.Material.Wood)
+	for layer = 1, 3 do
+		for bar = 1, 3 do
+			createPropPart(props, "Ingot_" .. layer .. "_" .. bar, Vector3.new(7.2, 0.9, 1.8), CFrame.new(palletPos + Vector3.new(0, 0.8 + (layer * 0.95), (bar - 2) * 2.2)), Color3.fromRGB(200, 205, 215), Enum.Material.Metal)
+		end
+	end
+end
+
+-- Zone 4: Cybernetic Wasteland Props (AI Server Mainframe Banks, Quantum Transmitter Tower, Data Consoles)
+function ZoneService.buildZone4Props(folder: Instance, center: Vector3)
+	local props = Instance.new("Model")
+	props.Name = "ThematicProps_Zone4"
+	props.Parent = folder
+
+	-- 1. Twin Monolithic Server Mainframe Banks (North Border)
+	local serverOffsets = { Vector3.new(-18, 0, -44), Vector3.new(18, 0, -44) }
+	for idx, sOff in ipairs(serverOffsets) do
+		local sPos = center + sOff
+		createPropPart(props, "ServerFrame_" .. idx, Vector3.new(10, 14, 4), CFrame.new(sPos + Vector3.new(0, 7, 0)), Color3.fromRGB(28, 32, 42), Enum.Material.Metal)
+		createPropPart(props, "ServerGlass_" .. idx, Vector3.new(9.2, 13, 0.4), CFrame.new(sPos + Vector3.new(0, 7, 2)), Color3.fromRGB(30, 200, 180), Enum.Material.Glass)
+		for row = 1, 4 do
+			createPropPart(props, "ServerBlade_" .. idx .. "_" .. row, Vector3.new(8.5, 0.5, 0.4), CFrame.new(sPos + Vector3.new(0, 2 + (row * 2.5), 1.9)), Color3.fromRGB(40, 190, 180), Enum.Material.SmoothPlastic)
+		end
+	end
+
+	-- 2. Quantum Transmitter Tower Spire (South Border Center)
+	local towerPos = center + Vector3.new(0, 0, 42)
+	createPropPart(props, "TowerBase", Vector3.new(6, 2, 6), CFrame.new(towerPos + Vector3.new(0, 1, 0)), Color3.fromRGB(35, 40, 52), Enum.Material.Metal)
+	createPropPart(props, "TowerSpire", Vector3.new(3, 26, 3), CFrame.new(towerPos + Vector3.new(0, 14, 0)), Color3.fromRGB(45, 55, 70), Enum.Material.Metal)
+	createPropPart(props, "ArrayRing1", Vector3.new(0.6, 7.5, 7.5), CFrame.new(towerPos + Vector3.new(0, 20, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(35, 210, 190), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+	createPropPart(props, "ArrayRing2", Vector3.new(0.6, 5.5, 5.5), CFrame.new(towerPos + Vector3.new(0, 24, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(35, 210, 190), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+
+	-- 3. Slanted Data Consoles (North-West & North-East Corners)
+	local consoleOffsets = { Vector3.new(-38, 0, -30), Vector3.new(38, 0, -30) }
+	for idx, cOff in ipairs(consoleOffsets) do
+		local cPos = center + cOff
+		createPropPart(props, "ConsolePedestal_" .. idx, Vector3.new(5, 3.5, 3), CFrame.new(cPos + Vector3.new(0, 1.75, 0)), Color3.fromRGB(30, 35, 48), Enum.Material.Metal)
+		local scrRot = CFrame.Angles(math.rad(-30), 0, 0)
+		createPropPart(props, "ConsoleScreen_" .. idx, Vector3.new(4.5, 2.5, 0.4), CFrame.new(cPos + Vector3.new(0, 4.2, 0)) * scrRot, Color3.fromRGB(40, 220, 200), Enum.Material.SmoothPlastic)
+	end
+end
+
+-- Zone 5: Orbital Crashsite Props (Fallen Starship Ion Thruster, Warp Core Housing, Armor Bulkhead, Void Crystals)
+function ZoneService.buildZone5Props(folder: Instance, center: Vector3)
+	local props = Instance.new("Model")
+	props.Name = "ThematicProps_Zone5"
+	props.Parent = folder
+
+	-- 1. Massive Starship Ion Thruster Bell (North-West, 28 deg Impact Tilt)
+	local thrustPos = center + Vector3.new(-22, 0, -40)
+	local thrustRot = CFrame.Angles(math.rad(28), math.rad(15), 0)
+	createPropPart(props, "ThrusterBell", Vector3.new(12, 11, 11), CFrame.new(thrustPos + Vector3.new(0, 6, 0)) * thrustRot * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(42, 36, 54), Enum.Material.Metal, Enum.PartType.Cylinder)
+	createPropPart(props, "ThrusterRing", Vector3.new(2, 12.5, 12.5), CFrame.new(thrustPos + Vector3.new(0, 8.5, 0)) * thrustRot * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(60, 50, 75), Enum.Material.Metal, Enum.PartType.Cylinder)
+	createPropPart(props, "ThrusterCore", Vector3.new(1, 8.5, 8.5), CFrame.new(thrustPos + Vector3.new(0, 4.5, 0)) * thrustRot * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(150, 50, 230), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+
+	-- 2. Warp Drive Antimatter Containment Housing (North-East)
+	local warpPos = center + Vector3.new(22, 0, -40)
+	createPropPart(props, "WarpHousingBase", Vector3.new(8, 2, 8), CFrame.new(warpPos + Vector3.new(0, 1, 0)), Color3.fromRGB(38, 32, 48), Enum.Material.Metal)
+	createPropPart(props, "WarpHousingTop", Vector3.new(8, 2, 8), CFrame.new(warpPos + Vector3.new(0, 10, 0)), Color3.fromRGB(38, 32, 48), Enum.Material.Metal)
+	createPropPart(props, "WarpStrut1", Vector3.new(1.4, 8, 1.4), CFrame.new(warpPos + Vector3.new(-3, 5.5, -3)), Color3.fromRGB(55, 45, 70), Enum.Material.Metal)
+	createPropPart(props, "WarpStrut2", Vector3.new(1.4, 8, 1.4), CFrame.new(warpPos + Vector3.new(3, 5.5, -3)), Color3.fromRGB(55, 45, 70), Enum.Material.Metal)
+	createPropPart(props, "WarpStrut3", Vector3.new(1.4, 8, 1.4), CFrame.new(warpPos + Vector3.new(-3, 5.5, 3)), Color3.fromRGB(55, 45, 70), Enum.Material.Metal)
+	createPropPart(props, "WarpStrut4", Vector3.new(1.4, 8, 1.4), CFrame.new(warpPos + Vector3.new(3, 5.5, 3)), Color3.fromRGB(55, 45, 70), Enum.Material.Metal)
+	createPropPart(props, "SingularityCore", Vector3.new(4, 4, 4), CFrame.new(warpPos + Vector3.new(0, 5.5, 0)), Color3.fromRGB(175, 60, 255), Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+
+	-- 3. Fractured Dreadnought Armor Bulkhead Slab (South Border)
+	local slabPos = center + Vector3.new(0, 0, 42)
+	local slabRot = CFrame.Angles(math.rad(-20), 0, math.rad(5))
+	createPropPart(props, "HullArmorSlab", Vector3.new(28, 8, 2.5), CFrame.new(slabPos + Vector3.new(0, 4, 0)) * slabRot, Color3.fromRGB(48, 42, 60), Enum.Material.Metal)
+	createPropPart(props, "HullArmorRib", Vector3.new(28.4, 1.5, 3.2), CFrame.new(slabPos + Vector3.new(0, 6, 0)) * slabRot, Color3.fromRGB(65, 55, 80), Enum.Material.Metal)
+
+	-- 4. Alien Void Crystal Formations (North-West & South-East)
+	local crystalClusters = {
+		Vector3.new(-38, 0, -28),
+		Vector3.new(38, 0, 32),
+	}
+	for idx, crOff in ipairs(crystalClusters) do
+		local crPos = center + crOff
+		createPropPart(props, "CrystalSpike1_" .. idx, Vector3.new(1.8, 8, 1.8), CFrame.new(crPos + Vector3.new(0, 3.5, 0)) * CFrame.Angles(math.rad(15), 0, math.rad(-10)), Color3.fromRGB(160, 50, 240), Enum.Material.SmoothPlastic)
+		createPropPart(props, "CrystalSpike2_" .. idx, Vector3.new(1.4, 5.5, 1.4), CFrame.new(crPos + Vector3.new(2, 2.5, 1)) * CFrame.Angles(math.rad(-12), math.rad(20), math.rad(15)), Color3.fromRGB(180, 70, 255), Enum.Material.SmoothPlastic)
+		createPropPart(props, "CrystalSpike3_" .. idx, Vector3.new(1.2, 4, 1.2), CFrame.new(crPos + Vector3.new(-1.8, 1.8, -1)) * CFrame.Angles(math.rad(8), math.rad(-25), math.rad(-18)), Color3.fromRGB(140, 40, 220), Enum.Material.SmoothPlastic)
+	end
+end
+
 -- 4. Construct Progressive Zones (Zones 2 to 5) with seamless wide bridges and guardrails
 function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Vector3)
 	local folder = Workspace:FindFirstChild("Zone_" .. tostring(zone.Id)) :: Folder
@@ -699,6 +931,17 @@ function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Ve
 
 	-- Fast Travel Portal on this platform (Safely placed in the corner at (-38, 38) with >22 studs clearance from scrap nodes)
 	createPortalPad(folder, centerPos + Vector3.new(-38, 0.3, 38), zone.Id)
+
+	-- Thematic Environmental Sci-Fi Props for Zones 2 to 5
+	if zone.Id == 2 then
+		ZoneService.buildZone2Props(folder, centerPos)
+	elseif zone.Id == 3 then
+		ZoneService.buildZone3Props(folder, centerPos)
+	elseif zone.Id == 4 then
+		ZoneService.buildZone4Props(folder, centerPos)
+	elseif zone.Id == 5 then
+		ZoneService.buildZone5Props(folder, centerPos)
+	end
 end
 
 -- 5. Construct Seamless Connecting Bridges with Solid Safety Guardrails
