@@ -404,6 +404,11 @@ function PetService.hatchEgg(player: Player, eggType: string?): Types.PetTemplat
 	table.insert(data.Pets, newOwnedPet)
 	DataService.sync(player)
 
+	pcall(function()
+		local QuestService = require(script.Parent.QuestService)
+		QuestService.recordDroneHatched(player, 1)
+	end)
+
 	-- Fire reveal event to client
 	local hatchResult = Remotes.getEvent("HatchResult")
 	hatchResult:FireClient(player, {

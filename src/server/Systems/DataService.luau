@@ -45,6 +45,13 @@ else
 end
 
 local function getDefaultData(): Types.PlayerData
+	local initialQuests: { [string]: Types.QuestProgress } = {}
+	if Config.Quests then
+		for _, q in ipairs(Config.Quests) do
+			initialQuests[q.Id] = { Progress = 0, Completed = false, Claimed = false }
+		end
+	end
+
 	return {
 		Version = DATA_VERSION,
 		Scrap = Config.Defaults.Scrap,
@@ -66,6 +73,7 @@ local function getDefaultData(): Types.PlayerData
 		LastLoginTimestamp = os.time(),
 		RedeemedCodes = {},
 		TotalScrapsMined = 0,
+		Quests = initialQuests,
 	}
 end
 
@@ -93,6 +101,14 @@ function DataService.loadData(player: Player): Types.PlayerData
 		if not data.Upgrades.BackpackCapacity then data.Upgrades.BackpackCapacity = 1 end
 		if not data.Upgrades.ScrapPower then data.Upgrades.ScrapPower = 1 end
 		if not data.Upgrades.ScrapSpeed then data.Upgrades.ScrapSpeed = 1 end
+		if not data.Quests then data.Quests = {} end
+		if Config.Quests then
+			for _, q in ipairs(Config.Quests) do
+				if not data.Quests[q.Id] then
+					data.Quests[q.Id] = { Progress = 0, Completed = false, Claimed = false }
+				end
+			end
+		end
 	end
 
 	sessionData[player.UserId] = data
@@ -171,7 +187,7 @@ function DataService.init()
 
 	local getFunction = Remotes.getFunction("GetPlayerData")
 	getFunction.OnServerInvoke = function(player)
-		return sessionData[player] or getDefaultData()
+		return (player and sessionData[player.UserId]) or getDefaultData()
 	end
 
 	print("[DataService] Initialized.")

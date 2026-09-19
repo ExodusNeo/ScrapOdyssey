@@ -23,6 +23,7 @@ local REMOTE_EVENTS = {
 	"SendTrade",
 	"TradeUpdate",
 	"ShowNotification",
+	"ClaimQuest",
 }
 
 local REMOTE_FUNCTIONS = {

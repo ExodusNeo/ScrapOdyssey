@@ -24,6 +24,7 @@ local currentGears = 0
 local currentBackpack = -1
 
 local function playSound(soundId: string, pitch: number?, volume: number?)
+	if SoundService:GetAttribute("SFXEnabled") == false then return end
 	task.spawn(function()
 		local sound = Instance.new("Sound")
 		sound.SoundId = soundId

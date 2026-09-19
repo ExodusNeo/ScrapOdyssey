@@ -178,6 +178,11 @@ function CurrencyService.recycleBackpack(player: Player): number
 		BackpackService.updateCoreColor(player)
 	end)
 
+	pcall(function()
+		local QuestService = require(script.Parent.QuestService)
+		QuestService.recordScrapEarned(player, earned)
+	end)
+
 	local notif = Remotes.getEvent("ShowNotification")
 	notif:FireClient(player, "SCRAP RECYCLED!", string.format("Converted %d Cargo into +%s Banked Scrap! 💰", rawAmount, CurrencyService.formatNumber(earned)), Color3.fromRGB(80, 220, 120))
 

@@ -27,8 +27,13 @@ local petListScroll: ScrollingFrame
 local rebirthInfoLabel: TextLabel
 local rebirthButton: TextButton
 local gearsShopHeaderLabel: TextLabel
+local questRowRefs: { [string]: { Fill: Frame, Label: TextLabel, ClaimButton: TextButton } } = {}
+local isSFXEnabled = true
+local isMusicEnabled = true
+local bgMusic: Sound? = nil
 
 local function playSound(soundId: string, pitch: number?)
+	if not isSFXEnabled then return end
 	task.spawn(function()
 		local sound = Instance.new("Sound")
 		sound.SoundId = soundId
@@ -40,6 +45,18 @@ local function playSound(soundId: string, pitch: number?)
 			sound:Destroy()
 		end)
 	end)
+end
+
+local function setupMusic()
+	if not bgMusic then
+		bgMusic = Instance.new("Sound")
+		bgMusic.Name = "ScrapOdysseyAmbient"
+		bgMusic.SoundId = "rbxassetid://9043887091"
+		bgMusic.Looped = true
+		bgMusic.Volume = isMusicEnabled and 0.18 or 0
+		bgMusic.Parent = SoundService
+		bgMusic:Play()
+	end
 end
 
 local function formatNumber(n: number): string
@@ -725,6 +742,295 @@ function MenuController.buildRewardsPanel()
 	end)
 end
 
+-- 7. Daily Quests Panel Builder
+function MenuController.buildQuestsPanel()
+	local panel, body = createStyledPanel("📜 DAILY QUESTS")
+	panels["Quests"] = panel
+
+	local subheader = Instance.new("TextLabel")
+	subheader.Size = UDim2.new(1, 0, 0, 24)
+	subheader.BackgroundTransparency = 1
+	subheader.Font = Enum.Font.GothamMedium
+	subheader.TextSize = 13
+	subheader.TextColor3 = Color3.fromRGB(160, 175, 195)
+	subheader.Text = "Complete daily scrap objectives to earn bonus Scrap and rare Gears!"
+	subheader.Parent = body
+
+	local scroll = Instance.new("ScrollingFrame")
+	scroll.Name = "QuestsScroll"
+	scroll.Size = UDim2.new(1, 0, 1, -34)
+	scroll.Position = UDim2.new(0, 0, 0, 32)
+	scroll.BackgroundTransparency = 1
+	scroll.ScrollBarThickness = 6
+	scroll.ScrollBarImageColor3 = Color3.fromRGB(80, 95, 125)
+	scroll.CanvasSize = UDim2.new(0, 0, 0, 360)
+	scroll.Parent = body
+
+	local list = Instance.new("UIListLayout")
+	list.Padding = UDim.new(0, 14)
+	list.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	list.Parent = scroll
+
+	for _, quest in ipairs(Config.Quests) do
+		local row = Instance.new("Frame")
+		row.Name = quest.Id
+		row.Size = UDim2.new(1, -10, 0, 95)
+		row.BackgroundColor3 = Color3.fromRGB(24, 28, 38)
+		row.BorderSizePixel = 0
+		row.Parent = scroll
+
+		local rCorner = Instance.new("UICorner")
+		rCorner.CornerRadius = UDim.new(0, 12)
+		rCorner.Parent = row
+
+		local rStroke = Instance.new("UIStroke")
+		rStroke.Color = Color3.fromRGB(45, 55, 75)
+		rStroke.Thickness = 1.5
+		rStroke.Parent = row
+
+		local desc = Instance.new("TextLabel")
+		desc.Size = UDim2.new(0.60, 0, 0, 26)
+		desc.Position = UDim2.new(0, 14, 0, 10)
+		desc.BackgroundTransparency = 1
+		desc.Font = Enum.Font.GothamBlack
+		desc.TextSize = 15
+		desc.TextColor3 = Color3.new(1, 1, 1)
+		desc.TextXAlignment = Enum.TextXAlignment.Left
+		desc.Text = quest.Description
+		desc.Parent = row
+
+		local rewardBadge = Instance.new("TextLabel")
+		rewardBadge.Size = UDim2.new(0.35, 0, 0, 26)
+		rewardBadge.Position = UDim2.new(0.63, 0, 0, 10)
+		rewardBadge.BackgroundTransparency = 1
+		rewardBadge.Font = Enum.Font.GothamBold
+		rewardBadge.TextSize = 14
+		rewardBadge.TextColor3 = quest.RewardType == "Gears" and Color3.fromRGB(70, 180, 255) or Color3.fromRGB(255, 215, 0)
+		rewardBadge.TextXAlignment = Enum.TextXAlignment.Right
+		rewardBadge.Text = string.format("+%s %s", formatNumber(quest.RewardAmount), quest.RewardType == "Gears" and "⚙️" or "🔩")
+		rewardBadge.Parent = row
+
+		-- Progress Bar Background
+		local barBg = Instance.new("Frame")
+		barBg.Size = UDim2.new(0.60, 0, 0, 22)
+		barBg.Position = UDim2.new(0, 14, 0, 52)
+		barBg.BackgroundColor3 = Color3.fromRGB(15, 17, 24)
+		barBg.BorderSizePixel = 0
+		barBg.Parent = row
+
+		local barCorner = Instance.new("UICorner")
+		barCorner.CornerRadius = UDim.new(0, 6)
+		barCorner.Parent = barBg
+
+		local fill = Instance.new("Frame")
+		fill.Name = "Fill"
+		fill.Size = UDim2.new(0, 0, 1, 0)
+		fill.BackgroundColor3 = Color3.fromRGB(40, 190, 80)
+		fill.BorderSizePixel = 0
+		fill.Parent = barBg
+
+		local fillCorner = Instance.new("UICorner")
+		fillCorner.CornerRadius = UDim.new(0, 6)
+		fillCorner.Parent = fill
+
+		local progLabel = Instance.new("TextLabel")
+		progLabel.Name = "ProgLabel"
+		progLabel.Size = UDim2.new(1, 0, 1, 0)
+		progLabel.BackgroundTransparency = 1
+		progLabel.Font = Enum.Font.GothamBlack
+		progLabel.TextSize = 11
+		progLabel.TextColor3 = Color3.new(1, 1, 1)
+		progLabel.Text = string.format("0 / %s", formatNumber(quest.Target))
+		progLabel.Parent = barBg
+
+		local claimBtn = Instance.new("TextButton")
+		claimBtn.Name = "ClaimButton"
+		claimBtn.Size = UDim2.new(0.32, 0, 0, 36)
+		claimBtn.Position = UDim2.new(0.66, 0, 0, 46)
+		claimBtn.BackgroundColor3 = Color3.fromRGB(40, 48, 65)
+		claimBtn.Font = Enum.Font.GothamBlack
+		claimBtn.TextSize = 12
+		claimBtn.TextColor3 = Color3.new(1, 1, 1)
+		claimBtn.Text = "IN PROGRESS ⏳"
+		claimBtn.Parent = row
+
+		local cbCorner = Instance.new("UICorner")
+		cbCorner.CornerRadius = UDim.new(0, 8)
+		cbCorner.Parent = claimBtn
+
+		local questId = quest.Id
+		claimBtn.MouseButton1Click:Connect(function()
+			if currentData and currentData.Quests and currentData.Quests[questId] then
+				local qState = currentData.Quests[questId]
+				if qState.Completed and not qState.Claimed then
+					playSound("rbxassetid://5153734608", 1.2)
+					local claimRemote = Remotes.getEvent("ClaimQuest")
+					claimRemote:FireServer(questId)
+				end
+			end
+		end)
+
+		questRowRefs[quest.Id] = {
+			Fill = fill,
+			Label = progLabel,
+			ClaimButton = claimBtn,
+		}
+	end
+end
+
+-- 8. Settings & Social Panel Builder
+function MenuController.buildSettingsPanel()
+	local panel, body = createStyledPanel("🔧 GAME SETTINGS")
+	panels["Settings"] = panel
+
+	local list = Instance.new("UIListLayout")
+	list.Padding = UDim.new(0, 16)
+	list.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	list.Parent = body
+
+	-- 1. Music Setting Card
+	local musicCard = Instance.new("Frame")
+	musicCard.Size = UDim2.new(1, 0, 0, 68)
+	musicCard.BackgroundColor3 = Color3.fromRGB(24, 28, 38)
+	musicCard.BorderSizePixel = 0
+	musicCard.Parent = body
+
+	local mcCorner = Instance.new("UICorner")
+	mcCorner.CornerRadius = UDim.new(0, 12)
+	mcCorner.Parent = musicCard
+
+	local mcStroke = Instance.new("UIStroke")
+	mcStroke.Color = Color3.fromRGB(45, 55, 75)
+	mcStroke.Thickness = 1.5
+	mcStroke.Parent = musicCard
+
+	local mTitle = Instance.new("TextLabel")
+	mTitle.Size = UDim2.new(0.65, 0, 1, 0)
+	mTitle.Position = UDim2.new(0, 16, 0, 0)
+	mTitle.BackgroundTransparency = 1
+	mTitle.Font = Enum.Font.GothamBold
+	mTitle.TextSize = 16
+	mTitle.TextColor3 = Color3.new(1, 1, 1)
+	mTitle.TextXAlignment = Enum.TextXAlignment.Left
+	mTitle.Text = "🎵 Background Music"
+	mTitle.Parent = musicCard
+
+	local mToggle = Instance.new("TextButton")
+	mToggle.Size = UDim2.new(0, 120, 0, 42)
+	mToggle.Position = UDim2.new(1, -136, 0.5, -21)
+	mToggle.BackgroundColor3 = isMusicEnabled and Color3.fromRGB(40, 180, 80) or Color3.fromRGB(180, 50, 50)
+	mToggle.Font = Enum.Font.GothamBlack
+	mToggle.TextSize = 14
+	mToggle.TextColor3 = Color3.new(1, 1, 1)
+	mToggle.Text = isMusicEnabled and "PLAYING 🔊" or "MUTED 🔇"
+	mToggle.Parent = musicCard
+
+	local mtCorner = Instance.new("UICorner")
+	mtCorner.CornerRadius = UDim.new(0, 8)
+	mtCorner.Parent = mToggle
+
+	mToggle.MouseButton1Click:Connect(function()
+		isMusicEnabled = not isMusicEnabled
+		SoundService:SetAttribute("MusicEnabled", isMusicEnabled)
+		mToggle.BackgroundColor3 = isMusicEnabled and Color3.fromRGB(40, 180, 80) or Color3.fromRGB(180, 50, 50)
+		mToggle.Text = isMusicEnabled and "PLAYING 🔊" or "MUTED 🔇"
+		if bgMusic then
+			bgMusic.Volume = isMusicEnabled and 0.18 or 0
+		end
+		playSound("rbxassetid://6895079853", 1.2)
+	end)
+
+	-- 2. SFX Setting Card
+	local sfxCard = Instance.new("Frame")
+	sfxCard.Size = UDim2.new(1, 0, 0, 68)
+	sfxCard.BackgroundColor3 = Color3.fromRGB(24, 28, 38)
+	sfxCard.BorderSizePixel = 0
+	sfxCard.Parent = body
+
+	local scCorner = Instance.new("UICorner")
+	scCorner.CornerRadius = UDim.new(0, 12)
+	scCorner.Parent = sfxCard
+
+	local scStroke = Instance.new("UIStroke")
+	scStroke.Color = Color3.fromRGB(45, 55, 75)
+	scStroke.Thickness = 1.5
+	scStroke.Parent = sfxCard
+
+	local sTitle = Instance.new("TextLabel")
+	sTitle.Size = UDim2.new(0.65, 0, 1, 0)
+	sTitle.Position = UDim2.new(0, 16, 0, 0)
+	sTitle.BackgroundTransparency = 1
+	sTitle.Font = Enum.Font.GothamBold
+	sTitle.TextSize = 16
+	sTitle.TextColor3 = Color3.new(1, 1, 1)
+	sTitle.TextXAlignment = Enum.TextXAlignment.Left
+	sTitle.Text = "🔊 Sound Effects (SFX)"
+	sTitle.Parent = sfxCard
+
+	local sToggle = Instance.new("TextButton")
+	sToggle.Size = UDim2.new(0, 120, 0, 42)
+	sToggle.Position = UDim2.new(1, -136, 0.5, -21)
+	sToggle.BackgroundColor3 = isSFXEnabled and Color3.fromRGB(40, 180, 80) or Color3.fromRGB(180, 50, 50)
+	sToggle.Font = Enum.Font.GothamBlack
+	sToggle.TextSize = 14
+	sToggle.TextColor3 = Color3.new(1, 1, 1)
+	sToggle.Text = isSFXEnabled and "ENABLED 🔔" or "MUTED 🔕"
+	sToggle.Parent = sfxCard
+
+	local stCorner = Instance.new("UICorner")
+	stCorner.CornerRadius = UDim.new(0, 8)
+	stCorner.Parent = sToggle
+
+	sToggle.MouseButton1Click:Connect(function()
+		isSFXEnabled = not isSFXEnabled
+		SoundService:SetAttribute("SFXEnabled", isSFXEnabled)
+		sToggle.BackgroundColor3 = isSFXEnabled and Color3.fromRGB(40, 180, 80) or Color3.fromRGB(180, 50, 50)
+		sToggle.Text = isSFXEnabled and "ENABLED 🔔" or "MUTED 🔕"
+		if isSFXEnabled then
+			playSound("rbxassetid://6895079853", 1.2)
+		end
+	end)
+
+	-- 3. Social & Trading Card (Notepad Phase 6 Stub)
+	local tradeCard = Instance.new("Frame")
+	tradeCard.Size = UDim2.new(1, 0, 0, 100)
+	tradeCard.BackgroundColor3 = Color3.fromRGB(24, 28, 38)
+	tradeCard.BorderSizePixel = 0
+	tradeCard.Parent = body
+
+	local tcCorner = Instance.new("UICorner")
+	tcCorner.CornerRadius = UDim.new(0, 12)
+	tcCorner.Parent = tradeCard
+
+	local tcStroke = Instance.new("UIStroke")
+	tcStroke.Color = Color3.fromRGB(45, 55, 75)
+	tcStroke.Thickness = 1.5
+	tcStroke.Parent = tradeCard
+
+	local tTitle = Instance.new("TextLabel")
+	tTitle.Size = UDim2.new(1, -24, 0, 26)
+	tTitle.Position = UDim2.new(0, 16, 0, 12)
+	tTitle.BackgroundTransparency = 1
+	tTitle.Font = Enum.Font.GothamBlack
+	tTitle.TextSize = 15
+	tTitle.TextColor3 = Color3.fromRGB(255, 200, 50)
+	tTitle.TextXAlignment = Enum.TextXAlignment.Left
+	tTitle.Text = "🤝 Player-to-Player Trading Hub"
+	tTitle.Parent = tradeCard
+
+	local tDesc = Instance.new("TextLabel")
+	tDesc.Size = UDim2.new(1, -32, 0, 48)
+	tDesc.Position = UDim2.new(0, 16, 0, 40)
+	tDesc.BackgroundTransparency = 1
+	tDesc.Font = Enum.Font.GothamMedium
+	tDesc.TextSize = 12
+	tDesc.TextColor3 = Color3.fromRGB(160, 175, 195)
+	tDesc.TextXAlignment = Enum.TextXAlignment.Left
+	tDesc.TextWrapped = true
+	tDesc.Text = "🔒 COMING SOON in Phase 6: Secure two-player trade verification for scrap, parts, and companion drones."
+	tDesc.Parent = tradeCard
+end
+
 -- Reactive Data Updating: Updates all active UI elements when data arrives from server!
 function MenuController.updateUI(data: Types.PlayerData)
 	currentData = data
@@ -887,6 +1193,31 @@ function MenuController.updateUI(data: Types.PlayerData)
 			end
 		end
 	end
+
+	-- 6. Update Daily Quests
+	if data.Quests then
+		for _, q in ipairs(Config.Quests) do
+			local qRef = questRowRefs[q.Id]
+			local qState = data.Quests[q.Id]
+			if qRef and qState then
+				local prog = math.min(q.Target, qState.Progress or 0)
+				local frac = math.clamp(prog / q.Target, 0, 1)
+				qRef.Fill.Size = UDim2.new(frac, 0, 1, 0)
+				qRef.Label.Text = string.format("%s / %s", formatNumber(prog), formatNumber(q.Target))
+
+				if qState.Claimed then
+					qRef.ClaimButton.Text = "CLAIMED ✅"
+					qRef.ClaimButton.BackgroundColor3 = Color3.fromRGB(60, 65, 80)
+				elseif qState.Completed then
+					qRef.ClaimButton.Text = "CLAIM REWARD 🎁"
+					qRef.ClaimButton.BackgroundColor3 = Color3.fromRGB(40, 190, 80)
+				else
+					qRef.ClaimButton.Text = "IN PROGRESS ⏳"
+					qRef.ClaimButton.BackgroundColor3 = Color3.fromRGB(40, 48, 65)
+				end
+			end
+		end
+	end
 end
 
 -- Egg Hatch Reveal Modal
@@ -1003,12 +1334,12 @@ function MenuController.showHatchReveal(info: any)
 	end)
 end
 
--- Side Navigation Bar with 6 100% Reliable, Vibrant Emoji Icons
+-- Side Navigation Bar with 8 100% Reliable, Vibrant Emoji Icons
 function MenuController.buildIconBar()
 	local bar = Instance.new("Frame")
 	bar.Name = "SideIconBar"
-	bar.Size = UDim2.new(0, 64, 0, 390)
-	bar.Position = UDim2.new(0, 20, 0.5, -195)
+	bar.Size = UDim2.new(0, 60, 0, 440)
+	bar.Position = UDim2.new(0, 18, 0.5, -220)
 	bar.BackgroundColor3 = Color3.fromRGB(18, 20, 26)
 	bar.BackgroundTransparency = 0.15
 	bar.BorderSizePixel = 0
@@ -1024,7 +1355,7 @@ function MenuController.buildIconBar()
 	bStroke.Parent = bar
 
 	local list = Instance.new("UIListLayout")
-	list.Padding = UDim.new(0, 10)
+	list.Padding = UDim.new(0, 7)
 	list.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	list.VerticalAlignment = Enum.VerticalAlignment.Center
 	list.Parent = bar
@@ -1033,22 +1364,24 @@ function MenuController.buildIconBar()
 		{ Name = "Upgrades", Label = "UPGRADES", Emoji = "🛒", Color = Color3.fromRGB(40, 200, 90) },
 		{ Name = "GearsShop", Label = "PRESTIGE SHOP", Emoji = "⚙️", Color = Color3.fromRGB(50, 180, 255) },
 		{ Name = "Drones", Label = "DRONE HANGAR", Emoji = "🤖", Color = Color3.fromRGB(255, 160, 20) },
+		{ Name = "Quests", Label = "DAILY QUESTS", Emoji = "📜", Color = Color3.fromRGB(255, 200, 40) },
 		{ Name = "Teleport", Label = "FAST TRAVEL", Emoji = "🗺️", Color = Color3.fromRGB(180, 70, 255) },
 		{ Name = "Rebirth", Label = "REBIRTH", Emoji = "🌀", Color = Color3.fromRGB(90, 140, 255) },
-		{ Name = "Rewards", Label = "DAILY REWARDS", Emoji = "🎁", Color = Color3.fromRGB(240, 70, 130) },
+		{ Name = "Rewards", Label = "DAILY & CODES", Emoji = "🎁", Color = Color3.fromRGB(240, 70, 130) },
+		{ Name = "Settings", Label = "SETTINGS", Emoji = "🔧", Color = Color3.fromRGB(160, 175, 195) },
 	}
 
 	for _, info in ipairs(buttons) do
 		local btn = Instance.new("TextButton")
 		btn.Name = info.Name .. "Btn"
-		btn.Size = UDim2.new(0, 48, 0, 48)
+		btn.Size = UDim2.new(0, 44, 0, 44)
 		btn.BackgroundColor3 = Color3.fromRGB(24, 28, 40)
 		btn.Text = ""
 		btn.AutoButtonColor = false
 		btn.Parent = bar
 
 		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(0, 13)
+		corner.CornerRadius = UDim.new(0, 12)
 		corner.Parent = btn
 
 		local stroke = Instance.new("UIStroke")
@@ -1062,7 +1395,7 @@ function MenuController.buildIconBar()
 		iconLbl.Size = UDim2.new(1, 0, 1, 0)
 		iconLbl.BackgroundTransparency = 1
 		iconLbl.Font = Enum.Font.GothamBlack
-		iconLbl.TextSize = 24
+		iconLbl.TextSize = 22
 		iconLbl.TextColor3 = Color3.new(1, 1, 1)
 		iconLbl.Text = info.Emoji
 		iconLbl.ZIndex = 2
@@ -1103,7 +1436,7 @@ function MenuController.buildIconBar()
 		-- Hover Animations
 		btn.MouseEnter:Connect(function()
 			TweenService:Create(btn, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-				Size = UDim2.new(0, 52, 0, 52),
+				Size = UDim2.new(0, 48, 0, 48),
 				BackgroundColor3 = Color3.fromRGB(32, 38, 55),
 			}):Play()
 			TweenService:Create(stroke, TweenInfo.new(0.15), { Thickness = 2.5 }):Play()
@@ -1114,7 +1447,7 @@ function MenuController.buildIconBar()
 
 		btn.MouseLeave:Connect(function()
 			TweenService:Create(btn, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-				Size = UDim2.new(0, 48, 0, 48),
+				Size = UDim2.new(0, 44, 0, 44),
 				BackgroundColor3 = Color3.fromRGB(24, 28, 40),
 			}):Play()
 			TweenService:Create(stroke, TweenInfo.new(0.15), { Thickness = 1.8 }):Play()
@@ -1126,7 +1459,7 @@ function MenuController.buildIconBar()
 		btn.MouseButton1Click:Connect(function()
 			playSound("rbxassetid://6895079853", 1.1)
 			TweenService:Create(btn, TweenInfo.new(0.08, Enum.EasingStyle.Back, Enum.EasingDirection.Out, 0, true), {
-				Size = UDim2.new(0, 42, 0, 42),
+				Size = UDim2.new(0, 38, 0, 38),
 			}):Play()
 			MenuController.openPanel(info.Name)
 		end)
@@ -1136,13 +1469,16 @@ end
 function MenuController.init()
 	mainGui = playerGui:WaitForChild("ScrapOdysseyHUD") :: ScreenGui
 
+	setupMusic()
 	MenuController.buildIconBar()
 	MenuController.buildUpgradesPanel()
 	MenuController.buildGearsShopPanel()
 	MenuController.buildDronesPanel()
+	MenuController.buildQuestsPanel()
 	MenuController.buildTeleportPanel()
 	MenuController.buildRebirthPanel()
 	MenuController.buildRewardsPanel()
+	MenuController.buildSettingsPanel()
 
 	-- Sync Data listener
 	local syncEvent = Remotes.getEvent("SyncData")

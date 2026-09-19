@@ -52,6 +52,12 @@ export type OwnedPet = {
 	Equipped: boolean,
 }
 
+export type QuestProgress = {
+	Progress: number,
+	Completed: boolean,
+	Claimed: boolean,
+}
+
 export type PlayerData = {
 	Version: number,
 	Scrap: number,
@@ -69,6 +75,7 @@ export type PlayerData = {
 	LastLoginTimestamp: number,
 	RedeemedCodes: { [string]: boolean },
 	TotalScrapsMined: number,
+	Quests: { [string]: QuestProgress },
 }
 
 return {}

@@ -18,7 +18,6 @@ function QuestService.claimDailyReward(player: Player)
 	local lastLogin = data.LastLoginTimestamp or 0
 	local elapsed = now - lastLogin
 
-	-- 20 hours cooldown for next day claim (or allow claim if streak == 1 on first join)
 	local currentStreak = math.clamp(data.DailyLoginStreak or 1, 1, 7)
 	local reward = Config.DailyRewards[currentStreak]
 
@@ -70,6 +69,88 @@ function QuestService.redeemCode(player: Player, codeStr: string)
 	DataService.sync(player)
 end
 
+function QuestService.recordScrapPile(player: Player, count: number)
+	local data = DataService.get(player)
+	if not data or not data.Quests then return end
+
+	local quest = data.Quests["scrap_50"]
+	if quest and not quest.Completed then
+		quest.Progress = quest.Progress + (count or 1)
+		if quest.Progress >= 50 then
+			quest.Progress = 50
+			quest.Completed = true
+			local notif = Remotes.getEvent("ShowNotification")
+			notif:FireClient(player, "QUEST COMPLETED! 📜", "Completed: Scrap 50 Junk Piles! Claim your reward in the Quests menu.", Color3.fromRGB(80, 220, 120))
+		end
+		DataService.sync(player)
+	end
+end
+
+function QuestService.recordScrapEarned(player: Player, amount: number)
+	local data = DataService.get(player)
+	if not data or not data.Quests then return end
+
+	local quest = data.Quests["earn_10k"]
+	if quest and not quest.Completed then
+		quest.Progress = quest.Progress + (amount or 0)
+		if quest.Progress >= 10000 then
+			quest.Progress = 10000
+			quest.Completed = true
+			local notif = Remotes.getEvent("ShowNotification")
+			notif:FireClient(player, "QUEST COMPLETED! 📜", "Completed: Earn 10,000 Scrap! Claim your reward in the Quests menu.", Color3.fromRGB(80, 220, 120))
+		end
+		DataService.sync(player)
+	end
+end
+
+function QuestService.recordDroneHatched(player: Player, count: number)
+	local data = DataService.get(player)
+	if not data or not data.Quests then return end
+
+	local quest = data.Quests["hatch_2"]
+	if quest and not quest.Completed then
+		quest.Progress = quest.Progress + (count or 1)
+		if quest.Progress >= 2 then
+			quest.Progress = 2
+			quest.Completed = true
+			local notif = Remotes.getEvent("ShowNotification")
+			notif:FireClient(player, "QUEST COMPLETED! 📜", "Completed: Hatch 2 Drones! Claim your reward in the Quests menu.", Color3.fromRGB(80, 220, 120))
+		end
+		DataService.sync(player)
+	end
+end
+
+function QuestService.claimQuest(player: Player, questId: string)
+	local data = DataService.get(player)
+	if not data or not data.Quests then return end
+
+	local quest = data.Quests[questId]
+	if not quest or not quest.Completed or quest.Claimed then return end
+
+	-- Find quest config
+	local questConfig = nil
+	for _, q in ipairs(Config.Quests) do
+		if q.Id == questId then
+			questConfig = q
+			break
+		end
+	end
+
+	if not questConfig then return end
+
+	quest.Claimed = true
+	if questConfig.RewardType == "Scrap" then
+		CurrencyService.addScrap(player, questConfig.RewardAmount, false)
+	elseif questConfig.RewardType == "Gears" then
+		CurrencyService.addGears(player, questConfig.RewardAmount)
+	end
+
+	DataService.sync(player)
+
+	local notif = Remotes.getEvent("ShowNotification")
+	notif:FireClient(player, "QUEST REWARD CLAIMED! 🎁", string.format("Received +%d %s!", questConfig.RewardAmount, questConfig.RewardType), Color3.fromRGB(255, 215, 0))
+end
+
 function QuestService.init()
 	local claimEvent = Remotes.getEvent("ClaimDailyReward")
 	claimEvent.OnServerEvent:Connect(function(player)
@@ -83,7 +164,14 @@ function QuestService.init()
 		end
 	end)
 
-	print("[QuestService] Initialized.")
+	local claimQuestEvent = Remotes.getEvent("ClaimQuest")
+	claimQuestEvent.OnServerEvent:Connect(function(player, questId)
+		if type(questId) == "string" then
+			QuestService.claimQuest(player, questId)
+		end
+	end)
+
+	print("[QuestService] Initialized with Live Daily Quests Tracking.")
 end
 
 return QuestService

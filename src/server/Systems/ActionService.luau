@@ -320,6 +320,11 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 			Position = nodeHitbox.Position + Vector3.new(0, 4, 0),
 		})
 
+		pcall(function()
+			local QuestService = require(script.Parent.QuestService)
+			QuestService.recordScrapPile(player, 1)
+		end)
+
 		-- Collapse node
 		if corePart then corePart.Transparency = 1 end
 		if basePart then basePart.Transparency = 0.8 end
