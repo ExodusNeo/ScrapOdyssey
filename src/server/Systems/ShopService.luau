@@ -71,13 +71,7 @@ function ShopService.purchaseGearsPerk(player: Player, perkId: string): boolean
 		data.GearsPerks[perkId] = true
 
 		-- Apply immediate perk effects
-		if perkId == "SpeedDemon" then
-			local character = player.Character
-			if character then
-				local hum = character:FindFirstChild("Humanoid") :: Humanoid
-				if hum then hum.WalkSpeed = 26 end
-			end
-		elseif perkId == "QuantumDrone" then
+		if perkId == "QuantumDrone" then
 			-- Grant the exclusive drone
 			local quantumPet: Types.OwnedPet = {
 				UUID = HttpService:GenerateGUID(false),
@@ -95,7 +89,7 @@ function ShopService.purchaseGearsPerk(player: Player, perkId: string): boolean
 		return true
 	else
 		local notif = Remotes.getEvent("ShowNotification")
-		notif:FireClient(player, "Need More Gears", string.format("You need %d Gears ⚙️ for this perk.", perk.Cost), Color3.fromRGB(255, 70, 70))
+		notif:FireClient(player, "Need More Gears", string.format("You need %d Gears for this perk.", perk.Cost), Color3.fromRGB(255, 70, 70))
 	end
 
 	return false
@@ -117,7 +111,7 @@ function ShopService.init()
 	end)
 
 	-- Apply persistent perks on character spawn
-	Players.PlayerAdded:Connect(function(player)
+	local function onPlayerAdded(player: Player)
 		player.CharacterAdded:Connect(function(character)
 			task.delay(0.5, function()
 				local data = DataService.get(player)
@@ -127,7 +121,11 @@ function ShopService.init()
 				end
 			end)
 		end)
-	end)
+	end
+	Players.PlayerAdded:Connect(onPlayerAdded)
+	for _, player in ipairs(Players:GetPlayers()) do
+		onPlayerAdded(player)
+	end
 
 	print("[ShopService] Initialized with Upgrades and Gears Prestige Shop.")
 end

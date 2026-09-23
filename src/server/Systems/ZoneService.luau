@@ -6,15 +6,22 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local SoundService = game:GetService("SoundService")
 local RunService = game:GetService("RunService")
+local CollectionService = game:GetService("CollectionService")
 
 local Config = require(ReplicatedStorage.Modules.Config)
 local Types = require(ReplicatedStorage.Modules.Types)
 local Remotes = require(ReplicatedStorage.Modules.Remotes)
 local DataService = require(script.Parent.DataService)
+local EnvironmentService = require(script.Parent.EnvironmentService)
 
 local ZoneService = {}
 local activeNodes = {}
 local zoneGates: { [number]: { Model: Model, Barrier: Part, Prompt: ProximityPrompt } } = {}
+
+-- Module-level debounces (cleaned up on PlayerRemoving to prevent leaks)
+local portalDebounces: { [Player]: number } = {}
+local sellDebounce: { [Player]: number } = {}
+local patrolDebounces: { [Player]: number } = {}
 
 -- Safe zone center coordinates for each zone (Zone 1 is Central Hub)
 local ZONE_CENTERS = {
@@ -25,57 +32,9 @@ local ZONE_CENTERS = {
 	[5] = Vector3.new(640, 0, 0),
 }
 
--- 1. Calm, Eye-Friendly Lighting Setup (Soft Daylight without harsh glare or eye-strain)
+-- 1. Calm, Eye-Friendly Lighting Setup (Delegated to EnvironmentService with zero sun glare)
 function ZoneService.setupLighting()
-	pcall(function()
-		Lighting.Technology = Enum.Technology.Future
-	end)
-	Lighting.Brightness = 1.15
-	Lighting.ClockTime = 14.5 -- Comfortable afternoon sunlight
-	Lighting.GeographicLatitude = 30
-	Lighting.OutdoorAmbient = Color3.fromRGB(85, 90, 100)
-	Lighting.Ambient = Color3.fromRGB(70, 75, 85)
-	Lighting.ShadowSoftness = 0.4
-
-	-- Clear old post-processing effects
-	for _, child in ipairs(Lighting:GetChildren()) do
-		if child:IsA("PostProcessEffect") or child:IsA("Atmosphere") or child:IsA("Sky") then
-			child:Destroy()
-		end
-	end
-
-	local atmosphere = Instance.new("Atmosphere")
-	atmosphere.Density = 0.15
-	atmosphere.Offset = 0.0
-	atmosphere.Color = Color3.fromRGB(190, 200, 215)
-	atmosphere.Decay = Color3.fromRGB(160, 170, 185)
-	atmosphere.Glare = 0 -- NO sun glare piercing the camera
-	atmosphere.Haze = 0 -- Clean, crisp air without blinding haze
-	atmosphere.Parent = Lighting
-
-	-- Extremely subtle bloom to prevent glowing eye-bleed
-	local bloom = Instance.new("BloomEffect")
-	bloom.Intensity = 0.04
-	bloom.Size = 8
-	bloom.Threshold = 2.2
-	bloom.Parent = Lighting
-
-	-- Clean, natural color profile without oversaturated neons
-	local cc = Instance.new("ColorCorrectionEffect")
-	cc.Brightness = 0.0
-	cc.Contrast = 0.04
-	cc.Saturation = 0.02
-	cc.TintColor = Color3.fromRGB(255, 255, 255)
-	cc.Parent = Lighting
-
-	-- Note: SunRaysEffect is intentionally omitted to eliminate blinding sun glare!
-
-	local sky = Instance.new("Sky")
-	sky.SunAngularSize = 11
-	sky.MoonAngularSize = 10
-	sky.Parent = Lighting
-
-	print("[ZoneService] Eye-friendly soft lighting configured.")
+	EnvironmentService.setupAtmosphereAndSky()
 end
 
 -- Helper to create a Fast-Travel Portal Pad on any platform
@@ -106,18 +65,19 @@ local function createPortalPad(parent: Instance, position: Vector3, zoneId: numb
 	local bb = Instance.new("BillboardGui")
 	bb.Size = UDim2.new(0, 160, 0, 45)
 	bb.StudsOffset = Vector3.new(0, 4, 0)
-	bb.AlwaysOnTop = true
+	bb.AlwaysOnTop = false
+	bb.MaxDistance = 32
 	bb.Parent = pad
 
 	local lbl = Instance.new("TextLabel")
 	lbl.Size = UDim2.new(1, 0, 1, 0)
 	lbl.BackgroundTransparency = 1
 	lbl.Font = Enum.Font.GothamBlack
-	lbl.TextSize = 14
-	lbl.TextColor3 = Color3.fromRGB(220, 160, 255)
+	lbl.TextSize = 13
+	lbl.TextColor3 = Color3.fromRGB(220, 170, 255)
 	lbl.TextStrokeTransparency = 0.2
 	lbl.TextStrokeColor3 = Color3.new(0, 0, 0)
-	lbl.Text = "🗺️ FAST TRAVEL\n[Press E or Step Here]"
+	lbl.Text = "FAST TRAVEL TERMINAL\n[Press E or Step to Navigate]"
 	lbl.Parent = bb
 
 	local prompt = Instance.new("ProximityPrompt")
@@ -127,8 +87,6 @@ local function createPortalPad(parent: Instance, position: Vector3, zoneId: numb
 	prompt.MaxActivationDistance = 12
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = pad
-
-	local portalDebounces: { [Player]: number } = {}
 
 	local function openMenu(player: Player)
 		local now = os.clock()
@@ -227,18 +185,19 @@ function ZoneService.constructRecycler(parent: Instance, basePos: Vector3, zoneI
 	local rbb = Instance.new("BillboardGui")
 	rbb.Size = UDim2.new(0, 260, 0, 60)
 	rbb.StudsOffset = Vector3.new(0, 7.5, 0)
-	rbb.AlwaysOnTop = true
+	rbb.AlwaysOnTop = false
+	rbb.MaxDistance = 45
 	rbb.Parent = baseUnit
 
 	local rTitle = Instance.new("TextLabel")
 	rTitle.Size = UDim2.new(1, 0, 1, 0)
 	rTitle.BackgroundTransparency = 1
 	rTitle.Font = Enum.Font.GothamBlack
-	rTitle.TextSize = 22
-	rTitle.TextColor3 = Color3.fromRGB(255, 215, 0)
+	rTitle.TextSize = 20
+	rTitle.TextColor3 = Color3.fromRGB(255, 200, 50)
 	rTitle.TextStrokeTransparency = 0.2
 	rTitle.TextStrokeColor3 = Color3.new(0, 0, 0)
-	rTitle.Text = string.format("⚙️ SCRAP RECYCLER %s⚙️\n[DEPOSIT & SELL CARGO]", zoneId > 1 and ("(Z" .. tostring(zoneId) .. ") ") or "")
+	rTitle.Text = string.format("SCRAP RECYCLER %s\n[DEPOSIT & SELL CARGO]", zoneId > 1 and ("(ZONE " .. tostring(zoneId) .. ") ") or "")
 	rTitle.Parent = rbb
 
 	-- Deposit Sell Pad
@@ -262,11 +221,18 @@ function ZoneService.constructRecycler(parent: Instance, basePos: Vector3, zoneI
 	depositPrompt.Parent = depositPad
 
 	depositPrompt.Triggered:Connect(function(player)
+		local data = DataService.get(player)
+		if data and zoneId > (data.MaxZoneReached or 1) then
+			local notif = Remotes.getEvent("ShowNotification")
+			if notif then
+				notif:FireClient(player, "ZONE RESTRICTED", "Unlock this zone first before using its recycler!", Color3.fromRGB(255, 70, 70))
+			end
+			return
+		end
 		local CurrencyService = require(script.Parent.CurrencyService)
 		CurrencyService.recycleBackpack(player)
 	end)
 
-	local sellDebounce: { [Player]: number } = {}
 	depositPad.Touched:Connect(function(hit)
 		local char = hit.Parent
 		if not char then return end
@@ -283,8 +249,8 @@ function ZoneService.constructRecycler(parent: Instance, basePos: Vector3, zoneI
 		sellDebounce[player] = now
 
 		local data = DataService.get(player)
-		-- Silently ignore if cargo is already 0, so walking across doesn't spam "Cargo Empty" notifications!
-		if not data or (data.Backpack or 0) <= 0 then
+		-- Silently ignore if cargo is already 0 or zone is locked
+		if not data or zoneId > (data.MaxZoneReached or 1) or (data.Backpack or 0) <= 0 then
 			return
 		end
 
@@ -349,14 +315,12 @@ function ZoneService.constructToolArmoryKiosk(parent: Instance, pos: Vector3): M
 	holoLight.Range = 10
 	holoLight.Parent = holoWrench
 
-	task.spawn(function()
-		while holoWrench.Parent do
-			local t = os.clock() * 1.5
-			holoWrench.Position = pos + Vector3.new(1.8, 4.2 + math.sin(t) * 0.2, -1.8)
-			holoWrench.CFrame = CFrame.new(holoWrench.Position) * CFrame.Angles(0, math.rad(t * 40 % 360), math.rad(15))
-			task.wait(0.04)
-		end
-	end)
+	CollectionService:AddTag(holoWrench, "FloatingDecor")
+	holoWrench:SetAttribute("BasePos", pos + Vector3.new(1.8, 4.2, -1.8))
+	holoWrench:SetAttribute("SpinSpeed", 40)
+	holoWrench:SetAttribute("BobSpeed", 1.5)
+	holoWrench:SetAttribute("BobAmp", 0.2)
+	holoWrench:SetAttribute("TiltAngle", 15)
 
 	-- Dual Roof Canopy Support Columns
 	for _, cx in ipairs({ -6, 6 }) do
@@ -421,9 +385,9 @@ function ZoneService.constructToolArmoryKiosk(parent: Instance, pos: Vector3): M
 	sTitle.Position = UDim2.new(0, 0, 0.05, 0)
 	sTitle.BackgroundTransparency = 1
 	sTitle.Font = Enum.Font.GothamBlack
-	sTitle.TextSize = 22
+	sTitle.TextSize = 20
 	sTitle.TextColor3 = Color3.fromRGB(255, 180, 50)
-	sTitle.Text = "🛠️ TOOL ARMORY & FORGE 🛠️"
+	sTitle.Text = "TOOL ARMORY & FORGE"
 	sTitle.Parent = sBox
 
 	local sSub = Instance.new("TextLabel")
@@ -455,6 +419,195 @@ function ZoneService.constructToolArmoryKiosk(parent: Instance, pos: Vector3): M
 	return model
 end
 
+-- In-World Sci-Fi Egg Pod with hologram billboard, animated floating egg, and ProximityPrompt
+function ZoneService.constructEggPod(parentFolder: Instance, pos: Vector3, eggType: string): Model
+	local eggConf = Config.Eggs[eggType]
+	if not eggConf then return Instance.new("Model") end
+
+	local podModel = Instance.new("Model")
+	podModel.Name = "EggPod_" .. eggType
+
+	-- Pedestal Base
+	local pedestal = Instance.new("Part")
+	pedestal.Name = "Pedestal"
+	pedestal.Shape = Enum.PartType.Cylinder
+	pedestal.Size = Vector3.new(2.4, 4.2, 4.2)
+	pedestal.Position = pos + Vector3.new(0, 1.2, 0)
+	pedestal.Orientation = Vector3.new(0, 0, 90)
+	pedestal.Anchored = true
+	pedestal.Material = Enum.Material.DiamondPlate
+	pedestal.Color = Color3.fromRGB(28, 30, 38)
+	pedestal.Parent = podModel
+
+	-- Glowing Ring on Pedestal
+	local glowRing = Instance.new("Part")
+	glowRing.Name = "GlowRing"
+	glowRing.Shape = Enum.PartType.Cylinder
+	glowRing.Size = Vector3.new(0.3, 4.4, 4.4)
+	glowRing.Position = pos + Vector3.new(0, 2.3, 0)
+	glowRing.Orientation = Vector3.new(0, 0, 90)
+	glowRing.Anchored = true
+	glowRing.Material = Enum.Material.Neon
+	glowRing.Color = eggConf.Color
+	glowRing.Parent = podModel
+
+	-- Transparent Glass Containment Capsule
+	local capsule = Instance.new("Part")
+	capsule.Name = "Capsule"
+	capsule.Shape = Enum.PartType.Cylinder
+	capsule.Size = Vector3.new(4.2, 3.6, 3.6)
+	capsule.Position = pos + Vector3.new(0, 4.3, 0)
+	capsule.Orientation = Vector3.new(0, 0, 90)
+	capsule.Anchored = true
+	capsule.Material = Enum.Material.Glass
+	capsule.Color = eggConf.Color
+	capsule.Transparency = 0.55
+	capsule.CanCollide = false
+	capsule.Parent = podModel
+
+	-- Floating 3D Display Egg
+	local egg = Instance.new("Part")
+	egg.Name = "DisplayEgg"
+	egg.Shape = Enum.PartType.Ball
+	egg.Size = Vector3.new(2.2, 3.0, 2.2)
+	egg.Position = pos + Vector3.new(0, 4.3, 0)
+	egg.Anchored = true
+	egg.CanCollide = false
+	egg.Material = Enum.Material.SmoothPlastic
+	egg.Color = eggConf.Color
+	egg.Parent = podModel
+
+	local light = Instance.new("PointLight")
+	light.Range = 14
+	light.Brightness = 1.8
+	light.Color = eggConf.Color
+	light.Parent = egg
+
+	-- Gentle floating and spinning animation (Client-rendered for zero server replication overhead)
+	local baseEggY = pos.Y + 4.3
+	CollectionService:AddTag(egg, "FloatingDecor")
+	egg:SetAttribute("BasePos", Vector3.new(pos.X, baseEggY, pos.Z))
+	egg:SetAttribute("SpinSpeed", 30)
+	egg:SetAttribute("BobSpeed", 2.0)
+	egg:SetAttribute("BobAmp", 0.25)
+
+	-- Format comma helper
+	local formattedCost = tostring(math.floor(eggConf.Cost))
+	while true do
+		local k
+		formattedCost, k = string.gsub(formattedCost, "^(-?%d+)(%d%d%d)", "%1,%2")
+		if k == 0 then break end
+	end
+
+	-- Sci-Fi Billboard Display with Odds and Cost
+	-- Sci-Fi Billboard Display with Odds, Cost, and Icon Badge
+	local bb = Instance.new("BillboardGui")
+	bb.Name = "EggDisplayGui"
+	bb.Size = UDim2.new(0, 310, 0, 84)
+	bb.StudsOffset = Vector3.new(0, 4.2, 0)
+	bb.MaxDistance = 35
+	bb.LightInfluence = 0
+	bb.AlwaysOnTop = false
+	bb.Adornee = capsule
+	bb.Parent = podModel
+
+	local bbFrame = Instance.new("Frame")
+	bbFrame.Size = UDim2.new(1, 0, 1, 0)
+	bbFrame.BackgroundColor3 = Color3.fromRGB(16, 20, 28)
+	bbFrame.BackgroundTransparency = 0.12
+	bbFrame.BorderSizePixel = 0
+	bbFrame.Parent = bb
+
+	local bbc = Instance.new("UICorner")
+	bbc.CornerRadius = UDim.new(0, 10)
+	bbc.Parent = bbFrame
+
+	local bbs = Instance.new("UIStroke")
+	bbs.Color = eggConf.Color
+	bbs.Thickness = 1.5
+	bbs.Parent = bbFrame
+
+	-- Glowing Drone / Capsule Icon Badge
+	local iconBox = Instance.new("Frame")
+	iconBox.Name = "EggIconBadge"
+	iconBox.Size = UDim2.new(0, 56, 0, 56)
+	iconBox.Position = UDim2.new(0, 12, 0.5, -28)
+	iconBox.BackgroundColor3 = Color3.fromRGB(24, 30, 44)
+	iconBox.BorderSizePixel = 0
+	iconBox.Parent = bbFrame
+
+	local ibc = Instance.new("UICorner")
+	ibc.CornerRadius = UDim.new(0, 10)
+	ibc.Parent = iconBox
+
+	local ibs = Instance.new("UIStroke")
+	ibs.Color = eggConf.Color
+	ibs.Thickness = 1.2
+	ibs.Parent = iconBox
+
+	local iconImg = Instance.new("ImageLabel")
+	iconImg.Size = UDim2.new(0, 36, 0, 36)
+	iconImg.Position = UDim2.new(0.5, 0, 0.5, 0)
+	iconImg.AnchorPoint = Vector2.new(0.5, 0.5)
+	iconImg.BackgroundTransparency = 1
+	iconImg.Image = "rbxassetid://10709775087"
+	iconImg.ImageColor3 = eggConf.Color
+	iconImg.Parent = iconBox
+
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Size = UDim2.new(1, -82, 0, 24)
+	nameLabel.Position = UDim2.new(0, 76, 0, 4)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Font = Enum.Font.GothamBold
+	nameLabel.TextSize = 14
+	nameLabel.TextColor3 = eggConf.Color
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	nameLabel.Text = string.upper(eggConf.Name)
+	nameLabel.Parent = bbFrame
+
+	local costLabel = Instance.new("TextLabel")
+	costLabel.Size = UDim2.new(1, -82, 0, 20)
+	costLabel.Position = UDim2.new(0, 76, 0, 26)
+	costLabel.BackgroundTransparency = 1
+	costLabel.Font = Enum.Font.GothamBlack
+	costLabel.TextSize = 13
+	costLabel.TextColor3 = Color3.fromRGB(240, 245, 255)
+	costLabel.TextXAlignment = Enum.TextXAlignment.Left
+	costLabel.Text = string.format("COST: %s SCRAP", formattedCost)
+	costLabel.Parent = bbFrame
+
+	if eggConf.SubText then
+		local oddsLabel = Instance.new("TextLabel")
+		oddsLabel.Size = UDim2.new(1, -82, 0, 24)
+		oddsLabel.Position = UDim2.new(0, 76, 0, 48)
+		oddsLabel.BackgroundTransparency = 1
+		oddsLabel.Font = Enum.Font.GothamMedium
+		oddsLabel.TextSize = 10
+		oddsLabel.TextColor3 = Color3.fromRGB(180, 195, 215)
+		oddsLabel.TextXAlignment = Enum.TextXAlignment.Left
+		oddsLabel.Text = string.gsub(eggConf.SubText, "\n", " | ")
+		oddsLabel.Parent = bbFrame
+	end
+
+	-- ProximityPrompt for Hatching
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "HatchPrompt"
+	prompt.ObjectText = eggConf.Name
+	prompt.ActionText = string.format("Hatch (%s Scrap)", formattedCost)
+	prompt.HoldDuration = 0.2
+	prompt.MaxActivationDistance = 14
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = capsule
+
+	prompt.Triggered:Connect(function(player)
+		local PetService = require(script.Parent.PetService)
+		PetService.hatchEgg(player, eggType)
+	end)
+
+	podModel.Parent = parentFolder
+	return podModel
+end
+
 -- 3. Build the Central Town Hub (Plaza, Pedestals, Recycler Machine, Props)
 function ZoneService.constructCentralHub()
 	local hubFolder = Workspace:FindFirstChild("CentralHub") :: Folder
@@ -478,6 +631,10 @@ function ZoneService.constructCentralHub()
 	plaza.Material = Enum.Material.Concrete
 	plaza.Color = Color3.fromRGB(50, 53, 62)
 	plaza.Parent = hubFolder
+
+	-- Floating Island Underside Rock Root & Anti-Gravity Thruster Units
+	EnvironmentService.constructIslandUnderside(hubFolder, Vector3.new(0, 0, 0), 1, Color3.fromRGB(140, 100, 70))
+	EnvironmentService.constructSurfaceDressing(hubFolder, Vector3.new(0, 0, 0), Config.Zones[1])
 
 	-- Beveled Decorative Curbs
 	local curbThickness = 3
@@ -525,7 +682,7 @@ function ZoneService.constructCentralHub()
 		spawn.Parent = Workspace
 	end
 	spawn.Size = Vector3.new(12, 0.5, 12)
-	spawn.Position = Vector3.new(0, 0.25, 15)
+	spawn.Position = Vector3.new(0, 0.25, 0)
 	spawn.Anchored = true
 	spawn.Material = Enum.Material.SmoothPlastic
 	spawn.Color = Color3.fromRGB(45, 115, 195)
@@ -533,110 +690,28 @@ function ZoneService.constructCentralHub()
 	local decal = spawn:FindFirstChildOfClass("Decal")
 	if decal then decal:Destroy() end
 
-	-- Scrap Recycler Machine & Sell Pad
-	ZoneService.constructRecycler(hubFolder, Vector3.new(0, 0, -15), 1)
+	-- Scrap Recycler Machine & Sell Pad along North perimeter
+	ZoneService.constructRecycler(hubFolder, Vector3.new(0, 0, -68), 1)
 
-	-- Drone Incubator Pedestals
-	local eggConfigs = {
-		{
-			Type = "RustEgg",
-			Name = "Rust Egg",
-			Cost = 250,
-			Pos = Vector3.new(-18, 0.4, 0),
-			Color = Color3.fromRGB(160, 130, 110),
-			SubText = "Rust Bot (65%)\nSpark Drone (35%)",
-		},
-		{
-			Type = "PlasmaEgg",
-			Name = "Plasma Egg",
-			Cost = 1500,
-			Pos = Vector3.new(-24, 0.4, 0),
-			Color = Color3.fromRGB(50, 150, 255),
-			SubText = "Plasma Welder (70%)\nScrap Hound (30%)",
-		},
-		{
-			Type = "CyberEgg",
-			Name = "Cyber Egg",
-			Cost = 10000,
-			Pos = Vector3.new(-30, 0.4, 0),
-			Color = Color3.fromRGB(255, 40, 100),
-			SubText = "Cyber Mech (85%)\nVoid Titan (15%)",
-		},
-	}
+	-- Zone 1 Exclusive Egg Pod along West perimeter
+	ZoneService.constructEggPod(hubFolder, Vector3.new(-38, 0.4, -40), "RustEgg")
 
-	for _, eggInfo in ipairs(eggConfigs) do
-		local pedestal = Instance.new("Part")
-		pedestal.Name = "Pedestal_" .. eggInfo.Type
-		pedestal.Shape = Enum.PartType.Cylinder
-		pedestal.Size = Vector3.new(2.4, 3.8, 3.8)
-		pedestal.Position = eggInfo.Pos + Vector3.new(0, 1.2, 0)
-		pedestal.Orientation = Vector3.new(0, 0, 90)
-		pedestal.Anchored = true
-		pedestal.Material = Enum.Material.DiamondPlate
-		pedestal.Color = Color3.fromRGB(28, 30, 38)
-		pedestal.Parent = hubFolder
+	-- Tool Armory Forge Kiosk along West perimeter (South of corridor)
+	ZoneService.constructToolArmoryKiosk(hubFolder, Vector3.new(-38, 0, 28))
 
-		local capsule = Instance.new("Part")
-		capsule.Name = "Capsule"
-		capsule.Shape = Enum.PartType.Cylinder
-		capsule.Size = Vector3.new(3.8, 3.4, 3.4)
-		capsule.Position = eggInfo.Pos + Vector3.new(0, 4.3, 0)
-		capsule.Orientation = Vector3.new(0, 0, 90)
-		capsule.Anchored = true
-		capsule.Material = Enum.Material.Glass
-		capsule.Color = eggInfo.Color
-		capsule.Transparency = 0.55
-		capsule.CanCollide = false
-		capsule.Parent = hubFolder
+	-- Fast-Travel Portal Pad along West perimeter (South-West corner)
+	createPortalPad(hubFolder, Vector3.new(-38, 0.3, 62), 1)
 
-		local egg = Instance.new("Part")
-		egg.Name = "DisplayEgg_" .. eggInfo.Type
-		egg.Shape = Enum.PartType.Ball
-		egg.Size = Vector3.new(2.0, 2.8, 2.0)
-		egg.Position = eggInfo.Pos + Vector3.new(0, 4.3, 0)
-		egg.Anchored = true
-		egg.CanCollide = false
-		egg.Material = Enum.Material.SmoothPlastic
-		egg.Color = eggInfo.Color
-		egg.Parent = hubFolder
-
-		local baseEggY = eggInfo.Pos.Y + 4.3
-		task.spawn(function()
-			while egg.Parent do
-				local t = os.clock() * 2
-				egg.Position = Vector3.new(eggInfo.Pos.X, baseEggY + math.sin(t) * 0.25, eggInfo.Pos.Z)
-				egg.CFrame = CFrame.new(egg.Position) * CFrame.Angles(0, math.rad(t * 30 % 360), 0)
-				task.wait(0.04)
-			end
-		end)
-
-		local prompt = Instance.new("ProximityPrompt")
-		prompt.Name = "HatchPrompt"
-		prompt.ObjectText = eggInfo.Name
-		prompt.ActionText = string.format("Hatch (%d 🔩)", eggInfo.Cost)
-		prompt.HoldDuration = 0.2
-		prompt.MaxActivationDistance = 14
-		prompt.RequiresLineOfSight = false
-		prompt.Parent = capsule
-
-		prompt.Triggered:Connect(function(player)
-			local PetService = require(script.Parent.PetService)
-			PetService.hatchEgg(player, eggInfo.Type)
-		end)
-	end
-
-	-- Fast-Travel Portal Pad in Hub
-	createPortalPad(hubFolder, Vector3.new(-18, 0.3, 25), 1)
-
-	-- Tool Armory Forge Kiosk in Hub
-	ZoneService.constructToolArmoryKiosk(hubFolder, Vector3.new(-18, 0, -16))
-
-	-- 4 Scrap Nodes in Hub (Zone 1) - Evenly spaced with >16 studs clearance
+	-- 8 Scrap Nodes in Hub (Zone 1) - Generously spaced with >18 studs clearance
 	local zone1Offsets = {
-		Vector3.new(22, 0, -22),
-		Vector3.new(38, 0, -22),
-		Vector3.new(22, 0, 22),
-		Vector3.new(38, 0, 22),
+		Vector3.new(22, 0, -26),
+		Vector3.new(38, 0, -26),
+		Vector3.new(22, 0, -50),
+		Vector3.new(38, 0, -50),
+		Vector3.new(22, 0, 26),
+		Vector3.new(38, 0, 26),
+		Vector3.new(22, 0, 52),
+		Vector3.new(38, 0, 52),
 	}
 	for i, off in ipairs(zone1Offsets) do
 		local pile = ZoneService.createScrapPile(Config.Zones[1], off, i)
@@ -694,7 +769,7 @@ function ZoneService.applyNodeVariant(model: Model, zone: Types.ZoneConfig, isDe
 
 	local statusLabel = model:FindFirstChild("StatusLabel", true) :: TextLabel?
 	if statusLabel then
-		statusLabel.Text = isDense and string.format("⭐ DENSE %s ⭐", zone.Name:upper()) or string.format("🔨 %s", zone.Name:upper())
+		statusLabel.Text = isDense and string.format("DENSE %s", zone.Name:upper()) or zone.Name:upper()
 		statusLabel.TextColor3 = isDense and Color3.fromRGB(255, 215, 50) or Color3.new(1, 1, 1)
 	end
 
@@ -812,7 +887,8 @@ function ZoneService.createScrapPile(zone: Types.ZoneConfig, position: Vector3, 
 	gui.Name = "InfoGui"
 	gui.Size = UDim2.new(0, 160, 0, 56)
 	gui.StudsOffset = Vector3.new(0, 5.2, 0)
-	gui.AlwaysOnTop = true
+	gui.AlwaysOnTop = false
+	gui.MaxDistance = 36
 	gui.Parent = root
 
 	local badge = Instance.new("Frame")
@@ -838,7 +914,7 @@ function ZoneService.createScrapPile(zone: Types.ZoneConfig, position: Vector3, 
 	label.TextColor3 = Color3.new(1, 1, 1)
 	label.Font = Enum.Font.GothamBlack
 	label.TextSize = 12
-	label.Text = string.format("🔨 %s", zone.Name:upper())
+	label.Text = zone.Name:upper()
 	label.Parent = badge
 
 	-- Dynamic Graphical Health Bar
@@ -889,6 +965,9 @@ function ZoneService.createScrapPile(zone: Types.ZoneConfig, position: Vector3, 
 	local isDenseInitial = (math.random(1, 4) == 1)
 	ZoneService.applyNodeVariant(model, zone, isDenseInitial)
 
+	CollectionService:AddTag(model, "ScrapNode")
+	CollectionService:AddTag(prompt, "ScrapPrompt")
+
 	return model
 end
 
@@ -918,22 +997,22 @@ function ZoneService.buildZone1Props(folder: Instance, center: Vector3)
 	props.Name = "ThematicProps_Zone1"
 	props.Parent = folder
 
-	-- 1. Heavy Shipping Container A (North-West, Angled)
-	local c1Pos = center + Vector3.new(-36, 4, -36)
+	-- 1. Heavy Shipping Container A (North-East Border, Angled)
+	local c1Pos = center + Vector3.new(38, 4, -70)
 	local c1Rot = CFrame.Angles(0, math.rad(18), 0)
 	createPropPart(props, "ShippingContainer_A", Vector3.new(12, 8, 20), CFrame.new(c1Pos) * c1Rot, Color3.fromRGB(145, 75, 42), Enum.Material.CorrodedMetal)
 	createPropPart(props, "ContA_Rib1", Vector3.new(12.4, 8.2, 1), CFrame.new(c1Pos + c1Rot * Vector3.new(0, 0, -9.5)) * c1Rot, Color3.fromRGB(50, 45, 45), Enum.Material.Metal)
 	createPropPart(props, "ContA_Rib2", Vector3.new(12.4, 8.2, 1), CFrame.new(c1Pos + c1Rot * Vector3.new(0, 0, 9.5)) * c1Rot, Color3.fromRGB(50, 45, 45), Enum.Material.Metal)
 
-	-- 2. Heavy Shipping Container B (Double-Stacked on Container A in North-West, Weathered Industrial Olive)
-	local c2Pos = center + Vector3.new(-35.5, 12, -35.5)
+	-- 2. Heavy Shipping Container B (Double-Stacked on Container A in North-East, Weathered Industrial Olive)
+	local c2Pos = center + Vector3.new(37.5, 12, -69.5)
 	local c2Rot = CFrame.Angles(0, math.rad(24), 0)
 	createPropPart(props, "ShippingContainer_B", Vector3.new(12, 8, 20), CFrame.new(c2Pos) * c2Rot, Color3.fromRGB(80, 95, 75), Enum.Material.Metal)
 	createPropPart(props, "ContB_Rib1", Vector3.new(12.4, 8.2, 1), CFrame.new(c2Pos + c2Rot * Vector3.new(0, 0, -9.5)) * c2Rot, Color3.fromRGB(45, 50, 45), Enum.Material.Metal)
 	createPropPart(props, "ContB_Rib2", Vector3.new(12.4, 8.2, 1), CFrame.new(c2Pos + c2Rot * Vector3.new(0, 0, 9.5)) * c2Rot, Color3.fromRGB(45, 50, 45), Enum.Material.Metal)
 
-	-- 3. Heavy Industrial Salvage Crane (South-West)
-	local cranePos = center + Vector3.new(-38, 0, 36)
+	-- 3. Heavy Industrial Salvage Crane (South-East Perimeter)
+	local cranePos = center + Vector3.new(38, 0, 68)
 	createPropPart(props, "CraneBase", Vector3.new(8, 2, 8), CFrame.new(cranePos + Vector3.new(0, 1, 0)), Color3.fromRGB(40, 42, 48), Enum.Material.Concrete)
 	createPropPart(props, "CraneMast", Vector3.new(3.5, 26, 3.5), CFrame.new(cranePos + Vector3.new(0, 14, 0)), Color3.fromRGB(215, 145, 30), Enum.Material.Metal)
 	createPropPart(props, "CraneBoom", Vector3.new(3, 3, 24), CFrame.new(cranePos + Vector3.new(0, 26, -5)), Color3.fromRGB(215, 145, 30), Enum.Material.Metal)
@@ -941,19 +1020,19 @@ function ZoneService.buildZone1Props(folder: Instance, center: Vector3)
 	createPropPart(props, "CraneCable", Vector3.new(0.3, 10, 0.3), CFrame.new(cranePos + Vector3.new(0, 19, -12)), Color3.fromRGB(30, 30, 35), Enum.Material.Metal)
 	createPropPart(props, "CraneMagnet", Vector3.new(1.8, 6, 6), CFrame.new(cranePos + Vector3.new(0, 14, -12)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(65, 65, 75), Enum.Material.Metal, Enum.PartType.Cylinder)
 
-	-- 4. Rusted Coolant Silo (South-East)
-	local siloPos = center + Vector3.new(38, 0, 36)
+	-- 4. Rusted Coolant Silo (South Border Center)
+	local siloPos = center + Vector3.new(0, 0, 72)
 	createPropPart(props, "SiloBody", Vector3.new(18, 7.5, 7.5), CFrame.new(siloPos + Vector3.new(0, 9, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(150, 85, 50), Enum.Material.CorrodedMetal, Enum.PartType.Cylinder)
 	createPropPart(props, "SiloDome", Vector3.new(7.5, 5, 7.5), CFrame.new(siloPos + Vector3.new(0, 19, 0)), Color3.fromRGB(130, 75, 45), Enum.Material.Metal, Enum.PartType.Ball)
 	createPropPart(props, "SiloCatwalk", Vector3.new(1, 9, 9), CFrame.new(siloPos + Vector3.new(0, 11, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(50, 50, 55), Enum.Material.Metal, Enum.PartType.Cylinder)
 
-	-- 5. Rusted Oil Drum Clusters (Base resting on ground at Y = 1.4, stacked drum at Y = 4.2)
+	-- 5. Rusted Oil Drum Clusters (Placed along borders)
 	local drumOffsets = {
-		Vector3.new(-28, 1.4, -36),
-		Vector3.new(-26, 1.4, -34),
-		Vector3.new(-27, 4.2, -35),
-		Vector3.new(28, 1.4, -36),
-		Vector3.new(26, 1.4, -34),
+		Vector3.new(24, 1.4, -70),
+		Vector3.new(26, 1.4, -68),
+		Vector3.new(25, 4.2, -69),
+		Vector3.new(-24, 1.4, 70),
+		Vector3.new(-22, 1.4, 72),
 	}
 	for i, dOff in ipairs(drumOffsets) do
 		createPropPart(props, "Drum_" .. i, Vector3.new(2.8, 1.8, 1.8), CFrame.new(center + dOff) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(125, 65, 40), Enum.Material.CorrodedMetal, Enum.PartType.Cylinder)
@@ -966,8 +1045,8 @@ function ZoneService.buildZone2Props(folder: Instance, center: Vector3)
 	props.Name = "ThematicProps_Zone2"
 	props.Parent = folder
 
-	-- 1. Heavy Hydraulic Car-Crusher Press (North Center Behind Recycler)
-	local crusherPos = center + Vector3.new(0, 0, -44)
+	-- 1. Heavy Hydraulic Car-Crusher Press (North Border Directly Behind Recycler)
+	local crusherPos = center + Vector3.new(0, 0, -78)
 	createPropPart(props, "CrusherCol1", Vector3.new(2.2, 18, 2.2), CFrame.new(crusherPos + Vector3.new(-9, 9, -3)), Color3.fromRGB(70, 85, 100), Enum.Material.Metal)
 	createPropPart(props, "CrusherCol2", Vector3.new(2.2, 18, 2.2), CFrame.new(crusherPos + Vector3.new(9, 9, -3)), Color3.fromRGB(70, 85, 100), Enum.Material.Metal)
 	createPropPart(props, "CrusherCol3", Vector3.new(2.2, 18, 2.2), CFrame.new(crusherPos + Vector3.new(-9, 9, 3)), Color3.fromRGB(70, 85, 100), Enum.Material.Metal)
@@ -977,23 +1056,23 @@ function ZoneService.buildZone2Props(folder: Instance, center: Vector3)
 	createPropPart(props, "PistonR", Vector3.new(10, 1.8, 1.8), CFrame.new(crusherPos + Vector3.new(4.5, 12, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(180, 190, 205), Enum.Material.Metal, Enum.PartType.Cylinder)
 	createPropPart(props, "CrushRam", Vector3.new(17, 2, 6.5), CFrame.new(crusherPos + Vector3.new(0, 7, 0)), Color3.fromRGB(100, 115, 130), Enum.Material.Metal)
 
-	-- 2. Crushed Cyber-Car Stack (North-West Corner - Flush Contact)
-	local carPos1 = center + Vector3.new(-38, 0, -32)
+	-- 2. Crushed Cyber-Car Stack (North-West Border)
+	local carPos1 = center + Vector3.new(-40, 0, -68)
 	createPropPart(props, "CarLower_1", Vector3.new(7.5, 2.2, 12), CFrame.new(carPos1 + Vector3.new(0, 1.1, 0)), Color3.fromRGB(60, 95, 120), Enum.Material.Metal)
 	createPropPart(props, "CarLower_Windshield", Vector3.new(6.5, 1.0, 4), CFrame.new(carPos1 + Vector3.new(0, 2.7, -1)), Color3.fromRGB(20, 30, 40), Enum.Material.SmoothPlastic)
 	local rotCar2 = CFrame.Angles(math.rad(6), math.rad(14), math.rad(-4))
 	createPropPart(props, "CarUpper_1", Vector3.new(7, 2, 11), CFrame.new(carPos1 + Vector3.new(0.4, 2.9, 0)) * rotCar2, Color3.fromRGB(140, 50, 60), Enum.Material.Metal)
 
-	-- 3. Crushed Cyber-Car Stack (North-East Corner - Flush Contact)
-	local carPos2 = center + Vector3.new(38, 0, -32)
+	-- 3. Crushed Cyber-Car Stack (North-East Border)
+	local carPos2 = center + Vector3.new(40, 0, -68)
 	local rotCar3 = CFrame.Angles(math.rad(-5), math.rad(-16), math.rad(6))
 	createPropPart(props, "CarStack2_Base", Vector3.new(8, 2.2, 12), CFrame.new(carPos2 + Vector3.new(0, 1.1, 0)), Color3.fromRGB(160, 120, 40), Enum.Material.Metal)
 	createPropPart(props, "CarStack2_Top", Vector3.new(7.2, 2.0, 10.5), CFrame.new(carPos2 + Vector3.new(-0.3, 2.9, 0)) * rotCar3, Color3.fromRGB(75, 80, 95), Enum.Material.Metal)
 
-	-- 4. Giant Radial Tire Stacks (South-East & South-Center - Ground & Stack Flush)
+	-- 4. Giant Radial Tire Stacks (South Borders)
 	local tireClusters = {
-		Vector3.new(38, 0, 34),
-		Vector3.new(0, 0, 42),
+		Vector3.new(38, 0, 70),
+		Vector3.new(0, 0, 72),
 	}
 	for idx, tPos in ipairs(tireClusters) do
 		createPropPart(props, "Tire1_" .. idx, Vector3.new(1.6, 5.0, 5.0), CFrame.new(center + tPos + Vector3.new(-2.6, 0.8, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(25, 26, 30), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
@@ -1010,8 +1089,8 @@ function ZoneService.buildZone3Props(folder: Instance, center: Vector3)
 	props.Name = "ThematicProps_Zone3"
 	props.Parent = folder
 
-	-- 1. Twin Blast Smelting Chimney Kilns (North edge)
-	local chimneyOffsets = { Vector3.new(-18, 0, -44), Vector3.new(18, 0, -44) }
+	-- 1. Twin Blast Smelting Chimney Kilns (North Border Flanking Recycler)
+	local chimneyOffsets = { Vector3.new(-26, 0, -74), Vector3.new(26, 0, -74) }
 	for idx, cOff in ipairs(chimneyOffsets) do
 		local chPos = center + cOff
 		createPropPart(props, "Chimney_" .. idx, Vector3.new(24, 7, 7), CFrame.new(chPos + Vector3.new(0, 12, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(65, 48, 42), Enum.Material.Metal, Enum.PartType.Cylinder)
@@ -1024,21 +1103,21 @@ function ZoneService.buildZone3Props(folder: Instance, center: Vector3)
 		light.Parent = hatch
 	end
 
-	-- 2. Molten Slag Crucible Cauldron (North-West)
-	local crucPos = center + Vector3.new(-38, 0, -32)
+	-- 2. Molten Slag Crucible Cauldron (North-West Border)
+	local crucPos = center + Vector3.new(-38, 0, -66)
 	createPropPart(props, "CrucibleStandL", Vector3.new(1.8, 8, 1.8), CFrame.new(crucPos + Vector3.new(-4.5, 4, 0)), Color3.fromRGB(50, 48, 55), Enum.Material.Metal)
 	createPropPart(props, "CrucibleStandR", Vector3.new(1.8, 8, 1.8), CFrame.new(crucPos + Vector3.new(4.5, 4, 0)), Color3.fromRGB(50, 48, 55), Enum.Material.Metal)
 	createPropPart(props, "CruciblePot", Vector3.new(6, 6.5, 6.5), CFrame.new(crucPos + Vector3.new(0, 4.5, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(40, 38, 45), Enum.Material.Metal, Enum.PartType.Cylinder)
 	createPropPart(props, "MoltenSlag", Vector3.new(0.5, 5.5, 5.5), CFrame.new(crucPos + Vector3.new(0, 7.2, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(255, 105, 20), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 
-	-- 3. Overhead Conveyor Truss Span (South Border)
-	local convPos = center + Vector3.new(0, 0, 42)
+	-- 3. Overhead Conveyor Truss Span (South Border Perimeter)
+	local convPos = center + Vector3.new(0, 0, 72)
 	createPropPart(props, "ConvTowerL", Vector3.new(2.5, 16, 2.5), CFrame.new(convPos + Vector3.new(-18, 8, 0)), Color3.fromRGB(180, 85, 25), Enum.Material.Metal)
 	createPropPart(props, "ConvTowerR", Vector3.new(2.5, 16, 2.5), CFrame.new(convPos + Vector3.new(18, 8, 0)), Color3.fromRGB(180, 85, 25), Enum.Material.Metal)
 	createPropPart(props, "ConvTrack", Vector3.new(38, 2.5, 3.5), CFrame.new(convPos + Vector3.new(0, 16, 0)), Color3.fromRGB(190, 95, 30), Enum.Material.Metal)
 
-	-- 4. Titanium Ingot Pallet Stack (South-East - Perfectly Flush Resting)
-	local palletPos = center + Vector3.new(38, 0, 32)
+	-- 4. Titanium Ingot Pallet Stack (South-East Border)
+	local palletPos = center + Vector3.new(38, 0, 70)
 	createPropPart(props, "Pallet", Vector3.new(8, 0.8, 8), CFrame.new(palletPos + Vector3.new(0, 0.4, 0)), Color3.fromRGB(120, 85, 55), Enum.Material.Wood)
 	for layer = 1, 3 do
 		for bar = 1, 3 do
@@ -1054,8 +1133,8 @@ function ZoneService.buildZone4Props(folder: Instance, center: Vector3)
 	props.Name = "ThematicProps_Zone4"
 	props.Parent = folder
 
-	-- 1. Twin Monolithic Server Mainframe Banks (North Border)
-	local serverOffsets = { Vector3.new(-18, 0, -44), Vector3.new(18, 0, -44) }
+	-- 1. Twin Monolithic Server Mainframe Banks (North Border Flanking Recycler)
+	local serverOffsets = { Vector3.new(-26, 0, -74), Vector3.new(26, 0, -74) }
 	for idx, sOff in ipairs(serverOffsets) do
 		local sPos = center + sOff
 		createPropPart(props, "ServerFrame_" .. idx, Vector3.new(10, 14, 4), CFrame.new(sPos + Vector3.new(0, 7, 0)), Color3.fromRGB(28, 32, 42), Enum.Material.Metal)
@@ -1065,15 +1144,15 @@ function ZoneService.buildZone4Props(folder: Instance, center: Vector3)
 		end
 	end
 
-	-- 2. Quantum Transmitter Tower Spire (South Border Center)
-	local towerPos = center + Vector3.new(0, 0, 42)
+	-- 2. Quantum Transmitter Tower Spire (South Border Perimeter)
+	local towerPos = center + Vector3.new(0, 0, 72)
 	createPropPart(props, "TowerBase", Vector3.new(6, 2, 6), CFrame.new(towerPos + Vector3.new(0, 1, 0)), Color3.fromRGB(35, 40, 52), Enum.Material.Metal)
 	createPropPart(props, "TowerSpire", Vector3.new(3, 26, 3), CFrame.new(towerPos + Vector3.new(0, 14, 0)), Color3.fromRGB(45, 55, 70), Enum.Material.Metal)
 	createPropPart(props, "ArrayRing1", Vector3.new(0.6, 7.5, 7.5), CFrame.new(towerPos + Vector3.new(0, 20, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(35, 210, 190), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 	createPropPart(props, "ArrayRing2", Vector3.new(0.6, 5.5, 5.5), CFrame.new(towerPos + Vector3.new(0, 24, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(35, 210, 190), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 
-	-- 3. Slanted Data Consoles (North-West & North-East Corners)
-	local consoleOffsets = { Vector3.new(-38, 0, -30), Vector3.new(38, 0, -30) }
+	-- 3. Slanted Data Consoles (North-West & North-East Perimeter)
+	local consoleOffsets = { Vector3.new(-38, 0, -66), Vector3.new(38, 0, -66) }
 	for idx, cOff in ipairs(consoleOffsets) do
 		local cPos = center + cOff
 		createPropPart(props, "ConsolePedestal_" .. idx, Vector3.new(5, 3.5, 3), CFrame.new(cPos + Vector3.new(0, 1.75, 0)), Color3.fromRGB(30, 35, 48), Enum.Material.Metal)
@@ -1088,15 +1167,15 @@ function ZoneService.buildZone5Props(folder: Instance, center: Vector3)
 	props.Name = "ThematicProps_Zone5"
 	props.Parent = folder
 
-	-- 1. Massive Starship Ion Thruster Bell (North-West, 28 deg Impact Tilt)
-	local thrustPos = center + Vector3.new(-22, 0, -40)
+	-- 1. Massive Starship Ion Thruster Bell (North-West Border, 28 deg Impact Tilt)
+	local thrustPos = center + Vector3.new(-26, 0, -72)
 	local thrustRot = CFrame.Angles(math.rad(28), math.rad(15), 0)
 	createPropPart(props, "ThrusterBell", Vector3.new(12, 11, 11), CFrame.new(thrustPos + Vector3.new(0, 6, 0)) * thrustRot * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(42, 36, 54), Enum.Material.Metal, Enum.PartType.Cylinder)
 	createPropPart(props, "ThrusterRing", Vector3.new(2, 12.5, 12.5), CFrame.new(thrustPos + Vector3.new(0, 8.5, 0)) * thrustRot * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(60, 50, 75), Enum.Material.Metal, Enum.PartType.Cylinder)
 	createPropPart(props, "ThrusterCore", Vector3.new(1, 8.5, 8.5), CFrame.new(thrustPos + Vector3.new(0, 4.5, 0)) * thrustRot * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(150, 50, 230), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 
-	-- 2. Warp Drive Antimatter Containment Housing (North-East)
-	local warpPos = center + Vector3.new(22, 0, -40)
+	-- 2. Warp Drive Antimatter Containment Housing (North-East Border)
+	local warpPos = center + Vector3.new(26, 0, -72)
 	createPropPart(props, "WarpHousingBase", Vector3.new(8, 2, 8), CFrame.new(warpPos + Vector3.new(0, 1, 0)), Color3.fromRGB(38, 32, 48), Enum.Material.Metal)
 	createPropPart(props, "WarpHousingTop", Vector3.new(8, 2, 8), CFrame.new(warpPos + Vector3.new(0, 10, 0)), Color3.fromRGB(38, 32, 48), Enum.Material.Metal)
 	createPropPart(props, "WarpStrut1", Vector3.new(1.4, 8, 1.4), CFrame.new(warpPos + Vector3.new(-3, 5.5, -3)), Color3.fromRGB(55, 45, 70), Enum.Material.Metal)
@@ -1105,16 +1184,16 @@ function ZoneService.buildZone5Props(folder: Instance, center: Vector3)
 	createPropPart(props, "WarpStrut4", Vector3.new(1.4, 8, 1.4), CFrame.new(warpPos + Vector3.new(3, 5.5, 3)), Color3.fromRGB(55, 45, 70), Enum.Material.Metal)
 	createPropPart(props, "SingularityCore", Vector3.new(4, 4, 4), CFrame.new(warpPos + Vector3.new(0, 5.5, 0)), Color3.fromRGB(175, 60, 255), Enum.Material.SmoothPlastic, Enum.PartType.Ball)
 
-	-- 3. Fractured Dreadnought Armor Bulkhead Slab (South Border)
-	local slabPos = center + Vector3.new(0, 0, 42)
+	-- 3. Fractured Dreadnought Armor Bulkhead Slab (South Border Perimeter)
+	local slabPos = center + Vector3.new(0, 0, 72)
 	local slabRot = CFrame.Angles(math.rad(-20), 0, math.rad(5))
 	createPropPart(props, "HullArmorSlab", Vector3.new(28, 8, 2.5), CFrame.new(slabPos + Vector3.new(0, 4, 0)) * slabRot, Color3.fromRGB(48, 42, 60), Enum.Material.Metal)
 	createPropPart(props, "HullArmorRib", Vector3.new(28.4, 1.5, 3.2), CFrame.new(slabPos + Vector3.new(0, 6, 0)) * slabRot, Color3.fromRGB(65, 55, 80), Enum.Material.Metal)
 
-	-- 4. Alien Void Crystal Formations (North-West & South-East)
+	-- 4. Alien Void Crystal Formations (North-West & South-East Perimeter)
 	local crystalClusters = {
-		Vector3.new(-38, 0, -28),
-		Vector3.new(38, 0, 32),
+		Vector3.new(-38, 0, -66),
+		Vector3.new(38, 0, 70),
 	}
 	for idx, crOff in ipairs(crystalClusters) do
 		local crPos = center + crOff
@@ -1129,7 +1208,7 @@ function ZoneService.constructZoneSign(parent: Instance, centerPos: Vector3, zon
 	local model = Instance.new("Model")
 	model.Name = "SignGantry_Zone" .. tostring(zone.Id)
 
-	local signPos = centerPos + Vector3.new(0, 21, -45)
+	local signPos = centerPos + Vector3.new(0, 21, -72)
 	local signWidth = 28
 	local signHeight = 8.5
 	local signDepth = 1.6
@@ -1140,7 +1219,7 @@ function ZoneService.constructZoneSign(parent: Instance, centerPos: Vector3, zon
 		local footing = Instance.new("Part")
 		footing.Name = "Footing"
 		footing.Size = Vector3.new(3.6, 1.2, 3.6)
-		footing.Position = centerPos + Vector3.new(colX, 0.6, -45)
+		footing.Position = centerPos + Vector3.new(colX, 0.6, -72)
 		footing.Anchored = true
 		footing.Material = Enum.Material.Concrete
 		footing.Color = Color3.fromRGB(45, 48, 55)
@@ -1149,7 +1228,7 @@ function ZoneService.constructZoneSign(parent: Instance, centerPos: Vector3, zon
 		local col = Instance.new("Part")
 		col.Name = "TrussColumn"
 		col.Size = Vector3.new(2.0, 25, 2.0)
-		col.Position = centerPos + Vector3.new(colX, 12.5, -45)
+		col.Position = centerPos + Vector3.new(colX, 12.5, -72)
 		col.Anchored = true
 		col.Material = Enum.Material.Metal
 		col.Color = Color3.fromRGB(32, 35, 44)
@@ -1160,7 +1239,7 @@ function ZoneService.constructZoneSign(parent: Instance, centerPos: Vector3, zon
 		strut.Name = "DiagonalStrut"
 		strut.Size = Vector3.new(1.0, 10, 1.0)
 		local strutSign = colX > 0 and -1 or 1
-		strut.Position = centerPos + Vector3.new(colX + strutSign * 3.5, 18, -45.2)
+		strut.Position = centerPos + Vector3.new(colX + strutSign * 3.5, 18, -72.2)
 		strut.Orientation = Vector3.new(0, 0, strutSign * 35)
 		strut.Anchored = true
 		strut.Material = Enum.Material.Metal
@@ -1279,7 +1358,7 @@ function ZoneService.constructZoneSign(parent: Instance, centerPos: Vector3, zon
 		stText.Font = Enum.Font.GothamBlack
 		stText.TextSize = 16
 		stText.TextColor3 = zone.Color
-		stText.Text = string.format("● SECTOR 0%d // DEPLOYMENT", zone.Id)
+		stText.Text = string.format("SECTOR 0%d // DEPLOYMENT", zone.Id)
 		stText.Parent = sectorTag
 
 		local multTag = Instance.new("Frame")
@@ -1303,7 +1382,7 @@ function ZoneService.constructZoneSign(parent: Instance, centerPos: Vector3, zon
 		mtText.Font = Enum.Font.GothamBlack
 		mtText.TextSize = 16
 		mtText.TextColor3 = Color3.fromRGB(255, 200, 50)
-		mtText.Text = string.format("🔩 %dx SCRAP MULTIPLIER", zone.BaseYield)
+		mtText.Text = string.format("%dx SCRAP MULTIPLIER", zone.BaseYield)
 		mtText.Parent = multTag
 
 		-- Main Zone Title
@@ -1345,9 +1424,9 @@ function ZoneService.constructZoneSign(parent: Instance, centerPos: Vector3, zon
 		badgeList.Parent = badges
 
 		local badgeData = {
-			string.format("🗺️ FAST TRAVEL: ZONE %d", zone.Id),
-			string.format("⚡ BASE VALUE: +%d", zone.BaseYield),
-			string.format("🛡️ HAZARD TIER: %d", zone.Id),
+			string.format("TRANSIT: ZONE %d", zone.Id),
+			string.format("BASE VALUE: +%d", zone.BaseYield),
+			string.format("HAZARD TIER: %d", zone.Id),
 		}
 		for _, bText in ipairs(badgeData) do
 			local bg = Instance.new("Frame")
@@ -1416,6 +1495,42 @@ function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Ve
 	platform.Material = Enum.Material.Concrete
 	platform.Color = Color3.fromRGB(42, 45, 54)
 	platform.Parent = folder
+
+	-- Platform anti-trespass touch handler for locked zones
+	local platformDebounce: { [Player]: number } = {}
+	platform.Touched:Connect(function(hit)
+		local char = hit.Parent
+		if not char then return end
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		if not hum then return end
+		local player = Players:GetPlayerFromCharacter(char)
+		if not player then return end
+
+		local data = DataService.get(player)
+		local maxZ = data and (data.MaxZoneReached or 1) or 1
+		if maxZ < zone.Id then
+			local now = os.clock()
+			if platformDebounce[player] and now - platformDebounce[player] < 1.0 then
+				return
+			end
+			platformDebounce[player] = now
+
+			local root = char:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if root then
+				local fromCenter = ZONE_CENTERS[zone.Id - 1]
+				local toCenter = ZONE_CENTERS[zone.Id]
+				local gateX = (fromCenter.X + 50 + toCenter.X - 50) / 2
+				root.AssemblyLinearVelocity = Vector3.zero
+				root.AssemblyAngularVelocity = Vector3.zero
+				root.CFrame = CFrame.new(gateX - 14, 3.5, math.clamp(root.Position.Z, -6, 6))
+
+				local notif = Remotes.getEvent("ShowNotification")
+				if notif then
+					notif:FireClient(player, "SECURITY LOCK", string.format("Zone %d is locked! Unlock it with Scrap to enter.", zone.Id), Color3.fromRGB(255, 75, 75))
+				end
+			end
+		end
+	end)
 
 	-- Perimeter Safety Curb Barrier
 	local curbThickness = 2
@@ -1489,15 +1604,19 @@ function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Ve
 	-- Towering High-Definition Sci-Fi Gantry Billboard for this zone
 	ZoneService.constructZoneSign(folder, centerPos, zone)
 
-	-- Scrap Recycler Machine & Deposit Sell Pad on this zone platform
-	ZoneService.constructRecycler(folder, centerPos + Vector3.new(0, 0, -36), zone.Id)
+	-- Scrap Recycler Machine & Deposit Sell Pad on North perimeter
+	ZoneService.constructRecycler(folder, centerPos + Vector3.new(0, 0, -68), zone.Id)
 
-	-- 4 Scrap Nodes per zone
+	-- 8 Scrap Nodes per zone - Generously distributed with >20 studs clearance
 	local offsets = {
-		Vector3.new(-22, 0, -22),
-		Vector3.new(22, 0, -22),
-		Vector3.new(-22, 0, 22),
-		Vector3.new(22, 0, 22),
+		Vector3.new(-24, 0, -28),
+		Vector3.new(24, 0, -28),
+		Vector3.new(-24, 0, -50),
+		Vector3.new(24, 0, -50),
+		Vector3.new(-24, 0, 28),
+		Vector3.new(24, 0, 28),
+		Vector3.new(-24, 0, 52),
+		Vector3.new(24, 0, 52),
 	}
 
 	for i, offset in ipairs(offsets) do
@@ -1506,8 +1625,20 @@ function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Ve
 		table.insert(activeNodes, pile)
 	end
 
-	-- Fast Travel Portal on this platform (Safely placed in the corner at (-38, 38) with >22 studs clearance from scrap nodes)
-	createPortalPad(folder, centerPos + Vector3.new(-38, 0.3, 38), zone.Id)
+	-- Fast Travel Portal on this platform (Along South-West border with >22 studs clearance from nodes)
+	createPortalPad(folder, centerPos + Vector3.new(-38, 0.3, 68), zone.Id)
+
+	-- Dedicated Zone Egg Pod along South-East perimeter
+	local zoneEggTypeMap = {
+		[2] = "JunkyardEgg",
+		[3] = "FoundryEgg",
+		[4] = "CyberEgg",
+		[5] = "VoidEgg",
+	}
+	local eggTypeForZone = zoneEggTypeMap[zone.Id]
+	if eggTypeForZone then
+		ZoneService.constructEggPod(folder, centerPos + Vector3.new(38, 0.4, 68), eggTypeForZone)
+	end
 
 	-- Thematic Environmental Sci-Fi Props for Zones 2 to 5
 	if zone.Id == 2 then
@@ -1519,6 +1650,10 @@ function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Ve
 	elseif zone.Id == 5 then
 		ZoneService.buildZone5Props(folder, centerPos)
 	end
+
+	-- Floating Island Underside Rock Root & Anti-Gravity Thruster Units
+	EnvironmentService.constructIslandUnderside(folder, centerPos, zone.Id, zone.Color)
+	EnvironmentService.constructSurfaceDressing(folder, centerPos, zone)
 end
 
 -- 5. Construct Seamless Connecting Bridges with Solid Safety Guardrails
@@ -1572,6 +1707,19 @@ function ZoneService.constructBridge(zoneId: number)
 	neonStripN.Color = targetZone.Color
 	neonStripN.Parent = bridgeFolder
 
+	-- Anti-Jump Barrier Wall North (28 studs high - physically blocks hopping on rails or jumping around gate)
+	local antiJumpN = Instance.new("Part")
+	antiJumpN.Name = "AntiJumpWallN"
+	antiJumpN.Size = Vector3.new(bridgeLength, 28, 1)
+	antiJumpN.Position = Vector3.new(bridgeX, 14, -(bridgeWidth / 2) + 0.75)
+	antiJumpN.Anchored = true
+	antiJumpN.CanCollide = true
+	antiJumpN.Material = Enum.Material.Glass
+	antiJumpN.Color = Color3.fromRGB(180, 200, 220)
+	antiJumpN.Transparency = 0.88
+	antiJumpN.CastShadow = false
+	antiJumpN.Parent = bridgeFolder
+
 	-- South Safety Guardrail (Prevents falling off!)
 	local railS = Instance.new("Part")
 	railS.Name = "GuardrailS"
@@ -1589,6 +1737,19 @@ function ZoneService.constructBridge(zoneId: number)
 	neonStripS.Material = Enum.Material.SmoothPlastic
 	neonStripS.Color = targetZone.Color
 	neonStripS.Parent = bridgeFolder
+
+	-- Anti-Jump Barrier Wall South (28 studs high - physically blocks hopping on rails or jumping around gate)
+	local antiJumpS = Instance.new("Part")
+	antiJumpS.Name = "AntiJumpWallS"
+	antiJumpS.Size = Vector3.new(bridgeLength, 28, 1)
+	antiJumpS.Position = Vector3.new(bridgeX, 14, (bridgeWidth / 2) - 0.75)
+	antiJumpS.Anchored = true
+	antiJumpS.CanCollide = true
+	antiJumpS.Material = Enum.Material.Glass
+	antiJumpS.Color = Color3.fromRGB(180, 200, 220)
+	antiJumpS.Transparency = 0.88
+	antiJumpS.CastShadow = false
+	antiJumpS.Parent = bridgeFolder
 
 	-- Grand Archway Forcefield Gate in Bridge Center
 	local gateModel = Instance.new("Model")
@@ -1656,9 +1817,9 @@ function ZoneService.constructBridge(zoneId: number)
 	asTitle.Size = UDim2.new(1, 0, 1, 0)
 	asTitle.BackgroundTransparency = 1
 	asTitle.Font = Enum.Font.GothamBlack
-	asTitle.TextSize = 22
+	asTitle.TextSize = 20
 	asTitle.TextColor3 = Color3.new(1, 1, 1)
-	asTitle.Text = string.format("▶ ZONE %d: %s ◀", targetZone.Id, targetZone.Name:upper())
+	asTitle.Text = string.format("ZONE %d // %s", targetZone.Id, targetZone.Name:upper())
 	asTitle.Parent = asBox
 
 	local asTStroke = Instance.new("UIStroke")
@@ -1668,14 +1829,62 @@ function ZoneService.constructBridge(zoneId: number)
 
 	local barrier = Instance.new("Part")
 	barrier.Name = "Forcefield"
-	barrier.Size = Vector3.new(1.2, 14, bridgeWidth - 3)
-	barrier.Position = Vector3.new(bridgeX, 7, 0)
+	barrier.Size = Vector3.new(2.5, 26, bridgeWidth + 2)
+	barrier.Position = Vector3.new(bridgeX, 13, 0)
 	barrier.Anchored = true
 	barrier.CanCollide = true
 	barrier.Transparency = 0.35
 	barrier.Material = Enum.Material.ForceField
 	barrier.Color = targetZone.Color
 	barrier.Parent = gateModel
+
+	-- Full-span Void Perimeter Barrier across the entire void gap (prevents jumping around in the void)
+	local perimeterBarrier = Instance.new("Part")
+	perimeterBarrier.Name = "PerimeterForcefield"
+	perimeterBarrier.Size = Vector3.new(3, 100, 600)
+	perimeterBarrier.Position = Vector3.new(bridgeX, 45, 0)
+	perimeterBarrier.Anchored = true
+	perimeterBarrier.CanCollide = true
+	perimeterBarrier.Transparency = 0.92
+	perimeterBarrier.Material = Enum.Material.ForceField
+	perimeterBarrier.Color = targetZone.Color
+	perimeterBarrier.CastShadow = false
+	perimeterBarrier.Parent = gateModel
+
+	-- Server-Authoritative Anti-Bypass Guard (Prevents physics clipping / noclip into locked zones)
+	local bounceDebounce: { [Player]: number } = {}
+	local function handleBarrierTouch(hit: BasePart)
+		local char = hit.Parent
+		if not char then return end
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		if not hum then return end
+		local player = Players:GetPlayerFromCharacter(char)
+		if not player then return end
+
+		local now = os.clock()
+		if bounceDebounce[player] and now - bounceDebounce[player] < 1.0 then
+			return
+		end
+
+		local data = DataService.get(player)
+		local maxZ = data and (data.MaxZoneReached or 1) or 1
+		if maxZ < targetZone.Id then
+			bounceDebounce[player] = now
+			local root = char:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if root then
+				root.AssemblyLinearVelocity = Vector3.zero
+				root.AssemblyAngularVelocity = Vector3.zero
+				root.CFrame = CFrame.new(bridgeX - 14, 3.5, math.clamp(root.Position.Z, -6, 6))
+				local notif = Remotes.getEvent("ShowNotification")
+				if notif then
+					notif:FireClient(player, "SECURITY LOCK", string.format("Zone %d is locked! Unlock it with Scrap to enter.", targetZone.Id), Color3.fromRGB(255, 75, 75))
+				end
+			end
+		end
+	end
+
+	barrier.Touched:Connect(handleBarrierTouch)
+	perimeterBarrier.Touched:Connect(handleBarrierTouch)
 
 	local promptPart = Instance.new("Part")
 	promptPart.Size = Vector3.new(4, 4, 4)
@@ -1685,9 +1894,16 @@ function ZoneService.constructBridge(zoneId: number)
 	promptPart.CanCollide = false
 	promptPart.Parent = gateModel
 
+	local formattedUnlock = tostring(math.floor(targetZone.UnlockCost))
+	while true do
+		local k
+		formattedUnlock, k = string.gsub(formattedUnlock, "^(-?%d+)(%d%d%d)", "%1,%2")
+		if k == 0 then break end
+	end
+
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ObjectText = targetZone.Name
-	prompt.ActionText = string.format("Unlock Zone (%d Scrap)", targetZone.UnlockCost)
+	prompt.ActionText = string.format("Unlock Zone (%s Scrap)", formattedUnlock)
 	prompt.HoldDuration = 0.4
 	prompt.MaxActivationDistance = 16
 	prompt.RequiresLineOfSight = false
@@ -1703,6 +1919,9 @@ function ZoneService.constructBridge(zoneId: number)
 		Barrier = barrier,
 		Prompt = prompt,
 	}
+
+	-- Heavy Bridge Undercarriage Box Girders, Cross Trusses & Magnetic Stabilizer
+	EnvironmentService.constructBridgeUnderside(bridgeFolder, fromCenter, toCenter, bridgeX, bridgeLength, bridgeWidth, targetZone.Id)
 end
 
 -- 6. Void Fall Protection (Catch falling players and safely teleport them)
@@ -1786,12 +2005,6 @@ function ZoneService.unlockZone(player: Player, zoneId: number): boolean
 	if not zone then return false end
 
 	if (data.MaxZoneReached or 1) >= zoneId then
-		local gate = zoneGates[zoneId]
-		if gate and gate.Barrier then
-			gate.Barrier.CanCollide = false
-			gate.Barrier.Transparency = 1
-			gate.Prompt.Enabled = false
-		end
 		return true
 	end
 
@@ -1809,19 +2022,10 @@ function ZoneService.unlockZone(player: Player, zoneId: number): boolean
 
 		local notif = Remotes.getEvent("ShowNotification")
 		notif:FireClient(player, "ZONE UNLOCKED!", string.format("Welcome to %s!", zone.Name), zone.Color)
-
-		local gate = zoneGates[zoneId]
-		if gate and gate.Barrier then
-			TweenService:Create(gate.Barrier, TweenInfo.new(1.0, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-				Transparency = 1,
-			}):Play()
-			gate.Barrier.CanCollide = false
-			gate.Prompt.Enabled = false
-		end
 		return true
 	else
 		local notif = Remotes.getEvent("ShowNotification")
-		notif:FireClient(player, "Need More Scrap", string.format("Need %d Scrap to unlock %s.", zone.UnlockCost, zone.Name), Color3.fromRGB(255, 70, 70))
+		notif:FireClient(player, "Need More Scrap", string.format("Need %s Scrap to unlock %s.", CurrencyService.formatNumber(zone.UnlockCost), zone.Name), Color3.fromRGB(255, 70, 70))
 	end
 
 	return false
@@ -1835,49 +2039,102 @@ function ZoneService.teleportPlayer(player: Player, zoneId: number)
 	local char = player.Character
 	if not char then return end
 	local root = char:FindFirstChild("HumanoidRootPart") :: BasePart?
-	if not root then return end
+	if root then
+		root.AssemblyLinearVelocity = Vector3.zero
+		root.AssemblyAngularVelocity = Vector3.zero
+	end
 
 	-- Zone 0 or 1: Warp to Central Hub Recycler / Spawn
 	if zoneId <= 1 then
-		root.AssemblyLinearVelocity = Vector3.zero
-		root.CFrame = CFrame.new(0, 3.5, 5) -- Right in front of Recycler
+		if root then
+			root.CFrame = CFrame.new(0, 3.5, 0)
+		end
+		data.CurrentZone = 1
+		DataService.sync(player)
 		local notif = Remotes.getEvent("ShowNotification")
-		notif:FireClient(player, "WARPED", "Welcome to Central Hub & Scrap Recycler!", Color3.fromRGB(40, 220, 120))
+		notif:FireClient(player, "WARPED", "Traveled to Central Hub.", Color3.fromRGB(80, 200, 255))
 		return
 	end
 
-	local zone = Config.Zones[zoneId]
-	if not zone then return end
-
-	local maxZone = data.MaxZoneReached or 1
-	if maxZone < zoneId then
+	-- Outer Zone verification
+	if (data.MaxZoneReached or 1) < zoneId then
 		local notif = Remotes.getEvent("ShowNotification")
-		notif:FireClient(player, "Zone Locked", string.format("You haven't unlocked %s yet! (%d Scrap)", zone.Name, zone.UnlockCost), Color3.fromRGB(255, 70, 70))
+		notif:FireClient(player, "SECTOR LOCKED", string.format("Zone %d is locked! Unlock it first.", zoneId), Color3.fromRGB(255, 70, 70))
 		return
 	end
 
 	local targetCenter = ZONE_CENTERS[zoneId]
-	if targetCenter then
-		root.AssemblyLinearVelocity = Vector3.zero
+	if targetCenter and root then
 		root.CFrame = CFrame.new(targetCenter + Vector3.new(0, 3.5, 0))
 		data.CurrentZone = zoneId
 		DataService.sync(player)
-
+		local zone = Config.Zones[zoneId]
 		local notif = Remotes.getEvent("ShowNotification")
-		notif:FireClient(player, "WARPED", string.format("Warped to Zone %d: %s!", zone.Id, zone.Name), zone.Color)
+		notif:FireClient(player, "WARPED", string.format("Traveled to Zone %d: %s.", zoneId, zone and zone.Name or ""), zone and zone.Color or Color3.fromRGB(80, 200, 255))
 	end
 end
 
-function ZoneService.init()
-	ZoneService.setupLighting()
+-- 7. Continuous Spatial Zone Patrol Loop (Server-authoritative coordinate verification)
+function ZoneService.setupZonePatrol()
+	task.spawn(function()
+		while true do
+			task.wait(0.25)
+			for _, player in ipairs(Players:GetPlayers()) do
+				local char = player.Character
+				if char and char.Parent then
+					local root = char:FindFirstChild("HumanoidRootPart") :: BasePart?
+					if root then
+						local data = DataService.get(player)
+						local maxZone = data and (data.MaxZoneReached or 1) or 1
+						if maxZone < #Config.Zones then
+							local nextZoneId = maxZone + 1
+							local fromCenter = ZONE_CENTERS[nextZoneId - 1]
+							local toCenter = ZONE_CENTERS[nextZoneId]
+							if fromCenter and toCenter then
+								local gateX = (fromCenter.X + 50 + toCenter.X - 50) / 2
+								-- If player's X coordinate is at or beyond the locked gate threshold
+								if root.Position.X >= (gateX - 0.5) then
+									root.AssemblyLinearVelocity = Vector3.zero
+									root.AssemblyAngularVelocity = Vector3.zero
+									root.CFrame = CFrame.new(gateX - 14, 3.5, math.clamp(root.Position.Z, -6, 6))
 
-	-- Clean up old bridges and duplicate gates
-	local oldBridges = Workspace:FindFirstChild("Bridges")
-	if oldBridges then
-		oldBridges:Destroy()
+									local now = os.clock()
+									if not patrolDebounces[player] or (now - patrolDebounces[player]) >= 1.0 then
+										patrolDebounces[player] = now
+										local notif = Remotes.getEvent("ShowNotification")
+										if notif then
+											notif:FireClient(
+												player,
+												"SECURITY LOCK",
+												string.format("Zone %d is locked! Unlock it with Scrap to enter.", nextZoneId),
+												Color3.fromRGB(255, 75, 75)
+											)
+										end
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+	end)
+	print("[ZoneService] Server-authoritative spatial zone patrol active.")
+end
+
+function ZoneService.init()
+	-- Clear old world structures
+	for _, name in ipairs({ "CentralHub", "Bridges", "ScrapNodes", "Decorations", "SafetyNet" }) do
+		local old = Workspace:FindFirstChild(name)
+		if old then old:Destroy() end
+	end
+	for i = 2, 10 do
+		local old = Workspace:FindFirstChild("Zone_" .. tostring(i))
+		if old then old:Destroy() end
 	end
 	table.clear(zoneGates)
 
+	ZoneService.setupLighting()
 	ZoneService.constructCentralHub()
 
 	-- Construct outer zones (Zone 2 to 5)
@@ -1888,27 +2145,14 @@ function ZoneService.init()
 		ZoneService.constructBridge(i)
 	end
 
+	-- Initialize Environment, Skybox & Horizon Vistas
+	EnvironmentService.init()
+
 	-- Void fall safety net
 	ZoneService.setupVoidProtection()
 
-	-- Gate auto-open for players who already unlocked the zone
-	Players.PlayerAdded:Connect(function(player)
-		task.delay(1.5, function()
-			if not player.Parent then return end
-			local data = DataService.get(player)
-			if data then
-				local maxZ = data.MaxZoneReached or 1
-				for z = 2, maxZ do
-					local gate = zoneGates[z]
-					if gate and gate.Barrier then
-						gate.Barrier.CanCollide = false
-						gate.Barrier.Transparency = 1
-						gate.Prompt.Enabled = false
-					end
-				end
-			end
-		end)
-	end)
+	-- Server-authoritative spatial zone patrol
+	ZoneService.setupZonePatrol()
 
 	-- Remote event listener for TeleportZone
 	if RunService:IsServer() then
@@ -1920,6 +2164,21 @@ function ZoneService.init()
 				end
 			end)
 		end
+
+		local unlockRemote = Remotes.getEvent("UnlockZone")
+		if unlockRemote then
+			unlockRemote.OnServerEvent:Connect(function(player, zoneId)
+				if type(zoneId) == "number" then
+					ZoneService.unlockZone(player, zoneId)
+				end
+			end)
+		end
+
+		Players.PlayerRemoving:Connect(function(player)
+			portalDebounces[player] = nil
+			sellDebounce[player] = nil
+			patrolDebounces[player] = nil
+		end)
 	end
 
 	print("[ZoneService] Polished Central Hub, Seamless Bridges, and Anti-Gravity Protection initialized.")

@@ -54,7 +54,7 @@ function DebugService.handleAction(player: Player, action: string, arg: any?)
 		CurrencyService.updateLeaderstats(player)
 		pcall(function()
 			local BackpackService = require(script.Parent.BackpackService)
-			BackpackService.createBackpack(player)
+			BackpackService.updateCharacterBackpack(player)
 		end)
 		notif:FireClient(player, "DEBUG: Upgrades Maxed", "Scrapper Power, Speed, and Magnetic Cargo are now MAX level!", Color3.fromRGB(40, 210, 90))
 
@@ -65,6 +65,13 @@ function DebugService.handleAction(player: Player, action: string, arg: any?)
 		end
 		DataService.sync(player)
 		notif:FireClient(player, "DEBUG: Perks Active", "All Gears Prestige Shop Perks unlocked and active!", Color3.fromRGB(255, 170, 0))
+
+	elseif action == "ToggleSuperSprint" then
+		data.HasSuperSprintPass = not (data.HasSuperSprintPass == true)
+		DataService.sync(player)
+		local statusText = data.HasSuperSprintPass and "ENABLED (+8 Sprint, +4 Walk)" or "DISABLED"
+		local statusColor = data.HasSuperSprintPass and Color3.fromRGB(0, 220, 255) or Color3.fromRGB(200, 200, 200)
+		notif:FireClient(player, "DEBUG: Super Sprint", "Hyper Thrusters Gamepass: " .. statusText, statusColor)
 
 	elseif action == "UnlockAllTools" then
 		data.OwnedTools = data.OwnedTools or {}
@@ -101,9 +108,28 @@ function DebugService.handleAction(player: Player, action: string, arg: any?)
 
 	elseif action == "SpawnMeteor" then
 		local EventService = require(script.Parent.EventService)
-		local pod = EventService.triggerDropPod()
+		local targetZone: number? = nil
+
+		if type(arg) == "number" then
+			targetZone = math.clamp(math.floor(arg), 1, 5)
+		elseif arg == "Current" or arg == "Here" then
+			local char = player.Character
+			local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if root then
+				targetZone = math.clamp(math.floor((root.Position.X + 80) / 160) + 1, 1, 5)
+			elseif data.CurrentZone then
+				targetZone = math.clamp(data.CurrentZone, 1, 5)
+			else
+				targetZone = 1
+			end
+		end
+
+		local pod = EventService.triggerDropPod(nil, targetZone, true)
 		if pod then
-			notif:FireClient(player, "DEBUG: Pod Incoming", "Summoned an Orbital Raid Pod into the wasteland!", Color3.fromRGB(255, 140, 20))
+			local locName = pod:GetAttribute("LocationName")
+			local msg = locName and string.format("Summoned an Orbital Raid Pod into %s!", locName)
+				or (targetZone and string.format("Summoned an Orbital Raid Pod into Zone %d!", targetZone) or "Summoned an Orbital Raid Pod into the wasteland!")
+			notif:FireClient(player, "DEBUG: Pod Incoming", msg, Color3.fromRGB(255, 140, 20))
 		end
 
 	elseif action == "ClearCargo" then
@@ -115,6 +141,20 @@ function DebugService.handleAction(player: Player, action: string, arg: any?)
 			BackpackService.updateCoreColor(player)
 		end)
 		notif:FireClient(player, "DEBUG: Cargo Cleared", "Backpack emptied.", Color3.fromRGB(200, 200, 200))
+
+	elseif action == "ResetDailyReward" then
+		data.LastDailyRewardClaim = 0
+		DataService.sync(player)
+		notif:FireClient(player, "DEBUG: Daily Reward Ready", "Daily reward cooldown reset to 0! You can claim immediately.", Color3.fromRGB(255, 200, 50))
+
+	elseif action == "ResetDailyQuests" then
+		data.LastDailyQuestReset = os.time()
+		data.Quests = {}
+		for _, q in ipairs(Config.Quests) do
+			data.Quests[q.Id] = { Progress = 0, Completed = false, Claimed = false }
+		end
+		DataService.sync(player)
+		notif:FireClient(player, "DEBUG: Quests Reset", "Daily objectives have been reset to 0% progress!", Color3.fromRGB(80, 220, 120))
 
 	elseif action == "ClearStats" then
 		data.Scrap = 0
@@ -139,16 +179,52 @@ function DebugService.handleAction(player: Player, action: string, arg: any?)
 		data.Upgrades = { ScrapPower = 1, ScrapSpeed = 1, BackpackCapacity = 1 }
 		data.GearsPerks = {}
 		data.Pets = {}
+		data.EquippedPetCount = 0
+		data.InventoryCount = 0
+		data.TotalScrapsMined = 0
 		data.OwnedTools = { ["OmniWrench"] = true }
 		data.EquippedTool = "OmniWrench"
+
+		data.Quests = {}
+		if Config.Quests then
+			for _, q in ipairs(Config.Quests) do
+				data.Quests[q.Id] = { Progress = 0, Completed = false, Claimed = false }
+			end
+		end
+
 		CurrencyService.updateLeaderstats(player)
 		DataService.sync(player)
+
+		-- Despawn any active 3D drones from Workspace
+		pcall(function()
+			local PetService = require(script.Parent.PetService)
+			PetService.updateVisualDrones(player)
+		end)
+
+		-- Reset backpack visual model to Tier 1
 		pcall(function()
 			local BackpackService = require(script.Parent.BackpackService)
-			BackpackService.createBackpack(player)
+			BackpackService.updateCharacterBackpack(player)
 		end)
+
+		-- Reset equipped scrapper tool to default Omni-Wrench
 		local ActionService = require(script.Parent.ActionService)
 		ActionService.giveScrapperTool(player)
+
+		-- Reset character position back to Central Hub spawn
+		local char = player.Character
+		if char then
+			local root = char:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if root then
+				root.AssemblyLinearVelocity = Vector3.zero
+				root.AssemblyAngularVelocity = Vector3.zero
+				root.CFrame = CFrame.new(0, 3.5, 0)
+			end
+		end
+
+		-- Persist wipe to DataStore
+		DataService.saveData(player)
+
 		notif:FireClient(player, "DEBUG: Profile Reset", "Data reset to fresh defaults.", Color3.fromRGB(255, 70, 70))
 	end
 end
@@ -160,6 +236,33 @@ function DebugService.init()
 			DebugService.handleAction(player, action, arg)
 		end
 	end)
+
+	-- ServerDebugInvoker BindableFunction for server-side automation & testing
+	local serverInvoker = ReplicatedStorage:FindFirstChild("ServerDebugInvoker") :: BindableFunction?
+	if not serverInvoker then
+		serverInvoker = Instance.new("BindableFunction")
+		serverInvoker.Name = "ServerDebugInvoker"
+		serverInvoker.Parent = ReplicatedStorage
+	end
+	serverInvoker.OnInvoke = function(action: string, player: Player?, arg: any?)
+		if action == "HandleAction" and player and type(arg) == "string" then
+			DebugService.handleAction(player, arg)
+			return true
+		elseif action == "UnlockZone" and player and type(arg) == "number" then
+			local ZoneService = require(script.Parent.ZoneService)
+			return ZoneService.unlockZone(player, arg)
+		elseif action == "HatchEgg" and player and type(arg) == "string" then
+			local PetService = require(script.Parent.PetService)
+			return PetService.hatchEgg(player, arg)
+		elseif action == "GetData" and player then
+			return DataService.get(player)
+		elseif action == "SetScrap" and player and type(arg) == "number" then
+			local data = DataService.get(player)
+			if data then data.Scrap = arg end
+			return true
+		end
+		return nil
+	end
 
 	print("[DebugService] Initialized with Developer Admin Console.")
 end

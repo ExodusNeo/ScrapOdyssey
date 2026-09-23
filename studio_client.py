@@ -3,11 +3,14 @@ import json
 import sys
 import time
 
+import os
+
 MCP_PATH = r"C:\Users\ddgut\AppData\Local\Roblox\Versions\version-55808de4b1914919\StudioMCP.exe"
 
 class StudioClient:
     def __init__(self):
-        self.stderr_file = open("mcp_stderr.log", "w", encoding="utf-8")
+        log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mcp_stderr.log")
+        self.stderr_file = open(log_path, "w", encoding="utf-8")
         self.proc = subprocess.Popen(
             [MCP_PATH],
             stdin=subprocess.PIPE,

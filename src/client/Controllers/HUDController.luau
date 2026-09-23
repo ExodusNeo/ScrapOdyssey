@@ -7,11 +7,17 @@ local Workspace = game:GetService("Workspace")
 local Config = require(ReplicatedStorage.Modules.Config)
 local Remotes = require(ReplicatedStorage.Modules.Remotes)
 local Types = require(ReplicatedStorage.Modules.Types)
-local SoundController = require(script.Parent:WaitForChild("SoundController"))
-local VFXController = require(script.Parent:WaitForChild("VFXController"))
+local controllersFolder = (script and script.Parent) or game:GetService("StarterPlayer"):WaitForChild("StarterPlayerScripts"):WaitForChild("Controllers")
+local SoundController = require(controllersFolder:WaitForChild("SoundController"))
+local VFXController = require(controllersFolder:WaitForChild("VFXController"))
 
 local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui") :: PlayerGui
+local function getPlayerGui(): PlayerGui?
+	if not player then
+		player = Players.LocalPlayer
+	end
+	return player and (player:FindFirstChild("PlayerGui") or player:WaitForChild("PlayerGui", 5)) :: PlayerGui?
+end
 
 local HUDController = {}
 
@@ -24,6 +30,7 @@ local cargoLabel: TextLabel
 local currentScrap = 0
 local currentGears = 0
 local currentBackpack = -1
+local recentPopups: { { Pos: Vector3, Time: number } } = {}
 
 local function formatNumber(n: number): string
 	if n >= 1e9 then
@@ -42,55 +49,74 @@ function HUDController.createHUD()
 	mainGui.Name = "ScrapOdysseyHUD"
 	mainGui.ResetOnSpawn = false
 	mainGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	mainGui.Parent = playerGui
+	mainGui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
+	local pGui = getPlayerGui()
+	if pGui then
+		mainGui.Parent = pGui
+	end
 
-	-- Top Left Currency Card (Banked Spendable Scrap & Gears)
+	-- Top Right Currency Module (Banked Spendable Scrap & Gears)
 	local topBar = Instance.new("Frame")
 	topBar.Name = "TopBar"
-	topBar.Size = UDim2.new(0, 380, 0, 75)
-	topBar.Position = UDim2.new(0, 24, 0, 24)
-	topBar.BackgroundColor3 = Color3.fromRGB(18, 20, 26)
-	topBar.BackgroundTransparency = 0.15
+	topBar.AnchorPoint = Vector2.new(1, 0)
+	topBar.Size = UDim2.new(0, 320, 0, 58)
+	topBar.Position = UDim2.new(1, -24, 0, 20)
+	topBar.BackgroundColor3 = Color3.fromRGB(12, 15, 22)
+	topBar.BackgroundTransparency = 0.08
 	topBar.BorderSizePixel = 0
 	topBar.Parent = mainGui
 
 	local topCorner = Instance.new("UICorner")
-	topCorner.CornerRadius = UDim.new(0, 14)
+	topCorner.CornerRadius = UDim.new(0, 8)
 	topCorner.Parent = topBar
 
 	local topStroke = Instance.new("UIStroke")
-	topStroke.Color = Color3.fromRGB(50, 60, 80)
-	topStroke.Thickness = 2
+	topStroke.Color = Color3.fromRGB(38, 48, 64)
+	topStroke.Thickness = 1
 	topStroke.Parent = topBar
+
+	-- Top accent line
+	local accentLine = Instance.new("Frame")
+	accentLine.Name = "TopAccent"
+	accentLine.Size = UDim2.new(1, 0, 0, 2)
+	accentLine.Position = UDim2.new(0, 0, 0, 0)
+	accentLine.BackgroundColor3 = Color3.fromRGB(240, 180, 50)
+	accentLine.BorderSizePixel = 0
+	accentLine.Parent = topBar
 
 	-- Banked Scrap Section (Left half)
 	local scrapContainer = Instance.new("Frame")
 	scrapContainer.Name = "ScrapContainer"
-	scrapContainer.Size = UDim2.new(0.5, -12, 1, -12)
-	scrapContainer.Position = UDim2.new(0, 10, 0, 6)
-	scrapContainer.BackgroundColor3 = Color3.fromRGB(26, 30, 40)
+	scrapContainer.Size = UDim2.new(0.5, -8, 1, -10)
+	scrapContainer.Position = UDim2.new(0, 6, 0, 5)
+	scrapContainer.BackgroundColor3 = Color3.fromRGB(18, 22, 32)
+	scrapContainer.BorderSizePixel = 0
 	scrapContainer.Parent = topBar
 
 	local scCorner = Instance.new("UICorner")
-	scCorner.CornerRadius = UDim.new(0, 10)
+	scCorner.CornerRadius = UDim.new(0, 6)
 	scCorner.Parent = scrapContainer
 
-	local scrapIcon = Instance.new("TextLabel")
-	scrapIcon.Name = "Icon"
-	scrapIcon.Size = UDim2.new(0, 36, 1, 0)
-	scrapIcon.BackgroundTransparency = 1
-	scrapIcon.Text = "🔩"
-	scrapIcon.TextSize = 24
-	scrapIcon.Parent = scrapContainer
+	local scTag = Instance.new("TextLabel")
+	scTag.Name = "Tag"
+	scTag.Size = UDim2.new(1, -16, 0, 14)
+	scTag.Position = UDim2.new(0, 10, 0, 6)
+	scTag.BackgroundTransparency = 1
+	scTag.Font = Enum.Font.GothamBold
+	scTag.TextSize = 10
+	scTag.TextColor3 = Color3.fromRGB(240, 185, 45)
+	scTag.TextXAlignment = Enum.TextXAlignment.Left
+	scTag.Text = "🔩 SCRAP"
+	scTag.Parent = scrapContainer
 
 	scrapLabel = Instance.new("TextLabel")
 	scrapLabel.Name = "Value"
-	scrapLabel.Size = UDim2.new(1, -40, 1, 0)
-	scrapLabel.Position = UDim2.new(0, 38, 0, 0)
+	scrapLabel.Size = UDim2.new(1, -16, 0, 24)
+	scrapLabel.Position = UDim2.new(0, 10, 0, 20)
 	scrapLabel.BackgroundTransparency = 1
 	scrapLabel.Font = Enum.Font.GothamBlack
-	scrapLabel.TextSize = 20
-	scrapLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+	scrapLabel.TextSize = 19
+	scrapLabel.TextColor3 = Color3.fromRGB(255, 230, 120)
 	scrapLabel.TextXAlignment = Enum.TextXAlignment.Left
 	scrapLabel.Text = "0"
 	scrapLabel.Parent = scrapContainer
@@ -98,64 +124,70 @@ function HUDController.createHUD()
 	-- Gears Section (Right half)
 	local gearsContainer = Instance.new("Frame")
 	gearsContainer.Name = "GearsContainer"
-	gearsContainer.Size = UDim2.new(0.5, -12, 1, -12)
-	gearsContainer.Position = UDim2.new(0.5, 2, 0, 6)
-	gearsContainer.BackgroundColor3 = Color3.fromRGB(26, 30, 40)
+	gearsContainer.Size = UDim2.new(0.5, -8, 1, -10)
+	gearsContainer.Position = UDim2.new(0.5, 2, 0, 5)
+	gearsContainer.BackgroundColor3 = Color3.fromRGB(18, 22, 32)
+	gearsContainer.BorderSizePixel = 0
 	gearsContainer.Parent = topBar
 
 	local gcCorner = Instance.new("UICorner")
-	gcCorner.CornerRadius = UDim.new(0, 10)
+	gcCorner.CornerRadius = UDim.new(0, 6)
 	gcCorner.Parent = gearsContainer
 
-	local gearsIcon = Instance.new("TextLabel")
-	gearsIcon.Name = "Icon"
-	gearsIcon.Size = UDim2.new(0, 36, 1, 0)
-	gearsIcon.BackgroundTransparency = 1
-	gearsIcon.Text = "⚙️"
-	gearsIcon.TextSize = 24
-	gearsIcon.Parent = gearsContainer
+	local gcTag = Instance.new("TextLabel")
+	gcTag.Name = "Tag"
+	gcTag.Size = UDim2.new(1, -16, 0, 14)
+	gcTag.Position = UDim2.new(0, 10, 0, 6)
+	gcTag.BackgroundTransparency = 1
+	gcTag.Font = Enum.Font.GothamBold
+	gcTag.TextSize = 10
+	gcTag.TextColor3 = Color3.fromRGB(60, 190, 240)
+	gcTag.TextXAlignment = Enum.TextXAlignment.Left
+	gcTag.Text = "⚙️ GEARS"
+	gcTag.Parent = gearsContainer
 
 	gearsLabel = Instance.new("TextLabel")
 	gearsLabel.Name = "Value"
-	gearsLabel.Size = UDim2.new(1, -40, 1, 0)
-	gearsLabel.Position = UDim2.new(0, 38, 0, 0)
+	gearsLabel.Size = UDim2.new(1, -16, 0, 24)
+	gearsLabel.Position = UDim2.new(0, 10, 0, 20)
 	gearsLabel.BackgroundTransparency = 1
 	gearsLabel.Font = Enum.Font.GothamBlack
-	gearsLabel.TextSize = 20
-	gearsLabel.TextColor3 = Color3.fromRGB(80, 200, 255)
+	gearsLabel.TextSize = 19
+	gearsLabel.TextColor3 = Color3.fromRGB(120, 225, 255)
 	gearsLabel.TextXAlignment = Enum.TextXAlignment.Left
 	gearsLabel.Text = "0"
 	gearsLabel.Parent = gearsContainer
 
-	-- Raw Cargo / Backpack Progress Bar
+	-- Raw Cargo / Backpack Progress Bar (Top Right)
 	local cargoContainer = Instance.new("Frame")
 	cargoContainer.Name = "CargoContainer"
-	cargoContainer.Size = UDim2.new(0, 380, 0, 34)
-	cargoContainer.Position = UDim2.new(0, 24, 0, 106)
-	cargoContainer.BackgroundColor3 = Color3.fromRGB(18, 20, 26)
-	cargoContainer.BackgroundTransparency = 0.15
+	cargoContainer.AnchorPoint = Vector2.new(1, 0)
+	cargoContainer.Size = UDim2.new(0, 320, 0, 26)
+	cargoContainer.Position = UDim2.new(1, -24, 0, 84)
+	cargoContainer.BackgroundColor3 = Color3.fromRGB(12, 15, 22)
+	cargoContainer.BackgroundTransparency = 0.08
 	cargoContainer.BorderSizePixel = 0
 	cargoContainer.ClipsDescendants = true
 	cargoContainer.Parent = mainGui
 
 	local ccCorner = Instance.new("UICorner")
-	ccCorner.CornerRadius = UDim.new(0, 10)
+	ccCorner.CornerRadius = UDim.new(0, 6)
 	ccCorner.Parent = cargoContainer
 
 	local ccStroke = Instance.new("UIStroke")
-	ccStroke.Color = Color3.fromRGB(50, 60, 80)
-	ccStroke.Thickness = 1.5
+	ccStroke.Color = Color3.fromRGB(38, 48, 64)
+	ccStroke.Thickness = 1
 	ccStroke.Parent = cargoContainer
 
 	cargoFill = Instance.new("Frame")
 	cargoFill.Name = "CargoFill"
 	cargoFill.Size = UDim2.new(0, 0, 1, 0)
-	cargoFill.BackgroundColor3 = Color3.fromRGB(40, 200, 100)
+	cargoFill.BackgroundColor3 = Color3.fromRGB(35, 190, 110)
 	cargoFill.BorderSizePixel = 0
 	cargoFill.Parent = cargoContainer
 
 	local cfCorner = Instance.new("UICorner")
-	cfCorner.CornerRadius = UDim.new(0, 10)
+	cfCorner.CornerRadius = UDim.new(0, 6)
 	cfCorner.Parent = cargoFill
 
 	cargoLabel = Instance.new("TextLabel")
@@ -163,41 +195,42 @@ function HUDController.createHUD()
 	cargoLabel.Size = UDim2.new(1, -16, 1, 0)
 	cargoLabel.Position = UDim2.new(0, 8, 0, 0)
 	cargoLabel.BackgroundTransparency = 1
-	cargoLabel.Font = Enum.Font.GothamBlack
-	cargoLabel.TextSize = 13
-	cargoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	cargoLabel.TextStrokeTransparency = 0.2
+	cargoLabel.Font = Enum.Font.GothamBold
+	cargoLabel.TextSize = 11
+	cargoLabel.TextColor3 = Color3.fromRGB(240, 245, 255)
+	cargoLabel.TextStrokeTransparency = 0.4
 	cargoLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-	cargoLabel.TextWrapped = true
-	cargoLabel.Text = "🎒 CARGO: 0 / 50 🔩"
+	cargoLabel.Text = "🎒 CARGO: 0 / 50"
 	cargoLabel.ZIndex = 2
 	cargoLabel.Parent = cargoContainer
 
-	-- Multiplier Badge below cargo bar
+	-- Multiplier Badge below cargo bar (Top Right)
 	local badge = Instance.new("Frame")
 	badge.Name = "MultiplierBadge"
-	badge.Size = UDim2.new(0, 150, 0, 28)
-	badge.Position = UDim2.new(0, 24, 0, 148)
-	badge.BackgroundColor3 = Color3.fromRGB(18, 20, 26)
-	badge.BackgroundTransparency = 0.2
+	badge.AnchorPoint = Vector2.new(1, 0)
+	badge.Size = UDim2.new(0, 130, 0, 22)
+	badge.Position = UDim2.new(1, -24, 0, 116)
+	badge.BackgroundColor3 = Color3.fromRGB(12, 15, 22)
+	badge.BackgroundTransparency = 0.15
+	badge.BorderSizePixel = 0
 	badge.Parent = mainGui
 
 	local bCorner = Instance.new("UICorner")
-	bCorner.CornerRadius = UDim.new(0, 8)
+	bCorner.CornerRadius = UDim.new(0, 5)
 	bCorner.Parent = badge
 
 	local bStroke = Instance.new("UIStroke")
-	bStroke.Color = Color3.fromRGB(80, 140, 255)
-	bStroke.Thickness = 1.5
+	bStroke.Color = Color3.fromRGB(45, 85, 140)
+	bStroke.Thickness = 1
 	bStroke.Parent = badge
 
 	multLabel = Instance.new("TextLabel")
 	multLabel.Size = UDim2.new(1, 0, 1, 0)
 	multLabel.BackgroundTransparency = 1
 	multLabel.Font = Enum.Font.GothamBold
-	multLabel.TextSize = 13
+	multLabel.TextSize = 11
 	multLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-	multLabel.Text = "⚡ MULT: 1.0x"
+	multLabel.Text = "⚡ BOOST: 1.0x"
 	multLabel.Parent = badge
 end
 
@@ -246,23 +279,23 @@ function HUDController.updateCurrencies(data: Types.PlayerData)
 
 		if backpack >= maxCap then
 			cargoFill.BackgroundColor3 = Color3.fromRGB(240, 50, 60)
-			cargoLabel.Text = string.format("🎒 FULL! (%d/%d) — RECYCLE AT DEPOSIT PAD!", backpack, maxCap)
+			cargoLabel.Text = string.format("⚠️ CARGO FULL (%d/%d) — RECYCLE AT HUB", backpack, maxCap)
 			cargoLabel.TextColor3 = Color3.fromRGB(255, 220, 220)
 		elseif ratio >= 0.8 then
 			cargoFill.BackgroundColor3 = Color3.fromRGB(255, 170, 30)
-			cargoLabel.Text = string.format("🎒 CARGO: %d / %d 🔩", backpack, maxCap)
+			cargoLabel.Text = string.format("🎒 CARGO: %d / %d", backpack, maxCap)
 			cargoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 		else
-			cargoFill.BackgroundColor3 = Color3.fromRGB(40, 200, 100)
-			cargoLabel.Text = string.format("🎒 CARGO: %d / %d 🔩", backpack, maxCap)
-			cargoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+			cargoFill.BackgroundColor3 = Color3.fromRGB(35, 190, 110)
+			cargoLabel.Text = string.format("🎒 CARGO: %d / %d", backpack, maxCap)
+			cargoLabel.TextColor3 = Color3.fromRGB(240, 245, 255)
 		end
 	end
 
 	-- Calculate approx multiplier display
 	if multLabel then
 		local rebirthMult = 1 + (data.Rebirths * 0.5)
-		multLabel.Text = string.format("⚡ MULT: %.1fx", rebirthMult)
+		multLabel.Text = string.format("⚡ BOOST: %.1fx", rebirthMult)
 	end
 
 	-- Instant client-side gate collision disable for reached zones
@@ -273,24 +306,31 @@ function HUDController.updateGateBarriers(maxZone: number)
 	local bridgesFolder = Workspace:FindFirstChild("Bridges")
 	if not bridgesFolder then return end
 
-	for z = 2, maxZone do
+	local totalZones = #Config.Zones
+	for z = 2, totalZones do
 		local gateModel = bridgesFolder:FindFirstChild("Gate_Zone" .. tostring(z))
 		if gateModel then
 			local barrier = gateModel:FindFirstChild("Forcefield") :: BasePart?
+			local perimeterBarrier = gateModel:FindFirstChild("PerimeterForcefield") :: BasePart?
+			local isUnlocked = (z <= maxZone)
 			if barrier then
-				barrier.CanCollide = false
-				barrier.Transparency = 1
+				barrier.CanCollide = not isUnlocked
+				barrier.Transparency = isUnlocked and 1 or 0.35
+			end
+			if perimeterBarrier then
+				perimeterBarrier.CanCollide = not isUnlocked
+				perimeterBarrier.Transparency = isUnlocked and 1 or 0.92
 			end
 			for _, desc in ipairs(gateModel:GetDescendants()) do
 				if desc:IsA("ProximityPrompt") then
-					desc.Enabled = false
+					desc.Enabled = not isUnlocked
 				end
 			end
 		end
 	end
 end
 
--- Spawn floating "+25 Scrap" text in 3D world with sound, particles, and camera juice
+-- Spawn floating "+25 Scrap" text in 3D world with anti-overlap radial dispersal, sound, and juice
 function HUDController.spawnRewardPopup(info: any)
 	local worldPos = info.Position or Vector3.new(0, 10, 0)
 	local isBreak = info.IsBreak == true or (info.CurrentHP ~= nil and info.CurrentHP <= 0)
@@ -312,31 +352,71 @@ function HUDController.spawnRewardPopup(info: any)
 	local textColor: Color3
 	if isBreak then
 		if info.IsOrbital then
-			text = string.format("🚀 POD SALVAGED!\n+%s 🔩 | +%d ⚙️\n[%d%% DMG]", formatNumber(info.ScrapEarned), info.GearsEarned or 1, info.DamagePercent or 100)
+			text = string.format("POD SALVAGED\n+%s SCRAP | +%d GEARS\n[%d%% CONTRIBUTION]", formatNumber(info.ScrapEarned), info.GearsEarned or 1, info.DamagePercent or 100)
 			textColor = Color3.fromRGB(255, 170, 20)
 		elseif isDense then
-			text = string.format("💥 CLEARED! +%s 🔩\n[%s]", formatNumber(info.ScrapEarned), info.TierName or "DENSE")
+			text = string.format("HARVESTED +%s SCRAP\n[%s]", formatNumber(info.ScrapEarned), info.TierName or "DENSE")
 			textColor = Color3.fromRGB(0, 240, 255)
 		else
-			text = string.format("💥 CLEARED! +%s 🔩\n[%s]", formatNumber(info.ScrapEarned), info.TierName or "MAX")
+			text = string.format("HARVESTED +%s SCRAP\n[%s]", formatNumber(info.ScrapEarned), info.TierName or "MAX")
 			textColor = Color3.fromRGB(80, 240, 140)
 		end
 	elseif info.IsOrbital then
-		text = string.format("💥 -%d HP", info.DamageDealt or 1)
+		text = string.format("-%d HP", info.DamageDealt or 1)
 		textColor = Color3.fromRGB(255, 130, 20)
 	elseif isDense then
-		-- Clean dense scrap display: NO "CRIT" text or crit styling, just clean scrap number in dense cyan!
-		text = string.format("+%s 🔩", formatNumber(info.ScrapEarned))
+		text = string.format("+%s", formatNumber(info.ScrapEarned))
 		textColor = Color3.fromRGB(0, 240, 255)
 	else
-		text = string.format("+%s 🔩", formatNumber(info.ScrapEarned))
+		text = string.format("+%s", formatNumber(info.ScrapEarned))
 		textColor = info.TierColor or Color3.fromRGB(255, 215, 0)
 	end
 
+	-- Anti-overlap dispersal calculation
+	local now = os.clock()
+	local kept = {}
+	for _, entry in ipairs(recentPopups) do
+		if now - entry.Time < 0.90 then
+			table.insert(kept, entry)
+		end
+	end
+	recentPopups = kept
+
+	local nearbyCount = 0
+	for _, entry in ipairs(recentPopups) do
+		if (entry.Pos - worldPos).Magnitude < 5.0 then
+			nearbyCount = nearbyCount + 1
+		end
+	end
+
+	table.insert(recentPopups, {
+		Pos = worldPos,
+		Time = now,
+	})
+
+	-- Radial spoke dispersal with vertical staggered elevation
+	local spokeAngle = (nearbyCount * (math.pi / 2.7)) + (math.random() * 0.3 - 0.15)
+	local horizontalDist = 1.0 + math.min(nearbyCount * 0.75, 3.2)
+	local offsetX = math.cos(spokeAngle) * horizontalDist
+	local offsetZ = math.sin(spokeAngle) * horizontalDist
+	local startY = 1.0 + (nearbyCount * 0.8)
+	if isBreak then
+		startY = startY + 1.2
+	end
+
+	local startWorldPos = worldPos + Vector3.new(offsetX, startY, offsetZ)
+	local riseAmount = isBreak and 5.5 or 4.2
+	local endWorldPos = startWorldPos + Vector3.new(offsetX * 0.4, riseAmount, offsetZ * 0.4)
+
+	local attachment = Instance.new("Attachment")
+	attachment.WorldPosition = startWorldPos
+	attachment.Parent = Workspace.Terrain
+
 	local billboard = Instance.new("BillboardGui")
-	billboard.Size = UDim2.new(0, 100, 0, 30)
-	billboard.StudsOffsetWorldSpace = worldPos
-	billboard.AlwaysOnTop = true
+	billboard.Size = UDim2.new(0, 80, 0, 24)
+	billboard.Adornee = attachment
+	billboard.AlwaysOnTop = false
+	billboard.MaxDistance = 40
 	billboard.Parent = mainGui
 
 	local label = Instance.new("TextLabel")
@@ -350,25 +430,28 @@ function HUDController.spawnRewardPopup(info: any)
 	label.Text = text
 	label.Parent = billboard
 
-	-- Punchy bounce scale + float
-	local popTween = TweenService:Create(billboard, TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-		Size = UDim2.new(0, 200, 0, 56),
+	local targetSize = isBreak and UDim2.new(0, 240, 0, 68) or UDim2.new(0, 180, 0, 50)
+	local popTween = TweenService:Create(billboard, TweenInfo.new(0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Size = targetSize,
 	})
-	local floatTween = TweenService:Create(billboard, TweenInfo.new(1.1, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {
-		StudsOffsetWorldSpace = worldPos + Vector3.new(0, 5, 0),
+	local floatTween = TweenService:Create(attachment, TweenInfo.new(1.0, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {
+		WorldPosition = endWorldPos,
 	})
-	local fadeTween = TweenService:Create(label, TweenInfo.new(1.1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+	local fadeTween = TweenService:Create(label, TweenInfo.new(0.85, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
 		TextTransparency = 1,
 		TextStrokeTransparency = 1,
 	})
 
 	popTween:Play()
-	popTween.Completed:Connect(function()
-		floatTween:Play()
-		fadeTween:Play()
+	floatTween:Play()
+	task.delay(0.2, function()
+		if label and label.Parent then
+			fadeTween:Play()
+		end
 	end)
 
-	fadeTween.Completed:Connect(function()
+	floatTween.Completed:Connect(function()
+		attachment:Destroy()
 		billboard:Destroy()
 	end)
 end

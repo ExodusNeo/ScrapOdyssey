@@ -4,6 +4,7 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local Debris = game:GetService("Debris")
+local CollectionService = game:GetService("CollectionService")
 
 local VFXController = {}
 
@@ -255,7 +256,8 @@ function VFXController.spawnRecycleVFX(position: Vector3, scrapRecycled: number,
 	local billboard = Instance.new("BillboardGui")
 	billboard.Size = UDim2.new(0, 240, 0, 70)
 	billboard.StudsOffsetWorldSpace = position + Vector3.new(0, 4, 0)
-	billboard.AlwaysOnTop = true
+	billboard.AlwaysOnTop = false
+	billboard.MaxDistance = 45
 	billboard.Parent = anchor
 
 	local label = Instance.new("TextLabel")
@@ -266,7 +268,7 @@ function VFXController.spawnRecycleVFX(position: Vector3, scrapRecycled: number,
 	label.TextColor3 = Color3.fromRGB(80, 240, 140)
 	label.TextStrokeTransparency = 0.15
 	label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-	label.Text = string.format("💰 +%d SCRAP BANKED! 💰", scrapEarned)
+	label.Text = string.format("+%d SCRAP RECYCLED", scrapEarned)
 	label.Parent = billboard
 
 	local floatTween = TweenService:Create(billboard, TweenInfo.new(1.8, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {
@@ -353,6 +355,35 @@ function VFXController.init()
 		else
 			shakeIntensity = 0
 			shakeDuration = 0
+		end
+	end)
+
+	-- 7. High-Performance Client-Side Floating Decor Animator (Zero server network overhead, 60+ FPS smooth)
+	RunService.RenderStepped:Connect(function()
+		local cam = Workspace.CurrentCamera or camera
+		if not cam then return end
+		local camPos = cam.CFrame.Position
+		local t = os.clock()
+
+		for _, decor in ipairs(CollectionService:GetTagged("FloatingDecor")) do
+			if decor:IsA("BasePart") and decor.Parent then
+				local basePos = decor:GetAttribute("BasePos") :: Vector3?
+				if basePos then
+					local dx = camPos.X - basePos.X
+					local dz = camPos.Z - basePos.Z
+					if (dx * dx + dz * dz) < 14400 then -- Within 120 studs of camera
+						local bobSpeed = (decor:GetAttribute("BobSpeed") :: number) or 1.5
+						local bobAmp = (decor:GetAttribute("BobAmp") :: number) or 0.2
+						local spinSpeed = (decor:GetAttribute("SpinSpeed") :: number) or 30
+						local tiltAngle = (decor:GetAttribute("TiltAngle") :: number) or 0
+
+						local bobY = math.sin(t * bobSpeed) * bobAmp
+						local spin = math.rad((t * spinSpeed) % 360)
+						local newPos = basePos + Vector3.new(0, bobY, 0)
+						decor.CFrame = CFrame.new(newPos) * CFrame.Angles(0, spin, math.rad(tiltAngle))
+					end
+				end
+			end
 		end
 	end)
 

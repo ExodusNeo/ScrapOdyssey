@@ -230,36 +230,79 @@ Config = {
 		} :: { Types.PetTemplate },
 	},
 
-	-- The 3 Physical In-World Eggs located in the Hub
+	-- The 5 Physical In-World Egg Pods distributed across Zones 1 to 5
 	Eggs = {
 		RustEgg = {
 			Id = "RustEgg",
 			Name = "Rust Egg",
-			Cost = 250,
+			ZoneId = 1,
+			Cost = 500,
 			Color = Color3.fromRGB(160, 130, 110),
+			SubText = "Rust Bot (70%)\nSpark Drone (30%)",
 			Pool = {
-				{ Id = "drone_rust", Weight = 65 },
-				{ Id = "drone_spark", Weight = 35 },
+				{ Id = "drone_rust", Weight = 70 },
+				{ Id = "drone_spark", Weight = 30 },
 			},
 		},
-		PlasmaEgg = {
-			Id = "PlasmaEgg",
-			Name = "Plasma Egg",
-			Cost = 1500,
-			Color = Color3.fromRGB(50, 150, 255),
+		JunkyardEgg = {
+			Id = "JunkyardEgg",
+			Name = "Junkyard Egg",
+			ZoneId = 2,
+			Cost = 7500,
+			Color = Color3.fromRGB(90, 150, 180),
+			SubText = "Spark Drone (65%)\nPlasma Welder (35%)",
 			Pool = {
-				{ Id = "drone_welder", Weight = 70 },
-				{ Id = "drone_hound", Weight = 30 },
+				{ Id = "drone_spark", Weight = 65 },
+				{ Id = "drone_welder", Weight = 35 },
+			},
+		},
+		FoundryEgg = {
+			Id = "FoundryEgg",
+			Name = "Foundry Egg",
+			ZoneId = 3,
+			Cost = 75000,
+			Color = Color3.fromRGB(220, 110, 30),
+			SubText = "Plasma Welder (60%)\nScrap Hound (40%)",
+			Pool = {
+				{ Id = "drone_welder", Weight = 60 },
+				{ Id = "drone_hound", Weight = 40 },
 			},
 		},
 		CyberEgg = {
 			Id = "CyberEgg",
 			Name = "Cyber Egg",
-			Cost = 10000,
-			Color = Color3.fromRGB(255, 40, 100),
+			ZoneId = 4,
+			Cost = 750000,
+			Color = Color3.fromRGB(30, 220, 200),
+			SubText = "Scrap Hound (65%)\nCyber Mech (35%)",
 			Pool = {
-				{ Id = "drone_mech", Weight = 85 },
-				{ Id = "drone_titan", Weight = 15 },
+				{ Id = "drone_hound", Weight = 65 },
+				{ Id = "drone_mech", Weight = 35 },
+			},
+		},
+		VoidEgg = {
+			Id = "VoidEgg",
+			Name = "Void Egg",
+			ZoneId = 5,
+			Cost = 5000000,
+			Color = Color3.fromRGB(180, 50, 255),
+			SubText = "Cyber Mech (75%)\nVoid Titan (25%)",
+			Pool = {
+				{ Id = "drone_mech", Weight = 75 },
+				{ Id = "drone_titan", Weight = 25 },
+			},
+		},
+		-- Backward-compatibility alias
+		PlasmaEgg = {
+			Id = "PlasmaEgg",
+			Name = "Foundry Egg",
+			ZoneId = 3,
+			Cost = 75000,
+			Color = Color3.fromRGB(220, 110, 30),
+			SubText = "Plasma Welder (60%)\nScrap Hound (40%)",
+			Pool = {
+				{ Id = "drone_welder", Weight = 60 },
+				{ Id = "drone_hound", Weight = 40 },
 			},
 		},
 	},
@@ -269,28 +312,28 @@ Config = {
 		AutoScrap = {
 			Id = "AutoScrap",
 			Name = "Auto-Scrapper Protocol",
-			Description = "Hands-free dismantling! Automatically strikes nearest scrap pile every 1.5s.",
+			Description = "Hands-free dismantling. Automatically strikes nearest scrap pile every 1.5s.",
 			Cost = 3,
-			Icon = "🤖",
+			Icon = "⚙️",
 		},
 		SuperLuck = {
 			Id = "SuperLuck",
 			Name = "Quantum Luck Core",
-			Description = "Permanently doubles the probability of Rare, Epic, Legendary, and Mythic drops!",
+			Description = "Permanently doubles the probability of Rare, Epic, Legendary, and Mythic drops.",
 			Cost = 5,
 			Icon = "🍀",
 		},
 		SpeedDemon = {
 			Id = "SpeedDemon",
-			Name = "Hydraulic Thrusters",
-			Description = "Permanently enhances character sprint speed to 26 WalkSpeed!",
+			Name = "Speed Demon",
+			Description = "Permanently boosts base walk speed (+2) and sprint speed to 32 WalkSpeed.",
 			Cost = 2,
 			Icon = "⚡",
 		},
 		QuantumDrone = {
 			Id = "QuantumDrone",
 			Name = "Apex Quantum Drone",
-			Description = "Grants an exclusive Mythic companion with a massive +15.0x Scrap multiplier!",
+			Description = "Grants an exclusive Mythic companion with a massive +15.0x Scrap multiplier.",
 			Cost = 8,
 			Icon = "👑",
 		},
@@ -313,40 +356,40 @@ Config = {
 	-- Daily rewards (streak 1 to 7)
 	DailyRewards = {
 		{ Day = 1, Type = "Scrap", Amount = 200 },
-		{ Day = 2, Type = "Scrap", Amount = 600 },
-		{ Day = 3, Type = "Gears", Amount = 2 },
-		{ Day = 4, Type = "Scrap", Amount = 2000 },
-		{ Day = 5, Type = "Gears", Amount = 5 },
-		{ Day = 6, Type = "Scrap", Amount = 10000 },
-		{ Day = 7, Type = "Gears", Amount = 15 },
+		{ Day = 2, Type = "Scrap", Amount = 500 },
+		{ Day = 3, Type = "Gears", Amount = 1 },
+		{ Day = 4, Type = "Scrap", Amount = 1500 },
+		{ Day = 5, Type = "Scrap", Amount = 3500 },
+		{ Day = 6, Type = "Gears", Amount = 2 },
+		{ Day = 7, Type = "Gears", Amount = 5 },
 	},
 
-	-- Daily Quests
+	-- Quests (Daily cycling objectives)
 	Quests = {
 		{
-			Id = "scrap_50",
-			Description = "Scrap 50 Junk Piles",
+			Id = "Scrap_50",
+			Description = "Scrap 50 items",
 			Target = 50,
 			RewardType = "Scrap",
 			RewardAmount = 1500,
 		},
 		{
-			Id = "earn_10k",
-			Description = "Earn 10,000 Total Scrap",
-			Target = 10000,
-			RewardType = "Gears",
-			RewardAmount = 3,
+			Id = "Dismantle_Rare",
+			Description = "Dismantle 10 Dense Scrap nodes",
+			Target = 10,
+			RewardType = "Scrap",
+			RewardAmount = 5000,
 		},
 		{
-			Id = "hatch_2",
-			Description = "Hatch 2 Scrapper Drones",
-			Target = 2,
-			RewardType = "Scrap",
-			RewardAmount = 3000,
+			Id = "Recycle_200",
+			Description = "Recycle 200 Scrap at Central Hub",
+			Target = 200,
+			RewardType = "Gears",
+			RewardAmount = 1,
 		},
 	},
 
-	-- 5 Tiers of 3D Scrapper Tools (Unlockable in Tool Armory)
+	-- 5 Tools (Upgraded Dismantlers)
 	Tools = {
 		{
 			Id = "OmniWrench",
@@ -370,7 +413,7 @@ Config = {
 			Range = 24,
 			Color = Color3.fromRGB(255, 120, 20),
 			Description = "High-frequency percussive impact drill designed for crushed cyber-metal.",
-			Emoji = "🔩",
+			Emoji = "🔨",
 		},
 		{
 			Id = "PlasmaCutter",
@@ -394,7 +437,7 @@ Config = {
 			Range = 28,
 			Color = Color3.fromRGB(255, 45, 125),
 			Description = "Electrified high-density carbon scythe that cleaves massive quantum alloy.",
-			Emoji = "⚡",
+			Emoji = "⚔️",
 		},
 		{
 			Id = "VoidRipper",
@@ -406,7 +449,7 @@ Config = {
 			Range = 32,
 			Color = Color3.fromRGB(175, 60, 255),
 			Description = "Experimental gravity-warping blade that fractures molecular scrap bonds in seconds.",
-			Emoji = "🌌",
+			Emoji = "🌀",
 		},
 	} :: { Types.ToolConfig },
 
@@ -419,17 +462,64 @@ Config = {
 		return Config.Tools[1]
 	end,
 
+	-- Character Movement & Sprinting
+	Sprint = {
+		DefaultWalkSpeed = 16,
+		DefaultSprintSpeed = 26,
+		SpeedDemonBonus = 6,
+		SuperSprintBonus = 8,
+		FovWalk = 70,
+		FovSprint = 78,
+		FovTweenTime = 0.25,
+	},
+
 	-- Developer products & Gamepasses
 	Monetization = {
 		Gamepasses = {
-			DoubleScrap = 0, -- ID set when published
-			AutoScrap = 0,
-			DoubleLuck = 0,
+			DoubleScrap = 1985757130,
+			AutoScrap = 1987292876,
+			DoubleLuck = 1982739466,
+			SuperSprint = 1986513102,
+		},
+		GamepassDetails = {
+			SuperSprint = {
+				Id = 1986513102,
+				Name = "Hyper Thrusters",
+				Description = "+8 Sprint Speed, +4 Walk Speed, and dynamic warp camera FOV!",
+				Price = 149,
+				Icon = "⚡",
+				Color = Color3.fromRGB(0, 220, 255),
+			},
+			DoubleScrap = {
+				Id = 1985757130,
+				Name = "2x Scrap Multiplier",
+				Description = "Permanently doubles all scrap collected across every world.",
+				Price = 199,
+				Icon = "💰",
+				Color = Color3.fromRGB(255, 200, 40),
+			},
+			AutoScrap = {
+				Id = 1987292876,
+				Name = "Auto-Scrapper Protocol",
+				Description = "Hands-free dismantling! Automatically strikes nearest nodes.",
+				Price = 299,
+				Icon = "⚙️",
+				ImageId = "rbxassetid://10709775087",
+				Color = Color3.fromRGB(80, 220, 120),
+			},
+			DoubleLuck = {
+				Id = 1982739466,
+				Name = "Quantum Luck Core",
+				Description = "Doubles the hatch chance for Epic, Legendary, and Mythic drones!",
+				Price = 399,
+				Icon = "🍀",
+				Color = Color3.fromRGB(180, 70, 255),
+			},
 		},
 		DevProducts = {
-			ScrapPackSmall = 0,
-			ScrapPackMedium = 0,
-			GearsPack = 0,
+			ScrapPackSmall = 3713740033,
+			ScrapPackMedium = 3713740070,
+			GearsPack = 3713740130,
 		},
 	},
 }

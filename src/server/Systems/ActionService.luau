@@ -4,6 +4,7 @@ local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local SoundService = game:GetService("SoundService")
+local CollectionService = game:GetService("CollectionService")
 
 local Config = require(ReplicatedStorage.Modules.Config)
 local Types = require(ReplicatedStorage.Modules.Types)
@@ -416,6 +417,7 @@ end
 
 -- Multi-Hit Crunchy Dismantling Action
 function ActionService.performScrapAction(player: Player, nodeModel: Model)
+	if not nodeModel or typeof(nodeModel) ~= "Instance" or not nodeModel:IsA("Model") or not nodeModel:IsDescendantOf(Workspace) then return end
 	if nodeCooldown[nodeModel] then return end
 
 	local character = player.Character
@@ -445,11 +447,16 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 
 	if not isOrbital and currentBackpack >= maxCapacity then
 		local notif = Remotes.getEvent("ShowNotification")
-		notif:FireClient(player, "🎒 CARGO FULL!", "Your backpack is full! Step on the Scrap Recycler in the Hub to sell!", Color3.fromRGB(255, 70, 70))
+		notif:FireClient(player, "CARGO FULL", "Your cargo is full. Step on the Scrap Recycler to bank your scrap.", Color3.fromRGB(255, 70, 70))
 		return
 	end
 
 	local zoneId = nodeModel:GetAttribute("ZoneId") or 1
+	if not isOrbital and zoneId > (data.MaxZoneReached or 1) then
+		local notif = Remotes.getEvent("ShowNotification")
+		notif:FireClient(player, "ZONE RESTRICTED", "Unlock this zone first before harvesting its scrap!", Color3.fromRGB(255, 70, 70))
+		return
+	end
 	local zone = Config.Zones[zoneId]
 	local baseActionTime = isOrbital and 1.0 or (zone and zone.ActionTime or 1.0)
 
@@ -473,13 +480,23 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 	local basePart = nodeModel:FindFirstChild("Base") :: BasePart
 	local statusLabel = nodeModel:FindFirstChild("StatusLabel", true) :: TextLabel
 
-	-- Visual Hit squash & flash
+	-- Visual Hit squash & flash (strictly bounded to CoreBaseSize to prevent compounding light growth)
 	if corePart then
-		local origSize = corePart.Size
-		local squashTween = TweenService:Create(corePart, TweenInfo.new(0.08, Enum.EasingStyle.Back, Enum.EasingDirection.Out, 0, true), {
-			Size = origSize * 1.35,
+		local baseSize = nodeModel:GetAttribute("CoreBaseSize") :: Vector3?
+		if not baseSize then
+			baseSize = corePart.Size
+			nodeModel:SetAttribute("CoreBaseSize", baseSize)
+		end
+
+		local squashTween = TweenService:Create(corePart, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true), {
+			Size = baseSize * 1.08,
 		})
 		squashTween:Play()
+		task.delay(0.12, function()
+			if corePart and corePart.Parent then
+				corePart.Size = baseSize
+			end
+		end)
 	end
 
 	if basePart then
@@ -502,11 +519,11 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 		local isOrbital = nodeModel:GetAttribute("IsOrbitalPod") == true
 		if statusLabel then
 			if isOrbital then
-				statusLabel.Text = "🔥 ORBITAL SALVAGE POD 🔥"
+				statusLabel.Text = "ORBITAL RAID POD"
 			elseif isDense then
-				statusLabel.Text = string.format("⭐ DENSE %s ⭐", zone.Name:upper())
+				statusLabel.Text = string.format("DENSE %s", zone.Name:upper())
 			else
-				statusLabel.Text = string.format("🔨 %s", zone.Name:upper())
+				statusLabel.Text = zone.Name:upper()
 			end
 		end
 		local hpLabel = nodeModel:FindFirstChild("HpLabel", true) :: TextLabel?
@@ -608,10 +625,16 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 					local notif = Remotes.getEvent("ShowNotification")
 					notif:FireClient(
 						cPlayer,
-						"🎉 RAID REWARD CLAIMED!",
-						string.format("Contribution: %d%% (%d DMG)\n+%d Scrap 🔩 | +%d Gears ⚙️", pct, entry.Damage, scrapReward, gearsReward),
+						"RAID REWARD CLAIMED",
+						string.format("Contribution: %d%% (%d DMG)\n+%d Scrap | +%d Gears", pct, entry.Damage, scrapReward, gearsReward),
 						Color3.fromRGB(255, 170, 20)
 					)
+
+					pcall(function()
+						local QuestService = require(script.Parent.QuestService)
+						QuestService.recordProgress(cPlayer, "Scrap_50", 1)
+						QuestService.recordProgress(cPlayer, "Dismantle_Rare", 1)
+					end)
 				end
 			end
 
@@ -621,14 +644,14 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 				if rank > 3 then break end
 				local fraction = math.clamp(entry.Damage / totalDmg, 0, 1)
 				local pct = math.floor(fraction * 100)
-				local medal = (rank == 1 and "🥇") or (rank == 2 and "🥈") or "🥉"
+				local medal = (rank == 1 and "[#1]") or (rank == 2 and "[#2]") or "[#3]"
 				table.insert(topList, string.format("%s %s (%d%%)", medal, entry.Player.Name, pct))
 			end
 
 			local notifAll = Remotes.getEvent("ShowNotification")
 			notifAll:FireAllClients(
-				"🚀 ORBITAL DROP POD DESTROYED!",
-				string.format("Raid Pod neutralized!\nTop Scrappers: %s", #topList > 0 and table.concat(topList, " | ") or player.Name),
+				"ORBITAL DROP POD DESTROYED",
+				string.format("Raid Pod neutralized.\nTop Scrappers: %s", #topList > 0 and table.concat(topList, " | ") or player.Name),
 				Color3.fromRGB(255, 140, 20)
 			)
 
@@ -639,12 +662,13 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 				if nodeModel and nodeModel.Parent then
 					nodeModel:Destroy()
 				end
+				nodeCooldown[nodeModel] = nil
 			end)
 			return
 		end
 
 		if statusLabel then
-			statusLabel.Text = "✨ HARVESTED! ✨"
+			statusLabel.Text = "HARVESTED"
 		end
 		local hpLabel = nodeModel:FindFirstChild("HpLabel", true) :: TextLabel?
 		if hpLabel then
@@ -683,7 +707,10 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 
 		pcall(function()
 			local QuestService = require(script.Parent.QuestService)
-			QuestService.recordScrapPile(player, 1)
+			QuestService.recordProgress(player, "Scrap_50", 1)
+			if isDense == true then
+				QuestService.recordProgress(player, "Dismantle_Rare", 1)
+			end
 		end)
 
 		-- Collapse node
@@ -718,14 +745,14 @@ function ActionService.init()
 		end)
 	end
 
-	Workspace.DescendantAdded:Connect(function(descendant)
-		if descendant:IsA("ProximityPrompt") and descendant.Name == "ScrapPrompt" then
+	CollectionService:GetInstanceAddedSignal("ScrapPrompt"):Connect(function(descendant)
+		if descendant:IsA("ProximityPrompt") then
 			hookPrompt(descendant)
 		end
 	end)
 
-	for _, descendant in ipairs(Workspace:GetDescendants()) do
-		if descendant:IsA("ProximityPrompt") and descendant.Name == "ScrapPrompt" then
+	for _, descendant in ipairs(CollectionService:GetTagged("ScrapPrompt")) do
+		if descendant:IsA("ProximityPrompt") then
 			hookPrompt(descendant)
 		end
 	end
@@ -783,22 +810,28 @@ function ActionService.init()
 		hookPlayer(player)
 	end
 
+	Players.PlayerRemoving:Connect(function(player)
+		playerLastActionTime[player] = nil
+	end)
+
 	-- AutoScrap Perk Loop: background automatic harvesting for players with the perk!
+	-- High performance: queries tagged ScrapNode instances instead of scanning all Workspace descendants
 	task.spawn(function()
 		while true do
 			task.wait(1.8)
+			local scrapNodes = CollectionService:GetTagged("ScrapNode")
 			for _, player in ipairs(Players:GetPlayers()) do
 				local data = DataService.get(player)
 				if data and data.GearsPerks and data.GearsPerks["AutoScrap"] then
 					local character = player.Character
-					local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart
+					local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 					if root then
-						-- Find nearest pile
-						for _, desc in ipairs(Workspace:GetDescendants()) do
-							if desc:IsA("Model") and string.sub(desc.Name, 1, 10) == "ScrapPile_" then
-								local hb = desc:FindFirstChild("Hitbox") :: BasePart
-								if hb and (root.Position - hb.Position).Magnitude <= 22 then
-									ActionService.performScrapAction(player, desc)
+						local pPos = root.Position
+						for _, node in ipairs(scrapNodes) do
+							if node:IsA("Model") and node.Parent then
+								local hb = node:FindFirstChild("Hitbox") :: BasePart?
+								if hb and (pPos - hb.Position).Magnitude <= 22 then
+									ActionService.performScrapAction(player, node)
 									break
 								end
 							end

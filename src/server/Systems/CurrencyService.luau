@@ -27,7 +27,7 @@ function CurrencyService.getMultiplier(player: Player): number
 	end
 
 	-- 4. Equipped Pets multiplier
-	for _, pet in ipairs(data.Pets) do
+	for _, pet in ipairs(data.Pets or {}) do
 		if pet.Equipped then
 			for _, template in ipairs(Config.Pets.List) do
 				if template.Id == pet.Id then
@@ -180,7 +180,7 @@ function CurrencyService.recycleBackpack(player: Player): number
 
 	pcall(function()
 		local QuestService = require(script.Parent.QuestService)
-		QuestService.recordScrapEarned(player, earned)
+		QuestService.recordProgress(player, "Recycle_200", rawAmount)
 	end)
 
 	local recycleCompleted = Remotes.getEvent("RecycleCompleted")
@@ -193,7 +193,7 @@ function CurrencyService.recycleBackpack(player: Player): number
 	})
 
 	local notif = Remotes.getEvent("ShowNotification")
-	notif:FireClient(player, "SCRAP RECYCLED!", string.format("Converted %d Cargo into +%s Banked Scrap! 💰", rawAmount, CurrencyService.formatNumber(earned)), Color3.fromRGB(80, 220, 120))
+	notif:FireClient(player, "CARGO RECYCLED", string.format("Converted %d Cargo into +%s Banked Scrap.", rawAmount, CurrencyService.formatNumber(earned)), Color3.fromRGB(80, 220, 120))
 
 	return earned
 end

@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Modules.Config)
 local Types = require(ReplicatedStorage.Modules.Types)
@@ -12,6 +13,18 @@ local CurrencyService = require(script.Parent.CurrencyService)
 
 local PetService = {}
 local spawnedDrones: { [Player]: { Model } } = {}
+
+type ActiveDroneFollower = {
+	Drone: Model,
+	Player: Player,
+	Character: Model,
+	RootPart: BasePart,
+	AngleOffset: number,
+	Dist: number,
+	Index: number,
+	SpinningParts: { BasePart },
+}
+local activeFollowers: { ActiveDroneFollower } = {}
 
 -- Helper to create a standardized drone part
 local function createPart(
@@ -291,7 +304,8 @@ function PetService.createDroneModel(template: Types.PetTemplate?): Model
 	bb.Name = "DroneTag"
 	bb.Size = UDim2.new(0, 130, 0, 36)
 	bb.StudsOffset = Vector3.new(0, 1.7, 0)
-	bb.AlwaysOnTop = true
+	bb.AlwaysOnTop = false
+	bb.MaxDistance = 35
 	bb.Parent = core
 
 	local frame = Instance.new("Frame")
@@ -387,6 +401,15 @@ function PetService.hatchEgg(player: Player, eggType: string?): Types.PetTemplat
 	local eggConf = Config.Eggs[selectedType]
 	local cost = eggConf.Cost
 
+	local maxZone = data.MaxZoneReached or 1
+	if eggConf.ZoneId and eggConf.ZoneId > maxZone then
+		local notif = Remotes.getEvent("ShowNotification")
+		if notif then
+			notif:FireClient(player, "ZONE LOCKED", string.format("You must unlock Zone %d to hatch this egg!", eggConf.ZoneId), Color3.fromRGB(255, 70, 70))
+		end
+		return nil
+	end
+
 	if not CurrencyService.removeScrap(player, cost) then
 		local notif = Remotes.getEvent("ShowNotification")
 		notif:FireClient(player, "Not Enough Scrap", string.format("You need %d Scrap to hatch %s.", cost, eggConf.Name), Color3.fromRGB(255, 70, 70))
@@ -453,22 +476,43 @@ function PetService.toggleEquip(player: Player, uuid: string)
 	PetService.updateVisualDrones(player)
 end
 
-function PetService.updateVisualDrones(player: Player)
-	-- Clean up old drones
+function PetService.despawnDrones(player: Player)
 	if spawnedDrones[player] then
 		for _, m in ipairs(spawnedDrones[player]) do
-			m:Destroy()
+			if m and m.Parent then
+				m:Destroy()
+			end
 		end
 	end
 	spawnedDrones[player] = {}
 
+	-- Clean from activeFollowers list
+	for idx = #activeFollowers, 1, -1 do
+		if activeFollowers[idx].Player == player then
+			table.remove(activeFollowers, idx)
+		end
+	end
+
+	-- Secondary cleanup: remove any orphaned drone models in Workspace for this player
+	for _, child in ipairs(Workspace:GetChildren()) do
+		if child:IsA("Model") and string.sub(child.Name, 1, 6) == "Drone_" and child:GetAttribute("OwnerUserId") == player.UserId then
+			child:Destroy()
+		end
+	end
+end
+
+function PetService.updateVisualDrones(player: Player)
+	-- Clean up old drones immediately
+	PetService.despawnDrones(player)
+	spawnedDrones[player] = {}
+
 	local character = player.Character
 	if not character then return end
-	local rootPart = character:FindFirstChild("HumanoidRootPart") :: BasePart
+	local rootPart = character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if not rootPart then return end
 
 	local data = DataService.get(player)
-	if not data then return end
+	if not data or not data.Pets then return end
 
 	local equippedPets = {}
 	for _, p in ipairs(data.Pets) do
@@ -490,10 +534,14 @@ function PetService.updateVisualDrones(player: Player)
 		end
 
 		local droneModel = PetService.createDroneModel(template)
+		droneModel:SetAttribute("OwnerUserId", player.UserId)
 		local initialCF = rootPart.CFrame * CFrame.new(0, 2, 5)
 		droneModel:PivotTo(initialCF)
 
 		droneModel.Parent = Workspace
+		if not spawnedDrones[player] then
+			spawnedDrones[player] = {}
+		end
 		table.insert(spawnedDrones[player], droneModel)
 
 		-- Collect any animated spinning parts for this drone (e.g. rotors, orbiting singularity shards)
@@ -504,43 +552,20 @@ function PetService.updateVisualDrones(player: Player)
 			end
 		end
 
-		-- Drone follower heartbeat
+		-- Register with centralized 20Hz Heartbeat follower system
 		local angleOffset = math.rad(petAngles[i] or 0)
 		local dist = petDistances[i] or 5
 
-		task.spawn(function()
-			while droneModel.Parent and player.Parent and character.Parent and rootPart.Parent do
-				local now = os.clock()
-				local bob = math.sin(now * 2.8 + i * 1.6) * 0.35
-				local rootCF = rootPart.CFrame
-
-				-- Target position orbiting behind player
-				local targetPosCF = rootCF * CFrame.Angles(0, angleOffset, 0) * CFrame.new(0, 2.2 + bob, dist)
-				-- Face towards movement direction
-				local lookPos = targetPosCF.Position + rootCF.LookVector * 10
-				local targetCF = CFrame.lookAt(targetPosCF.Position, lookPos)
-
-				droneModel:PivotTo(droneModel:GetPivot():Lerp(targetCF, 0.18))
-
-				-- Spin any animated parts in lockstep relative to the core
-				for _, sp in ipairs(spinningParts) do
-					if sp.Parent and core and core.Parent then
-						local spinType = sp:GetAttribute("SpinType")
-						local rate = (sp:GetAttribute("SpinRate") :: number) or 10
-						local angle = math.rad(now * rate * 30 % 360)
-						if spinType == "Rotor" then
-							local offset = (sp:GetAttribute("SpinOffset") :: Vector3) or Vector3.new(0, 1.08, 0)
-							sp.CFrame = core.CFrame * CFrame.new(offset) * CFrame.Angles(0, angle, 0)
-						elseif spinType == "Orbit" then
-							local orbitPos = (sp:GetAttribute("OrbitPos") :: Vector3) or Vector3.new(1.3, 0, 0)
-							sp.CFrame = core.CFrame * CFrame.Angles(0, angle, 0) * CFrame.new(orbitPos) * CFrame.Angles(math.rad(25), math.rad(45), 0)
-						end
-					end
-				end
-
-				task.wait(0.03)
-			end
-		end)
+		table.insert(activeFollowers, {
+			Drone = droneModel,
+			Player = player,
+			Character = character,
+			RootPart = rootPart,
+			AngleOffset = angleOffset,
+			Dist = dist,
+			Index = i,
+			SpinningParts = spinningParts,
+		})
 	end
 end
 
@@ -566,15 +591,53 @@ function PetService.init()
 	end)
 
 	Players.PlayerRemoving:Connect(function(player)
-		if spawnedDrones[player] then
-			for _, m in ipairs(spawnedDrones[player]) do
-				m:Destroy()
+		PetService.despawnDrones(player)
+		spawnedDrones[player] = nil
+	end)
+
+	-- Unified Heartbeat Follower Loop (runs at 20 Hz, saving 40% network budget vs separate 33 Hz loops)
+	local lastFollowerUpdate = 0
+	RunService.Heartbeat:Connect(function()
+		local now = os.clock()
+		if now - lastFollowerUpdate < 0.05 then return end
+		lastFollowerUpdate = now
+
+		for idx = #activeFollowers, 1, -1 do
+			local f = activeFollowers[idx]
+			if not f.Drone.Parent or not f.Player.Parent or not f.Character.Parent or not f.RootPart.Parent then
+				table.remove(activeFollowers, idx)
+			else
+				local bob = math.sin(now * 2.8 + f.Index * 1.6) * 0.35
+				local rootCF = f.RootPart.CFrame
+
+				local targetPosCF = rootCF * CFrame.Angles(0, f.AngleOffset, 0) * CFrame.new(0, 2.2 + bob, f.Dist)
+				local lookPos = targetPosCF.Position + rootCF.LookVector * 10
+				local targetCF = CFrame.lookAt(targetPosCF.Position, lookPos)
+
+				f.Drone:PivotTo(f.Drone:GetPivot():Lerp(targetCF, 0.28))
+
+				local core = f.Drone.PrimaryPart
+				if core and core.Parent then
+					for _, sp in ipairs(f.SpinningParts) do
+						if sp.Parent then
+							local spinType = sp:GetAttribute("SpinType")
+							local rate = (sp:GetAttribute("SpinRate") :: number) or 10
+							local angle = math.rad(now * rate * 30 % 360)
+							if spinType == "Rotor" then
+								local offset = (sp:GetAttribute("SpinOffset") :: Vector3) or Vector3.new(0, 1.08, 0)
+								sp.CFrame = core.CFrame * CFrame.new(offset) * CFrame.Angles(0, angle, 0)
+							elseif spinType == "Orbit" then
+								local orbitPos = (sp:GetAttribute("OrbitPos") :: Vector3) or Vector3.new(1.3, 0, 0)
+								sp.CFrame = core.CFrame * CFrame.Angles(0, angle, 0) * CFrame.new(orbitPos) * CFrame.Angles(math.rad(25), math.rad(45), 0)
+							end
+						end
+					end
+				end
 			end
-			spawnedDrones[player] = nil
 		end
 	end)
 
-	print("[PetService] Initialized with 3D Sci-Fi Drone Models.")
+	print("[PetService] Initialized with 3D Sci-Fi Drone Models and unified 20Hz Heartbeat follower system.")
 end
 
 return PetService

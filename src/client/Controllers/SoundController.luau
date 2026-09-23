@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local SoundService = game:GetService("SoundService")
 local ContentProvider = game:GetService("ContentProvider")
 local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
 
 local SoundController = {}
 
@@ -25,6 +26,16 @@ local AUDIO = {
 	Error = "rbxassetid://138090596", -- Error Beep
 	Music = "rbxassetid://9043887091", -- Lo-fi Chill A (APMOfficial)
 }
+
+local function createSpatialAnchor(pos: Vector3, lifetime: number): Attachment
+	local att = Instance.new("Attachment")
+	att.WorldPosition = pos
+	att.Parent = Workspace.Terrain
+	task.delay(lifetime, function()
+		att:Destroy()
+	end)
+	return att
+end
 
 -- Reusable sound player
 local function playAt(soundId: string, parent: Instance?, pitch: number?, volume: number?, maxDist: number?): Sound?
@@ -67,20 +78,8 @@ function SoundController.playHit(isDense: boolean, position: Vector3?)
 	local maxDist: number? = nil
 
 	if position then
-		local anchor = Instance.new("Part")
-		anchor.Size = Vector3.new(0.2, 0.2, 0.2)
-		anchor.Position = position
-		anchor.Transparency = 1
-		anchor.Anchored = true
-		anchor.CanCollide = false
-		anchor.CanQuery = false
-		anchor.CanTouch = false
-		anchor.Parent = workspace
-		parent = anchor
+		parent = createSpatialAnchor(position, 2)
 		maxDist = 60
-		task.delay(2, function()
-			anchor:Destroy()
-		end)
 	end
 
 	if isDense then
@@ -101,20 +100,8 @@ function SoundController.playShatter(isDense: boolean, position: Vector3?)
 	local maxDist: number? = nil
 
 	if position then
-		local anchor = Instance.new("Part")
-		anchor.Size = Vector3.new(0.2, 0.2, 0.2)
-		anchor.Position = position
-		anchor.Transparency = 1
-		anchor.Anchored = true
-		anchor.CanCollide = false
-		anchor.CanQuery = false
-		anchor.CanTouch = false
-		anchor.Parent = workspace
-		parent = anchor
+		parent = createSpatialAnchor(position, 3)
 		maxDist = 80
-		task.delay(3, function()
-			anchor:Destroy()
-		end)
 	end
 
 	-- Crunchy shatter explosion + crystal loot chime
@@ -131,20 +118,8 @@ function SoundController.playRecycle(position: Vector3?)
 	local maxDist: number? = nil
 
 	if position then
-		local anchor = Instance.new("Part")
-		anchor.Size = Vector3.new(0.2, 0.2, 0.2)
-		anchor.Position = position
-		anchor.Transparency = 1
-		anchor.Anchored = true
-		anchor.CanCollide = false
-		anchor.CanQuery = false
-		anchor.CanTouch = false
-		anchor.Parent = workspace
-		parent = anchor
+		parent = createSpatialAnchor(position, 3)
 		maxDist = 80
-		task.delay(3, function()
-			anchor:Destroy()
-		end)
 	end
 
 	-- Rapid arpeggio of loot chimes for satisfying deposit feel

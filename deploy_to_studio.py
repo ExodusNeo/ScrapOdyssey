@@ -11,9 +11,11 @@ def deploy():
         ("src/shared/Modules/Types.luau", "ReplicatedStorage", "Modules", "Types", "ModuleScript"),
         ("src/shared/Modules/Config.luau", "ReplicatedStorage", "Modules", "Config", "ModuleScript"),
         ("src/shared/Modules/Remotes.luau", "ReplicatedStorage", "Modules", "Remotes", "ModuleScript"),
+        ("src/shared/Modules/DroneVisuals.luau", "ReplicatedStorage", "Modules", "DroneVisuals", "ModuleScript"),
         
         ("src/server/Systems/DataService.luau", "ServerScriptService", "Systems", "DataService", "ModuleScript"),
         ("src/server/Systems/CurrencyService.luau", "ServerScriptService", "Systems", "CurrencyService", "ModuleScript"),
+        ("src/server/Systems/EnvironmentService.luau", "ServerScriptService", "Systems", "EnvironmentService", "ModuleScript"),
         ("src/server/Systems/ZoneService.luau", "ServerScriptService", "Systems", "ZoneService", "ModuleScript"),
         ("src/server/Systems/ActionService.luau", "ServerScriptService", "Systems", "ActionService", "ModuleScript"),
         
@@ -34,11 +36,12 @@ def deploy():
         ("src/client/Controllers/HUDController.luau", "StarterPlayer/StarterPlayerScripts", "Controllers", "HUDController", "ModuleScript"),
         ("src/client/Controllers/ActionController.luau", "StarterPlayer/StarterPlayerScripts", "Controllers", "ActionController", "ModuleScript"),
         ("src/client/Controllers/MenuController.luau", "StarterPlayer/StarterPlayerScripts", "Controllers", "MenuController", "ModuleScript"),
+        ("src/client/Controllers/MovementController.luau", "StarterPlayer/StarterPlayerScripts", "Controllers", "MovementController", "ModuleScript"),
         ("src/client/Controllers/ShopController.luau", "StarterPlayer/StarterPlayerScripts", "Controllers", "ShopController", "ModuleScript"),
         ("src/client/Controllers/PetController.luau", "StarterPlayer/StarterPlayerScripts", "Controllers", "PetController", "ModuleScript"),
         ("src/client/Controllers/RebirthController.luau", "StarterPlayer/StarterPlayerScripts", "Controllers", "RebirthController", "ModuleScript"),
-        ("src/client/Controllers/QuestController.luau", "StarterPlayer/StarterPlayerScripts", "Controllers", "QuestController", "ModuleScript"),
-
+        ("src/client/Controllers/UIController.luau", "StarterPlayer/StarterPlayerScripts", "Controllers", "UIController", "ModuleScript"),
+        ("src/client/Controllers/TutorialController.luau", "StarterPlayer/StarterPlayerScripts", "Controllers", "TutorialController", "ModuleScript"),
         ("src/client/ClientMain.client.luau", "StarterPlayer/StarterPlayerScripts", "", "ClientMain", "LocalScript"),
     ]
 

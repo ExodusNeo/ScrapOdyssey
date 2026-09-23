@@ -48,6 +48,21 @@ export type PetTemplate = {
 	Color: Color3,
 }
 
+export type EggPoolItem = {
+	Id: string,
+	Weight: number,
+}
+
+export type EggConfig = {
+	Id: string,
+	Name: string,
+	ZoneId: number,
+	Cost: number,
+	Color: Color3,
+	SubText: string?,
+	Pool: { EggPoolItem },
+}
+
 export type OwnedPet = {
 	UUID: string,
 	Id: string,
@@ -89,11 +104,15 @@ export type PlayerData = {
 	InventoryCount: number,
 	DailyLoginStreak: number,
 	LastLoginTimestamp: number,
+	LastDailyRewardClaim: number?,
+	LastDailyQuestReset: number?,
 	RedeemedCodes: { [string]: boolean },
 	TotalScrapsMined: number,
 	Quests: { [string]: QuestProgress },
 	EquippedTool: string?,
 	OwnedTools: { [string]: boolean }?,
+	HasSuperSprintPass: boolean?,
+	HasCompletedTutorial: boolean?,
 }
 
 return {}

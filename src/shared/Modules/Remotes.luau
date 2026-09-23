@@ -30,10 +30,14 @@ local REMOTE_EVENTS = {
 	"EquipTool",
 	"OrbitalEventAnnounce",
 	"OrbitalEventImpact",
+	"PromptGamepass",
+	"PromptProduct",
+	"CompleteTutorial",
 }
 
 local REMOTE_FUNCTIONS = {
 	"GetPlayerData",
+	"CheckGamepass",
 }
 
 local function isServerOrEdit(): boolean

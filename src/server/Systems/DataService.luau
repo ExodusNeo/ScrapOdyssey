@@ -13,6 +13,7 @@ local DATASTORE_NAME = "ScrapOdyssey_PlayerData_v" .. tostring(DATA_VERSION)
 
 local DataService = {}
 local sessionData: { [number]: Types.PlayerData } = {}
+local pendingSyncs: { [Player]: boolean } = {}
 local dataStore = nil
 
 -- Attempt to connect to DataStoreService safely
@@ -71,15 +72,22 @@ local function getDefaultData(): Types.PlayerData
 		InventoryCount = 0,
 		DailyLoginStreak = 1,
 		LastLoginTimestamp = os.time(),
+		LastDailyRewardClaim = 0,
+		LastDailyQuestReset = os.time(),
 		RedeemedCodes = {},
 		TotalScrapsMined = 0,
 		Quests = initialQuests,
 		EquippedTool = "OmniWrench",
 		OwnedTools = { ["OmniWrench"] = true },
+		HasCompletedTutorial = false,
 	}
 end
 
 function DataService.loadData(player: Player): Types.PlayerData
+	if sessionData[player.UserId] then
+		return sessionData[player.UserId]
+	end
+
 	local data: Types.PlayerData? = nil
 	if isDataStoreAvailable and dataStore then
 		local key = "Player_" .. tostring(player.UserId)
@@ -117,6 +125,24 @@ function DataService.loadData(player: Player): Types.PlayerData
 		if not data.EquippedTool or not data.OwnedTools[data.EquippedTool] then
 			data.EquippedTool = "OmniWrench"
 		end
+		if data.HasCompletedTutorial == nil then
+			data.HasCompletedTutorial = false
+		end
+		if data.DailyLoginStreak == nil then
+			data.DailyLoginStreak = 1
+		end
+		if data.LastDailyRewardClaim == nil then
+			data.LastDailyRewardClaim = 0
+		end
+		if data.LastDailyQuestReset == nil then
+			data.LastDailyQuestReset = 0
+		end
+		-- Clean up legacy lowercase or obsolete quest keys from older builds
+		if data.Quests then
+			data.Quests["scrap_50"] = nil
+			data.Quests["earn_10k"] = nil
+			data.Quests["hatch_2"] = nil
+		end
 	end
 
 	sessionData[player.UserId] = data
@@ -134,11 +160,17 @@ function DataService.get(player: Player): Types.PlayerData?
 end
 
 function DataService.sync(player: Player)
-	local data = sessionData[player.UserId]
-	if data then
-		local syncEvent = Remotes.getEvent("SyncData")
-		syncEvent:FireClient(player, data)
-	end
+	if pendingSyncs[player] then return end
+	pendingSyncs[player] = true
+	task.defer(function()
+		pendingSyncs[player] = nil
+		if not player.Parent then return end
+		local data = sessionData[player.UserId]
+		if data then
+			local syncEvent = Remotes.getEvent("SyncData")
+			syncEvent:FireClient(player, data)
+		end
+	end)
 end
 
 function DataService.saveData(player: Player): boolean
@@ -148,7 +180,9 @@ function DataService.saveData(player: Player): boolean
 	if isDataStoreAvailable and dataStore then
 		local key = "Player_" .. tostring(player.UserId)
 		local success, err = pcall(function()
-			dataStore:SetAsync(key, data)
+			dataStore:UpdateAsync(key, function(oldData)
+				return data
+			end)
 		end)
 
 		if success then
@@ -168,13 +202,24 @@ function DataService.init()
 	end)
 
 	Players.PlayerRemoving:Connect(function(player)
+		pendingSyncs[player] = nil
 		DataService.saveData(player)
 		sessionData[player.UserId] = nil
 	end)
 
 	game:BindToClose(function()
+		local runningSaves = 0
 		for _, player in ipairs(Players:GetPlayers()) do
-			DataService.saveData(player)
+			runningSaves += 1
+			task.spawn(function()
+				DataService.saveData(player)
+				runningSaves -= 1
+			end)
+		end
+		-- Wait for parallel saves to finish up to 10 seconds
+		local startWait = os.clock()
+		while runningSaves > 0 and (os.clock() - startWait) < 10 do
+			task.wait(0.2)
 		end
 	end)
 
@@ -183,12 +228,15 @@ function DataService.init()
 		task.spawn(DataService.loadData, player)
 	end
 
-	-- Auto-save loop every 120 seconds
+	-- Staggered Auto-save loop every 120 seconds (prevents DataStore rate limit bursts)
 	task.spawn(function()
 		while true do
 			task.wait(120)
 			for _, player in ipairs(Players:GetPlayers()) do
-				DataService.saveData(player)
+				if player and player.Parent then
+					DataService.saveData(player)
+					task.wait(1.5) -- Stagger saves across frames
+				end
 			end
 		end
 	end)
@@ -197,6 +245,20 @@ function DataService.init()
 	getFunction.OnServerInvoke = function(player)
 		return (player and sessionData[player.UserId]) or getDefaultData()
 	end
+
+	local completeTutorialEvent = Remotes.getEvent("CompleteTutorial")
+	completeTutorialEvent.OnServerEvent:Connect(function(player)
+		local data = DataService.get(player)
+		if data and not data.HasCompletedTutorial then
+			data.HasCompletedTutorial = true
+			local CurrencyService = require(script.Parent.CurrencyService)
+			CurrencyService.addScrap(player, 50, false)
+			DataService.sync(player)
+
+			local notif = Remotes.getEvent("ShowNotification")
+			notif:FireClient(player, "TUTORIAL COMPLETED!", "Welcome aboard, Operator! +50 Starter Scrap awarded!", Color3.fromRGB(80, 220, 120))
+		end
+	end)
 
 	print("[DataService] Initialized.")
 end
