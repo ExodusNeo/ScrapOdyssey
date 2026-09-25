@@ -426,17 +426,18 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 	local rootPart = character:FindFirstChild("HumanoidRootPart") :: BasePart
 	if not rootPart then return end
 
-	local nodeHitbox = nodeModel:FindFirstChild("Hitbox") :: BasePart
+	local nodeHitbox = (nodeModel:FindFirstChild("Hitbox") or nodeModel.PrimaryPart or nodeModel:FindFirstChildWhichIsA("BasePart")) :: BasePart?
 	if not nodeHitbox then return end
 
 	local data = DataService.get(player)
 	if not data then return end
 
 	local toolConf = Config.getTool(data.EquippedTool or "OmniWrench")
-	local maxRange = (toolConf and toolConf.Range or 22) + 6
+	local maxRange = (toolConf and toolConf.Range or 26) + 14
 
-	-- 1. Distance Sanity Check (scales with tool range)
-	local distance = (rootPart.Position - nodeHitbox.Position).Magnitude
+	-- 1. Distance Sanity Check (scales with tool range, bounding radius, and network ping buffer)
+	local nodeRadius = nodeHitbox.Size.Magnitude * 0.35
+	local distance = math.max(0, (rootPart.Position - nodeHitbox.Position).Magnitude - nodeRadius)
 	if distance > maxRange then return end
 
 	-- 2. Cooldown & Capacity Check
@@ -468,7 +469,7 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 
 	local now = os.clock()
 	local lastTime = playerLastActionTime[player] or 0
-	if now - lastTime < (finalActionDelay * 0.75) then return end
+	if now - lastTime < (finalActionDelay * 0.65) then return end
 	playerLastActionTime[player] = now
 
 	-- 3. Hit Points / Multi-Hit Logic with Tool Damage
@@ -866,12 +867,18 @@ function ActionService.init()
 					local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 					if root then
 						local pPos = root.Position
+						local tConf = Config.getTool(data.EquippedTool or "OmniWrench")
+						local aRange = (tConf and tConf.Range or 26) + 4
 						for _, node in ipairs(scrapNodes) do
 							if node:IsA("Model") and node.Parent then
-								local hb = node:FindFirstChild("Hitbox") :: BasePart?
-								if hb and (pPos - hb.Position).Magnitude <= 22 then
-									ActionService.performScrapAction(player, node)
-									break
+								local hb = (node:FindFirstChild("Hitbox") or node.PrimaryPart or node:FindFirstChildWhichIsA("BasePart")) :: BasePart?
+								if hb then
+									local nRad = hb.Size.Magnitude * 0.35
+									local dist = math.max(0, (pPos - hb.Position).Magnitude - nRad)
+									if dist <= aRange then
+										ActionService.performScrapAction(player, node)
+										break
+									end
 								end
 							end
 						end
