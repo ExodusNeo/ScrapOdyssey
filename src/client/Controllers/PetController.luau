@@ -4,6 +4,7 @@ local RunService = game:GetService("RunService")
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Config = require(ReplicatedStorage.Modules.Config)
 local DroneVisuals = require(ReplicatedStorage.Modules.DroneVisuals)
 
 local PetController = {}
@@ -15,30 +16,139 @@ local activeDrones: { [Model]: boolean } = {}
 -- Cache spinning parts per drone model so we don't query GetDescendants every frame
 local droneSpinParts: { [Model]: { BasePart } } = {}
 
--- Mounts a spinning 3D egg capsule model inside the billboard's EggIconBadge
-local function setupEggBillboard(bb: Instance)
-	if not bb:IsA("BillboardGui") then return end
-	local badge = bb:FindFirstChild("EggIconBadge", true) :: Frame?
-	if not badge then return end
-	if badge:FindFirstChild("EggViewport") then return end
+-- Constructs and mounts a PlayerGui BillboardGui with a spinning 3D Sci-Fi Egg Capsule model
+-- (Identical 3D rotating capsule preview to the hatch capsules in the Drone Hangar modal)
+local function registerEggPod(pod: Instance)
+	if not pod:IsA("Model") then return end
+	local eggType = pod:GetAttribute("EggType") :: string?
+	if not eggType and string.sub(pod.Name, 1, 7) == "EggPod_" then
+		eggType = string.sub(pod.Name, 8)
+	end
+	if not eggType then return end
 
-	local eggType = bb:GetAttribute("EggType") :: string?
-	if not eggType then
-		local parentModel = bb:FindFirstAncestorOfClass("Model")
-		if parentModel and string.sub(parentModel.Name, 1, 7) == "EggPod_" then
-			eggType = string.sub(parentModel.Name, 8)
+	local eggConf = Config.Eggs[eggType]
+	if not eggConf then return end
+
+	local capsule = pod:FindFirstChild("Capsule") :: BasePart?
+	if not capsule then
+		capsule = pod:WaitForChild("Capsule", 3) :: BasePart?
+	end
+	if not capsule then return end
+
+	-- Clean up any legacy server billboard in Workspace so it doesn't duplicate
+	for _, child in ipairs(pod:GetChildren()) do
+		if child:IsA("BillboardGui") then
+			child:Destroy()
 		end
 	end
-	if not eggType then eggType = "RustEgg" end
+
+	local playerGui = localPlayer and (localPlayer:FindFirstChild("PlayerGui") or localPlayer:WaitForChild("PlayerGui", 5)) :: PlayerGui?
+	if not playerGui then return end
+
+	local bbName = "EggDisplay_" .. eggType
+	local existing = playerGui:FindFirstChild(bbName)
+	if existing then existing:Destroy() end
+
+	local bb = Instance.new("BillboardGui")
+	bb.Name = bbName
+	bb.Adornee = capsule
+	bb.Size = UDim2.new(0, 310, 0, 84)
+	bb.StudsOffset = Vector3.new(0, 4.2, 0)
+	bb.MaxDistance = 45
+	bb.LightInfluence = 0
+	bb.AlwaysOnTop = false
+	bb.ResetOnSpawn = false
+	bb.Parent = playerGui
+
+	local bbFrame = Instance.new("Frame")
+	bbFrame.Size = UDim2.new(1, 0, 1, 0)
+	bbFrame.BackgroundColor3 = Color3.fromRGB(16, 20, 28)
+	bbFrame.BackgroundTransparency = 0.12
+	bbFrame.BorderSizePixel = 0
+	bbFrame.Parent = bb
+
+	local bbc = Instance.new("UICorner")
+	bbc.CornerRadius = UDim.new(0, 10)
+	bbc.Parent = bbFrame
+
+	local bbs = Instance.new("UIStroke")
+	bbs.Color = eggConf.Color
+	bbs.Thickness = 1.5
+	bbs.Parent = bbFrame
+
+	-- 3D Egg Capsule Viewport Box (Exact design from the Hatch Capsules in Drone Hangar)
+	local vpBox = Instance.new("Frame")
+	vpBox.Name = "ViewportBox"
+	vpBox.Size = UDim2.new(0, 60, 0, 60)
+	vpBox.Position = UDim2.new(0, 10, 0.5, -30)
+	vpBox.BackgroundColor3 = Color3.fromRGB(14, 17, 24)
+	vpBox.BorderSizePixel = 0
+	vpBox.Parent = bbFrame
+
+	local vpCorner = Instance.new("UICorner")
+	vpCorner.CornerRadius = UDim.new(0, 10)
+	vpCorner.Parent = vpBox
+
+	local vpStroke = Instance.new("UIStroke")
+	vpStroke.Color = eggConf.Color
+	vpStroke.Thickness = 1.2
+	vpStroke.Parent = vpBox
 
 	local vp = Instance.new("ViewportFrame")
 	vp.Name = "EggViewport"
 	vp.Size = UDim2.new(1, 0, 1, 0)
 	vp.BackgroundTransparency = 1
 	vp.ZIndex = 2
-	vp.Parent = badge
+	vp.Parent = vpBox
 
-	DroneVisuals.setupEggViewport(vp, eggType, { CamDist = 3.2, Spin = true })
+	-- Setup the 3D rotating capsule model matching the hatch capsule visuals
+	DroneVisuals.setupEggViewport(vp, eggType, { CamDist = 3.3, Spin = true })
+
+	-- Format comma helper
+	local formattedCost = tostring(math.floor(eggConf.Cost))
+	while true do
+		local k
+		formattedCost, k = string.gsub(formattedCost, "^(-?%d+)(%d%d%d)", "%1,%2")
+		if k == 0 then break end
+	end
+
+	-- Name Label
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Size = UDim2.new(1, -80, 0, 24)
+	nameLabel.Position = UDim2.new(0, 78, 0, 4)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Font = Enum.Font.GothamBold
+	nameLabel.TextSize = 14
+	nameLabel.TextColor3 = eggConf.Color
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	nameLabel.Text = string.upper(eggConf.Name)
+	nameLabel.Parent = bbFrame
+
+	-- Cost Label
+	local costLabel = Instance.new("TextLabel")
+	costLabel.Size = UDim2.new(1, -80, 0, 20)
+	costLabel.Position = UDim2.new(0, 78, 0, 26)
+	costLabel.BackgroundTransparency = 1
+	costLabel.Font = Enum.Font.GothamBlack
+	costLabel.TextSize = 13
+	costLabel.TextColor3 = Color3.fromRGB(240, 245, 255)
+	costLabel.TextXAlignment = Enum.TextXAlignment.Left
+	costLabel.Text = string.format("COST: %s SCRAP", formattedCost)
+	costLabel.Parent = bbFrame
+
+	-- Odds Label
+	if eggConf.SubText then
+		local oddsLabel = Instance.new("TextLabel")
+		oddsLabel.Size = UDim2.new(1, -80, 0, 24)
+		oddsLabel.Position = UDim2.new(0, 78, 0, 48)
+		oddsLabel.BackgroundTransparency = 1
+		oddsLabel.Font = Enum.Font.GothamMedium
+		oddsLabel.TextSize = 10
+		oddsLabel.TextColor3 = Color3.fromRGB(180, 195, 215)
+		oddsLabel.TextXAlignment = Enum.TextXAlignment.Left
+		oddsLabel.Text = string.gsub(eggConf.SubText, "\n", " | ")
+		oddsLabel.Parent = bbFrame
+	end
 end
 
 local function registerDrone(drone: Instance)
@@ -87,23 +197,33 @@ function PetController.init()
 		end
 	end
 
-	-- Mount 3D rotating capsule previews on all in-world egg pod billboards
-	for _, bb in ipairs(CollectionService:GetTagged("EggDisplayGui")) do
-		task.spawn(setupEggBillboard, bb)
+	-- Mount 3D rotating capsule billboards in PlayerGui for each egg pod in the zone
+	for _, pod in ipairs(CollectionService:GetTagged("EggPod")) do
+		task.spawn(registerEggPod, pod)
 	end
-	CollectionService:GetInstanceAddedSignal("EggDisplayGui"):Connect(function(bb)
-		task.spawn(setupEggBillboard, bb)
+	CollectionService:GetInstanceAddedSignal("EggPod"):Connect(function(pod)
+		task.spawn(registerEggPod, pod)
 	end)
 	workspace.DescendantAdded:Connect(function(desc)
-		if desc:IsA("BillboardGui") and desc.Name == "EggDisplayGui" then
-			task.spawn(setupEggBillboard, desc)
+		if desc:IsA("Model") and string.sub(desc.Name, 1, 7) == "EggPod_" then
+			task.spawn(registerEggPod, desc)
 		end
 	end)
 	for _, desc in ipairs(workspace:GetDescendants()) do
-		if desc:IsA("BillboardGui") and desc.Name == "EggDisplayGui" then
-			task.spawn(setupEggBillboard, desc)
+		if desc:IsA("Model") and string.sub(desc.Name, 1, 7) == "EggPod_" then
+			task.spawn(registerEggPod, desc)
 		end
 	end
+
+	-- Refresh billboards on character respawn
+	localPlayer.CharacterAdded:Connect(function()
+		task.wait(0.2)
+		for _, desc in ipairs(workspace:GetDescendants()) do
+			if desc:IsA("Model") and string.sub(desc.Name, 1, 7) == "EggPod_" then
+				task.spawn(registerEggPod, desc)
+			end
+		end
+	end)
 
 	-- High-precision, silky-smooth RenderStepped update loop running at full monitor framerate (60 / 120 / 144 / 240 Hz)
 	RunService.RenderStepped:Connect(function(dt)

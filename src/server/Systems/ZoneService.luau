@@ -426,6 +426,8 @@ function ZoneService.constructEggPod(parentFolder: Instance, pos: Vector3, eggTy
 
 	local podModel = Instance.new("Model")
 	podModel.Name = "EggPod_" .. eggType
+	podModel:SetAttribute("EggType", eggType)
+	CollectionService:AddTag(podModel, "EggPod")
 
 	-- Pedestal Base
 	local pedestal = Instance.new("Part")
@@ -465,15 +467,15 @@ function ZoneService.constructEggPod(parentFolder: Instance, pos: Vector3, eggTy
 	capsule.CanCollide = false
 	capsule.Parent = podModel
 
-	-- Floating 3D Display Egg
+	-- Floating 3D Display Egg (Neon energy core inside glass capsule)
 	local egg = Instance.new("Part")
 	egg.Name = "DisplayEgg"
 	egg.Shape = Enum.PartType.Ball
-	egg.Size = Vector3.new(2.2, 3.0, 2.2)
+	egg.Size = Vector3.new(2.0, 2.8, 2.0)
 	egg.Position = pos + Vector3.new(0, 4.3, 0)
 	egg.Anchored = true
 	egg.CanCollide = false
-	egg.Material = Enum.Material.SmoothPlastic
+	egg.Material = Enum.Material.Neon
 	egg.Color = eggConf.Color
 	egg.Parent = podModel
 
@@ -499,106 +501,7 @@ function ZoneService.constructEggPod(parentFolder: Instance, pos: Vector3, eggTy
 		if k == 0 then break end
 	end
 
-	-- Sci-Fi Billboard Display with Odds and Cost
-	-- Sci-Fi Billboard Display with Odds, Cost, and Icon Badge
-	local bb = Instance.new("BillboardGui")
-	bb.Name = "EggDisplayGui"
-	bb.Size = UDim2.new(0, 310, 0, 84)
-	bb.StudsOffset = Vector3.new(0, 4.2, 0)
-	bb.MaxDistance = 45
-	bb.LightInfluence = 0
-	bb.AlwaysOnTop = false
-	bb.Adornee = capsule
-	bb:SetAttribute("EggType", eggType)
-	CollectionService:AddTag(bb, "EggDisplayGui")
-	bb.Parent = podModel
 
-	local bbFrame = Instance.new("Frame")
-	bbFrame.Size = UDim2.new(1, 0, 1, 0)
-	bbFrame.BackgroundColor3 = Color3.fromRGB(16, 20, 28)
-	bbFrame.BackgroundTransparency = 0.12
-	bbFrame.BorderSizePixel = 0
-	bbFrame.Parent = bb
-
-	local bbc = Instance.new("UICorner")
-	bbc.CornerRadius = UDim.new(0, 10)
-	bbc.Parent = bbFrame
-
-	local bbs = Instance.new("UIStroke")
-	bbs.Color = eggConf.Color
-	bbs.Thickness = 1.5
-	bbs.Parent = bbFrame
-
-	-- Glowing Drone / Capsule Icon Badge (Houses 3D Rotating ViewportFrame on Client + Themed Fallback Icon)
-	local iconBox = Instance.new("Frame")
-	iconBox.Name = "EggIconBadge"
-	iconBox.Size = UDim2.new(0, 56, 0, 56)
-	iconBox.Position = UDim2.new(0, 12, 0.5, -28)
-	iconBox.BackgroundColor3 = Color3.fromRGB(24, 30, 44)
-	iconBox.BorderSizePixel = 0
-	iconBox.Parent = bbFrame
-
-	local ibc = Instance.new("UICorner")
-	ibc.CornerRadius = UDim.new(0, 10)
-	ibc.Parent = iconBox
-
-	local ibs = Instance.new("UIStroke")
-	ibs.Color = eggConf.Color
-	ibs.Thickness = 1.2
-	ibs.Parent = iconBox
-
-	local eggIcons = {
-		RustEgg = "🤖",
-		JunkyardEgg = "⚡",
-		FoundryEgg = "🔥",
-		CyberEgg = "🛸",
-		VoidEgg = "🌌",
-	}
-	local fallbackIcon = Instance.new("TextLabel")
-	fallbackIcon.Name = "FallbackIcon"
-	fallbackIcon.Size = UDim2.new(1, 0, 1, 0)
-	fallbackIcon.BackgroundTransparency = 1
-	fallbackIcon.Font = Enum.Font.GothamBold
-	fallbackIcon.TextSize = 28
-	fallbackIcon.TextColor3 = eggConf.Color
-	fallbackIcon.Text = eggIcons[eggType] or "🥚"
-	fallbackIcon.ZIndex = 1
-	fallbackIcon.Parent = iconBox
-
-	local nameLabel = Instance.new("TextLabel")
-	nameLabel.Size = UDim2.new(1, -82, 0, 24)
-	nameLabel.Position = UDim2.new(0, 76, 0, 4)
-	nameLabel.BackgroundTransparency = 1
-	nameLabel.Font = Enum.Font.GothamBold
-	nameLabel.TextSize = 14
-	nameLabel.TextColor3 = eggConf.Color
-	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
-	nameLabel.Text = string.upper(eggConf.Name)
-	nameLabel.Parent = bbFrame
-
-	local costLabel = Instance.new("TextLabel")
-	costLabel.Size = UDim2.new(1, -82, 0, 20)
-	costLabel.Position = UDim2.new(0, 76, 0, 26)
-	costLabel.BackgroundTransparency = 1
-	costLabel.Font = Enum.Font.GothamBlack
-	costLabel.TextSize = 13
-	costLabel.TextColor3 = Color3.fromRGB(240, 245, 255)
-	costLabel.TextXAlignment = Enum.TextXAlignment.Left
-	costLabel.Text = string.format("COST: %s SCRAP", formattedCost)
-	costLabel.Parent = bbFrame
-
-	if eggConf.SubText then
-		local oddsLabel = Instance.new("TextLabel")
-		oddsLabel.Size = UDim2.new(1, -82, 0, 24)
-		oddsLabel.Position = UDim2.new(0, 76, 0, 48)
-		oddsLabel.BackgroundTransparency = 1
-		oddsLabel.Font = Enum.Font.GothamMedium
-		oddsLabel.TextSize = 10
-		oddsLabel.TextColor3 = Color3.fromRGB(180, 195, 215)
-		oddsLabel.TextXAlignment = Enum.TextXAlignment.Left
-		oddsLabel.Text = string.gsub(eggConf.SubText, "\n", " | ")
-		oddsLabel.Parent = bbFrame
-	end
 
 	-- ProximityPrompt for Hatching
 	local prompt = Instance.new("ProximityPrompt")
