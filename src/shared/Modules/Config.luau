@@ -514,7 +514,6 @@ Config = {
 				Description = "Hands-free dismantling! Automatically strikes nearest nodes.",
 				Price = 299,
 				Icon = "⚙️",
-				ImageId = "rbxassetid://10709775087",
 				Color = Color3.fromRGB(80, 220, 120),
 			},
 			DoubleLuck = {

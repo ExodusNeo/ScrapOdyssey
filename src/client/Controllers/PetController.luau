@@ -2,6 +2,9 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local CollectionService = game:GetService("CollectionService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local DroneVisuals = require(ReplicatedStorage.Modules.DroneVisuals)
 
 local PetController = {}
 local localPlayer = Players.LocalPlayer
@@ -11,6 +14,32 @@ local activeDrones: { [Model]: boolean } = {}
 
 -- Cache spinning parts per drone model so we don't query GetDescendants every frame
 local droneSpinParts: { [Model]: { BasePart } } = {}
+
+-- Mounts a spinning 3D egg capsule model inside the billboard's EggIconBadge
+local function setupEggBillboard(bb: Instance)
+	if not bb:IsA("BillboardGui") then return end
+	local badge = bb:FindFirstChild("EggIconBadge", true) :: Frame?
+	if not badge then return end
+	if badge:FindFirstChild("EggViewport") then return end
+
+	local eggType = bb:GetAttribute("EggType") :: string?
+	if not eggType then
+		local parentModel = bb:FindFirstAncestorOfClass("Model")
+		if parentModel and string.sub(parentModel.Name, 1, 7) == "EggPod_" then
+			eggType = string.sub(parentModel.Name, 8)
+		end
+	end
+	if not eggType then eggType = "RustEgg" end
+
+	local vp = Instance.new("ViewportFrame")
+	vp.Name = "EggViewport"
+	vp.Size = UDim2.new(1, 0, 1, 0)
+	vp.BackgroundTransparency = 1
+	vp.ZIndex = 2
+	vp.Parent = badge
+
+	DroneVisuals.setupEggViewport(vp, eggType, { CamDist = 3.2, Spin = true })
+end
 
 local function registerDrone(drone: Instance)
 	if not drone:IsA("Model") then return end
@@ -55,6 +84,24 @@ function PetController.init()
 	for _, child in ipairs(workspace:GetChildren()) do
 		if child:IsA("Model") and (child:GetAttribute("OwnerUserId") ~= nil or string.find(child.Name, "Drone_") ~= nil) then
 			registerDrone(child)
+		end
+	end
+
+	-- Mount 3D rotating capsule previews on all in-world egg pod billboards
+	for _, bb in ipairs(CollectionService:GetTagged("EggDisplayGui")) do
+		task.spawn(setupEggBillboard, bb)
+	end
+	CollectionService:GetInstanceAddedSignal("EggDisplayGui"):Connect(function(bb)
+		task.spawn(setupEggBillboard, bb)
+	end)
+	workspace.DescendantAdded:Connect(function(desc)
+		if desc:IsA("BillboardGui") and desc.Name == "EggDisplayGui" then
+			task.spawn(setupEggBillboard, desc)
+		end
+	end)
+	for _, desc in ipairs(workspace:GetDescendants()) do
+		if desc:IsA("BillboardGui") and desc.Name == "EggDisplayGui" then
+			task.spawn(setupEggBillboard, desc)
 		end
 	end
 

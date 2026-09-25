@@ -743,7 +743,7 @@ function MenuController.buildStorePanel()
 			Desc = (details.AutoScrap and details.AutoScrap.Description) or "Hands-free continuous dismantling without clicking.",
 			Price = (details.AutoScrap and details.AutoScrap.Price) or 299,
 			Icon = (details.AutoScrap and details.AutoScrap.Icon) or "⚙️",
-			ImageId = (details.AutoScrap and details.AutoScrap.ImageId) or "rbxassetid://10709775087",
+			ImageId = (details.AutoScrap and details.AutoScrap.ImageId ~= "" and details.AutoScrap.ImageId) or nil,
 			Color = (details.AutoScrap and details.AutoScrap.Color) or Color3.fromRGB(80, 220, 120),
 		},
 		{
@@ -3339,7 +3339,7 @@ function MenuController.buildIconBar()
 		{ Name = "Upgrades", Label = "UPGRADE", FullTitle = "UPGRADES WORKSHOP", Icon = "🛠️", Color = Color3.fromRGB(45, 215, 115) },
 		{ Name = "Teleport", Label = "SECTORS", FullTitle = "SECTOR FAST-TRAVEL", Icon = "🚀", Color = Color3.fromRGB(185, 80, 255) },
 		{ Name = "ToolArmory", Label = "ARMORY", FullTitle = "TOOL ARMORY", Icon = "🔧", Color = Color3.fromRGB(255, 140, 40) },
-		{ Name = "Drones", Label = "DRONES", FullTitle = "DRONE HANGAR", Icon = "🤖", ImageId = "rbxassetid://10709775087", Color = Color3.fromRGB(255, 180, 30) },
+		{ Name = "Drones", Label = "DRONES", FullTitle = "DRONE HANGAR", Icon = "🛸", Color = Color3.fromRGB(255, 180, 30) },
 		{ Name = "Rebirth", Label = "REBIRTH", FullTitle = "QUANTUM REBIRTH", Icon = "🔄", Color = Color3.fromRGB(80, 150, 255) },
 	}
 

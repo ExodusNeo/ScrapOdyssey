@@ -505,10 +505,12 @@ function ZoneService.constructEggPod(parentFolder: Instance, pos: Vector3, eggTy
 	bb.Name = "EggDisplayGui"
 	bb.Size = UDim2.new(0, 310, 0, 84)
 	bb.StudsOffset = Vector3.new(0, 4.2, 0)
-	bb.MaxDistance = 35
+	bb.MaxDistance = 45
 	bb.LightInfluence = 0
 	bb.AlwaysOnTop = false
 	bb.Adornee = capsule
+	bb:SetAttribute("EggType", eggType)
+	CollectionService:AddTag(bb, "EggDisplayGui")
 	bb.Parent = podModel
 
 	local bbFrame = Instance.new("Frame")
@@ -527,7 +529,7 @@ function ZoneService.constructEggPod(parentFolder: Instance, pos: Vector3, eggTy
 	bbs.Thickness = 1.5
 	bbs.Parent = bbFrame
 
-	-- Glowing Drone / Capsule Icon Badge
+	-- Glowing Drone / Capsule Icon Badge (Houses 3D Rotating ViewportFrame on Client + Themed Fallback Icon)
 	local iconBox = Instance.new("Frame")
 	iconBox.Name = "EggIconBadge"
 	iconBox.Size = UDim2.new(0, 56, 0, 56)
@@ -545,14 +547,23 @@ function ZoneService.constructEggPod(parentFolder: Instance, pos: Vector3, eggTy
 	ibs.Thickness = 1.2
 	ibs.Parent = iconBox
 
-	local iconImg = Instance.new("ImageLabel")
-	iconImg.Size = UDim2.new(0, 36, 0, 36)
-	iconImg.Position = UDim2.new(0.5, 0, 0.5, 0)
-	iconImg.AnchorPoint = Vector2.new(0.5, 0.5)
-	iconImg.BackgroundTransparency = 1
-	iconImg.Image = "rbxassetid://10709775087"
-	iconImg.ImageColor3 = eggConf.Color
-	iconImg.Parent = iconBox
+	local eggIcons = {
+		RustEgg = "🤖",
+		JunkyardEgg = "⚡",
+		FoundryEgg = "🔥",
+		CyberEgg = "🛸",
+		VoidEgg = "🌌",
+	}
+	local fallbackIcon = Instance.new("TextLabel")
+	fallbackIcon.Name = "FallbackIcon"
+	fallbackIcon.Size = UDim2.new(1, 0, 1, 0)
+	fallbackIcon.BackgroundTransparency = 1
+	fallbackIcon.Font = Enum.Font.GothamBold
+	fallbackIcon.TextSize = 28
+	fallbackIcon.TextColor3 = eggConf.Color
+	fallbackIcon.Text = eggIcons[eggType] or "🥚"
+	fallbackIcon.ZIndex = 1
+	fallbackIcon.Parent = iconBox
 
 	local nameLabel = Instance.new("TextLabel")
 	nameLabel.Size = UDim2.new(1, -82, 0, 24)
