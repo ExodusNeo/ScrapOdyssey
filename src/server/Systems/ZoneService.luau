@@ -629,7 +629,7 @@ function ZoneService.constructCentralHub()
 	plaza.Position = Vector3.new(0, -2, 0)
 	plaza.Anchored = true
 	plaza.Material = Enum.Material.Concrete
-	plaza.Color = Color3.fromRGB(50, 53, 62)
+	plaza.Color = Color3.fromRGB(76, 82, 96)
 	plaza.Parent = hubFolder
 
 	-- Floating Island Underside Rock Root & Anti-Gravity Thruster Units
@@ -1493,7 +1493,7 @@ function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Ve
 	platform.Position = centerPos - Vector3.new(0, 2, 0)
 	platform.Anchored = true
 	platform.Material = Enum.Material.Concrete
-	platform.Color = Color3.fromRGB(42, 45, 54)
+	platform.Color = Color3.fromRGB(72, 78, 92)
 	platform.Parent = folder
 
 	-- Platform anti-trespass touch handler for locked zones
@@ -1686,7 +1686,7 @@ function ZoneService.constructBridge(zoneId: number)
 	bridge.Position = Vector3.new(bridgeX, -2, 0)
 	bridge.Anchored = true
 	bridge.Material = Enum.Material.DiamondPlate
-	bridge.Color = Color3.fromRGB(36, 40, 50)
+	bridge.Color = Color3.fromRGB(68, 74, 88)
 	bridge.Parent = bridgeFolder
 
 	-- North Safety Guardrail (Prevents falling off!)

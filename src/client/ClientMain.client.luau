@@ -13,6 +13,7 @@ local ActionController = require(ControllersFolder:WaitForChild("ActionControlle
 local MenuController = require(ControllersFolder:WaitForChild("MenuController"))
 local MovementController = require(ControllersFolder:WaitForChild("MovementController"))
 local TutorialController = require(ControllersFolder:WaitForChild("TutorialController"))
+local PetController = require(ControllersFolder:WaitForChild("PetController"))
 
 SoundController.init()
 VFXController.init()
@@ -20,6 +21,7 @@ HUDController.init()
 ActionController.init()
 MenuController.init()
 MovementController.init()
+PetController.init()
 TutorialController.init()
 
 print("==================================================")

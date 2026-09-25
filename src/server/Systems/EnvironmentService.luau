@@ -33,12 +33,15 @@ function EnvironmentService.setupAtmosphereAndSky()
 		Lighting.Technology = Enum.Technology.Future
 	end)
 
-	Lighting.Brightness = 1.05
+	Lighting.Brightness = 2.2
 	Lighting.ClockTime = 14.5 -- Comfortable afternoon ambient lighting
 	Lighting.GeographicLatitude = 25
-	Lighting.OutdoorAmbient = Color3.fromRGB(80, 85, 95)
-	Lighting.Ambient = Color3.fromRGB(65, 70, 78)
-	Lighting.ShadowSoftness = 0.4
+	Lighting.OutdoorAmbient = Color3.fromRGB(132, 140, 158)
+	Lighting.Ambient = Color3.fromRGB(112, 120, 136)
+	Lighting.ExposureCompensation = 0.35
+	Lighting.ShadowSoftness = 0.7
+	Lighting.EnvironmentDiffuseScale = 1
+	Lighting.EnvironmentSpecularScale = 1
 
 	-- Clear ALL lingering effects in Lighting (including SunRaysEffect, BloomEffect, Sky, etc.)
 	for _, child in ipairs(Lighting:GetChildren()) do
@@ -63,10 +66,10 @@ function EnvironmentService.setupAtmosphereAndSky()
 
 	-- Atmospheric depth: crystal clear space air without blinding sun glare or haze
 	local atmosphere = Instance.new("Atmosphere")
-	atmosphere.Density = 0.15
+	atmosphere.Density = 0.12
 	atmosphere.Offset = 0.0
-	atmosphere.Color = Color3.fromRGB(160, 175, 200)
-	atmosphere.Decay = Color3.fromRGB(130, 145, 170)
+	atmosphere.Color = Color3.fromRGB(180, 195, 220)
+	atmosphere.Decay = Color3.fromRGB(140, 155, 185)
 	atmosphere.Glare = 0 -- Absolutely zero sun glare piercing camera
 	atmosphere.Haze = 0  -- Zero blinding atmospheric haze
 	atmosphere.Parent = Lighting
@@ -78,11 +81,11 @@ function EnvironmentService.setupAtmosphereAndSky()
 	bloom.Threshold = 2.4
 	bloom.Parent = Lighting
 
-	-- Balanced, clean Color Correction
+	-- Balanced, clean Color Correction with zero black crush so dark avatars are clearly visible
 	local cc = Instance.new("ColorCorrectionEffect")
-	cc.Brightness = 0.0
-	cc.Contrast = 0.04
-	cc.Saturation = 0.03
+	cc.Brightness = 0.05
+	cc.Contrast = 0.0
+	cc.Saturation = 0.06
 	cc.TintColor = Color3.fromRGB(255, 255, 255)
 	cc.Parent = Lighting
 
@@ -508,9 +511,9 @@ function EnvironmentService.constructSurfaceDressing(parent: Instance, centerPos
 
 		-- Soft Halogen Pool of Light
 		local light = Instance.new("PointLight")
-		light.Brightness = 0.65
-		light.Range = 26
-		light.Color = Color3.fromRGB(245, 230, 200)
+		light.Brightness = 1.15
+		light.Range = 46
+		light.Color = Color3.fromRGB(250, 240, 225)
 		light.Shadows = false
 		light.Parent = bulb
 

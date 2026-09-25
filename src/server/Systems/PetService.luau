@@ -4,6 +4,7 @@ local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
+local CollectionService = game:GetService("CollectionService")
 
 local Config = require(ReplicatedStorage.Modules.Config)
 local Types = require(ReplicatedStorage.Modules.Types)
@@ -534,8 +535,16 @@ function PetService.updateVisualDrones(player: Player)
 		end
 
 		local droneModel = PetService.createDroneModel(template)
+		local angleOffset = math.rad(petAngles[i] or 0)
+		local dist = petDistances[i] or 5
+
 		droneModel:SetAttribute("OwnerUserId", player.UserId)
-		local initialCF = rootPart.CFrame * CFrame.new(0, 2, 5)
+		droneModel:SetAttribute("SlotIndex", i)
+		droneModel:SetAttribute("AngleOffset", angleOffset)
+		droneModel:SetAttribute("FollowDist", dist)
+		CollectionService:AddTag(droneModel, "EquippedDrone")
+
+		local initialCF = rootPart.CFrame * CFrame.Angles(0, angleOffset, 0) * CFrame.new(0, 2.2, dist)
 		droneModel:PivotTo(initialCF)
 
 		droneModel.Parent = Workspace
@@ -543,18 +552,6 @@ function PetService.updateVisualDrones(player: Player)
 			spawnedDrones[player] = {}
 		end
 		table.insert(spawnedDrones[player], droneModel)
-
-		-- Collect any animated spinning parts for this drone (e.g. rotors, orbiting singularity shards)
-		local spinningParts: { BasePart } = {}
-		for _, desc in ipairs(droneModel:GetDescendants()) do
-			if desc:IsA("BasePart") and desc:GetAttribute("SpinType") ~= nil then
-				table.insert(spinningParts, desc)
-			end
-		end
-
-		-- Register with centralized 20Hz Heartbeat follower system
-		local angleOffset = math.rad(petAngles[i] or 0)
-		local dist = petDistances[i] or 5
 
 		table.insert(activeFollowers, {
 			Drone = droneModel,
@@ -564,7 +561,7 @@ function PetService.updateVisualDrones(player: Player)
 			AngleOffset = angleOffset,
 			Dist = dist,
 			Index = i,
-			SpinningParts = spinningParts,
+			SpinningParts = {},
 		})
 	end
 end
@@ -595,11 +592,11 @@ function PetService.init()
 		spawnedDrones[player] = nil
 	end)
 
-	-- Unified Heartbeat Follower Loop (runs at 20 Hz, saving 40% network budget vs separate 33 Hz loops)
+	-- Coarse server position sync loop (runs at low frequency only as a teleport fallback; client PetController handles 144Hz smooth interpolation)
 	local lastFollowerUpdate = 0
 	RunService.Heartbeat:Connect(function()
 		local now = os.clock()
-		if now - lastFollowerUpdate < 0.05 then return end
+		if now - lastFollowerUpdate < 2.0 then return end
 		lastFollowerUpdate = now
 
 		for idx = #activeFollowers, 1, -1 do
@@ -607,37 +604,17 @@ function PetService.init()
 			if not f.Drone.Parent or not f.Player.Parent or not f.Character.Parent or not f.RootPart.Parent then
 				table.remove(activeFollowers, idx)
 			else
-				local bob = math.sin(now * 2.8 + f.Index * 1.6) * 0.35
-				local rootCF = f.RootPart.CFrame
-
-				local targetPosCF = rootCF * CFrame.Angles(0, f.AngleOffset, 0) * CFrame.new(0, 2.2 + bob, f.Dist)
-				local lookPos = targetPosCF.Position + rootCF.LookVector * 10
-				local targetCF = CFrame.lookAt(targetPosCF.Position, lookPos)
-
-				f.Drone:PivotTo(f.Drone:GetPivot():Lerp(targetCF, 0.28))
-
-				local core = f.Drone.PrimaryPart
-				if core and core.Parent then
-					for _, sp in ipairs(f.SpinningParts) do
-						if sp.Parent then
-							local spinType = sp:GetAttribute("SpinType")
-							local rate = (sp:GetAttribute("SpinRate") :: number) or 10
-							local angle = math.rad(now * rate * 30 % 360)
-							if spinType == "Rotor" then
-								local offset = (sp:GetAttribute("SpinOffset") :: Vector3) or Vector3.new(0, 1.08, 0)
-								sp.CFrame = core.CFrame * CFrame.new(offset) * CFrame.Angles(0, angle, 0)
-							elseif spinType == "Orbit" then
-								local orbitPos = (sp:GetAttribute("OrbitPos") :: Vector3) or Vector3.new(1.3, 0, 0)
-								sp.CFrame = core.CFrame * CFrame.Angles(0, angle, 0) * CFrame.new(orbitPos) * CFrame.Angles(math.rad(25), math.rad(45), 0)
-							end
-						end
-					end
+				local currentDist = (f.Drone:GetPivot().Position - f.RootPart.Position).Magnitude
+				if currentDist > 60 then
+					local rootCF = f.RootPart.CFrame
+					local targetPosCF = rootCF * CFrame.Angles(0, f.AngleOffset, 0) * CFrame.new(0, 2.2, f.Dist)
+					f.Drone:PivotTo(targetPosCF)
 				end
 			end
 		end
 	end)
 
-	print("[PetService] Initialized with 3D Sci-Fi Drone Models and unified 20Hz Heartbeat follower system.")
+	print("[PetService] Initialized with 3D Sci-Fi Drone Models and client-side 144Hz interpolation tags.")
 end
 
 return PetService
