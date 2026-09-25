@@ -36,6 +36,16 @@ local cbStroke: UIStroke
 local lastComboTime = 0
 local recentPopups: { { Pos: Vector3, Time: number } } = {}
 
+-- Orbital Raid Event Banner Elements
+local orbitalBanner: Frame?
+local orbitalTitleLabel: TextLabel?
+local orbitalTimerLabel: TextLabel?
+local orbitalWarpBtn: TextButton?
+local orbitalBannerStroke: UIStroke?
+local currentOrbitalDespawnTime: number?
+local currentOrbitalZoneId: number?
+local orbitalTickerActive = false
+
 local function formatNumber(n: number): string
 	if n >= 1e9 then
 		return string.format("%.2fB", n / 1e9)
@@ -268,6 +278,173 @@ function HUDController.createHUD()
 	comboLabel.TextColor3 = Color3.fromRGB(255, 160, 30)
 	comboLabel.Text = "🔥 STREAK x2 (+5%)"
 	comboLabel.Parent = comboBadge
+
+	-- Top Center Orbital Raid Event Banner
+	orbitalBanner = Instance.new("Frame")
+	orbitalBanner.Name = "OrbitalEventBanner"
+	orbitalBanner.AnchorPoint = Vector2.new(0.5, 0)
+	orbitalBanner.Size = UDim2.new(0, 420, 0, 50)
+	orbitalBanner.Position = UDim2.new(0.5, 0, 0, -80)
+	orbitalBanner.BackgroundColor3 = Color3.fromRGB(15, 18, 26)
+	orbitalBanner.BackgroundTransparency = 0.08
+	orbitalBanner.BorderSizePixel = 0
+	orbitalBanner.Visible = false
+	orbitalBanner.Parent = mainGui
+
+	local obCorner = Instance.new("UICorner")
+	obCorner.CornerRadius = UDim.new(0, 8)
+	obCorner.Parent = orbitalBanner
+
+	orbitalBannerStroke = Instance.new("UIStroke")
+	orbitalBannerStroke.Color = Color3.fromRGB(255, 140, 30)
+	orbitalBannerStroke.Thickness = 1.5
+	orbitalBannerStroke.Parent = orbitalBanner
+
+	local obAccent = Instance.new("Frame")
+	obAccent.Name = "Accent"
+	obAccent.Size = UDim2.new(0, 4, 1, 0)
+	obAccent.Position = UDim2.new(0, 0, 0, 0)
+	obAccent.BackgroundColor3 = Color3.fromRGB(255, 140, 30)
+	obAccent.BorderSizePixel = 0
+	obAccent.Parent = orbitalBanner
+
+	local obAccentCorner = Instance.new("UICorner")
+	obAccentCorner.CornerRadius = UDim.new(0, 2)
+	obAccentCorner.Parent = obAccent
+
+	local obIcon = Instance.new("TextLabel")
+	obIcon.Name = "Icon"
+	obIcon.Size = UDim2.new(0, 36, 0, 36)
+	obIcon.Position = UDim2.new(0, 10, 0.5, -18)
+	obIcon.BackgroundTransparency = 1
+	obIcon.Font = Enum.Font.GothamBlack
+	obIcon.TextSize = 22
+	obIcon.Text = "🚀"
+	obIcon.Parent = orbitalBanner
+
+	orbitalTitleLabel = Instance.new("TextLabel")
+	orbitalTitleLabel.Name = "Title"
+	orbitalTitleLabel.Size = UDim2.new(1, -160, 0, 20)
+	orbitalTitleLabel.Position = UDim2.new(0, 50, 0, 6)
+	orbitalTitleLabel.BackgroundTransparency = 1
+	orbitalTitleLabel.Font = Enum.Font.GothamBlack
+	orbitalTitleLabel.TextSize = 12
+	orbitalTitleLabel.TextColor3 = Color3.fromRGB(255, 160, 40)
+	orbitalTitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+	orbitalTitleLabel.Text = "🚀 ORBITAL RAID POD DETECTED"
+	orbitalTitleLabel.Parent = orbitalBanner
+
+	orbitalTimerLabel = Instance.new("TextLabel")
+	orbitalTimerLabel.Name = "Timer"
+	orbitalTimerLabel.Size = UDim2.new(1, -160, 0, 18)
+	orbitalTimerLabel.Position = UDim2.new(0, 50, 0, 26)
+	orbitalTimerLabel.BackgroundTransparency = 1
+	orbitalTimerLabel.Font = Enum.Font.GothamBold
+	orbitalTimerLabel.TextSize = 12
+	orbitalTimerLabel.TextColor3 = Color3.fromRGB(255, 220, 70)
+	orbitalTimerLabel.TextXAlignment = Enum.TextXAlignment.Left
+	orbitalTimerLabel.Text = "⏳ DESPAWNS IN: 04:00"
+	orbitalTimerLabel.Parent = orbitalBanner
+
+	orbitalWarpBtn = Instance.new("TextButton")
+	orbitalWarpBtn.Name = "WarpButton"
+	orbitalWarpBtn.Size = UDim2.new(0, 96, 0, 34)
+	orbitalWarpBtn.Position = UDim2.new(1, -106, 0.5, -17)
+	orbitalWarpBtn.BackgroundColor3 = Color3.fromRGB(255, 140, 20)
+	orbitalWarpBtn.BorderSizePixel = 0
+	orbitalWarpBtn.Font = Enum.Font.GothamBlack
+	orbitalWarpBtn.TextSize = 12
+	orbitalWarpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	orbitalWarpBtn.Text = "📍 WARP"
+	orbitalWarpBtn.AutoButtonColor = true
+	orbitalWarpBtn.Parent = orbitalBanner
+
+	local wbCorner = Instance.new("UICorner")
+	wbCorner.CornerRadius = UDim.new(0, 6)
+	wbCorner.Parent = orbitalWarpBtn
+
+	orbitalWarpBtn.Activated:Connect(function()
+		SoundController.playClick()
+		if currentOrbitalZoneId then
+			local teleportRemote = Remotes.getEvent("TeleportZone")
+			teleportRemote:FireServer(currentOrbitalZoneId)
+		end
+		pcall(function()
+			local MenuController = require(controllersFolder:WaitForChild("MenuController"))
+			MenuController.openPanel("Teleport")
+		end)
+	end)
+end
+
+function HUDController.showOrbitalBanner(zoneId: number, zoneName: string?, despawnTime: number)
+	if not orbitalBanner or not orbitalTitleLabel or not orbitalTimerLabel then return end
+
+	currentOrbitalZoneId = zoneId
+	currentOrbitalDespawnTime = despawnTime
+
+	local cleanName = zoneName or string.format("Zone %d", zoneId)
+	orbitalTitleLabel.Text = string.format("🚀 ORBITAL RAID POD • %s", cleanName:upper())
+
+	orbitalBanner.Visible = true
+	local animIn = TweenService:Create(orbitalBanner, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Position = UDim2.new(0.5, 0, 0, 18),
+	})
+	animIn:Play()
+
+	if not orbitalTickerActive then
+		orbitalTickerActive = true
+		task.spawn(function()
+			while orbitalTickerActive and orbitalBanner and orbitalBanner.Parent do
+				if not currentOrbitalDespawnTime then break end
+				local remaining = math.max(0, currentOrbitalDespawnTime - os.time())
+				local mins = math.floor(remaining / 60)
+				local secs = remaining % 60
+				if orbitalTimerLabel then
+					orbitalTimerLabel.Text = string.format("⏳ DESPAWNS IN: %02d:%02d", mins, secs)
+					if remaining <= 30 then
+						orbitalTimerLabel.TextColor3 = Color3.fromRGB(255, 75, 75)
+						if orbitalBannerStroke then
+							orbitalBannerStroke.Color = Color3.fromRGB(255, 60, 60)
+						end
+					elseif remaining <= 60 then
+						orbitalTimerLabel.TextColor3 = Color3.fromRGB(255, 160, 40)
+						if orbitalBannerStroke then
+							orbitalBannerStroke.Color = Color3.fromRGB(255, 140, 30)
+						end
+					else
+						orbitalTimerLabel.TextColor3 = Color3.fromRGB(255, 220, 70)
+						if orbitalBannerStroke then
+							orbitalBannerStroke.Color = Color3.fromRGB(255, 180, 40)
+						end
+					end
+				end
+
+				if remaining <= 0 then
+					HUDController.hideOrbitalBanner()
+					break
+				end
+				task.wait(1)
+			end
+			orbitalTickerActive = false
+		end)
+	end
+end
+
+function HUDController.hideOrbitalBanner()
+	if not orbitalBanner then return end
+	orbitalTickerActive = false
+	currentOrbitalDespawnTime = nil
+	currentOrbitalZoneId = nil
+
+	local animOut = TweenService:Create(orbitalBanner, TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+		Position = UDim2.new(0.5, 0, 0, -80),
+	})
+	animOut:Play()
+	task.delay(0.3, function()
+		if orbitalBanner and not orbitalTickerActive then
+			orbitalBanner.Visible = false
+		end
+	end)
 end
 
 function HUDController.updateComboStreak(combo: number)
@@ -574,6 +751,9 @@ function HUDController.init()
 	local actionCompleted = Remotes.getEvent("ActionCompleted")
 	actionCompleted.OnClientEvent:Connect(function(info)
 		HUDController.spawnRewardPopup(info)
+		if info and info.IsOrbital and info.IsBreak then
+			HUDController.hideOrbitalBanner()
+		end
 	end)
 
 	-- Recycle completed event (golden geyser, cha-ching audio)
@@ -588,6 +768,10 @@ function HUDController.init()
 	local orbitalAnnounce = Remotes.getEvent("OrbitalEventAnnounce")
 	orbitalAnnounce.OnClientEvent:Connect(function(info)
 		SoundController.playSuccess()
+		if info then
+			local dTime = info.DespawnTime or (os.time() + (info.Duration or 240))
+			HUDController.showOrbitalBanner(info.ZoneId or 1, info.ZoneName, dTime)
+		end
 	end)
 
 	local orbitalImpact = Remotes.getEvent("OrbitalEventImpact")
@@ -596,6 +780,27 @@ function HUDController.init()
 			VFXController.spawnShatterVFX(info.LandingPosition, true)
 			SoundController.playShatter(true, info.LandingPosition)
 			VFXController.shakeCamera(0.85, 0.35, 1.5)
+		end
+		if info then
+			local dTime = info.DespawnTime or (os.time() + (info.Duration or 240))
+			HUDController.showOrbitalBanner(info.ZoneId or 1, info.ZoneName, dTime)
+		end
+	end)
+
+	local orbitalEnded = Remotes.getEvent("OrbitalEventEnded")
+	orbitalEnded.OnClientEvent:Connect(function()
+		HUDController.hideOrbitalBanner()
+	end)
+
+	-- Check for existing active pod on client start (e.g. joining while an event is running)
+	task.spawn(function()
+		task.wait(1.5)
+		local existingPod = Workspace:FindFirstChild("ScrapPile_OrbitalPod")
+		if existingPod and existingPod:IsA("Model") then
+			local zId = existingPod:GetAttribute("ZoneId") or 1
+			local zName = existingPod:GetAttribute("ZoneName") or existingPod:GetAttribute("LocationName") or "Orbital Sector"
+			local dTime = existingPod:GetAttribute("DespawnTime") or (os.time() + 180)
+			HUDController.showOrbitalBanner(zId, zName, dTime)
 		end
 	end)
 

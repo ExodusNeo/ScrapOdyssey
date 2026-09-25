@@ -152,7 +152,7 @@ local function pickLandingPosition(targetZoneId: number?): (Vector3, string, num
 end
 
 -- Construct 3D High-Tech Orbital Raid Drop Pod
-local function constructPodModel(landingPos: Vector3, locationName: string): Model
+local function constructPodModel(landingPos: Vector3, locationName: string, zoneId: number): Model
 	local pod = Instance.new("Model")
 	pod.Name = "ScrapPile_OrbitalPod"
 
@@ -160,6 +160,7 @@ local function constructPodModel(landingPos: Vector3, locationName: string): Mod
 	local maxHP = 2500
 	local totalScrapPool = 80000
 	local totalGearsPool = 40
+	local despawnTime = os.time() + 240
 
 	pod:SetAttribute("IsOrbitalPod", true)
 	pod:SetAttribute("MaxHP", maxHP)
@@ -167,6 +168,9 @@ local function constructPodModel(landingPos: Vector3, locationName: string): Mod
 	pod:SetAttribute("TotalScrapPool", totalScrapPool)
 	pod:SetAttribute("TotalGearsPool", totalGearsPool)
 	pod:SetAttribute("LocationName", locationName)
+	pod:SetAttribute("ZoneId", zoneId)
+	pod:SetAttribute("ZoneName", locationName)
+	pod:SetAttribute("DespawnTime", despawnTime)
 
 	-- 1. Hitbox (Root detection & PrimaryPart)
 	local hitbox = Instance.new("Part")
@@ -302,7 +306,7 @@ local function constructPodModel(landingPos: Vector3, locationName: string): Mod
 	-- 8. High-Visibility Boss Health Bar Billboard
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "HealthBillboard"
-	billboard.Size = UDim2.new(0, 280, 0, 80)
+	billboard.Size = UDim2.new(0, 280, 0, 96)
 	billboard.StudsOffset = Vector3.new(0, 10, 0)
 	billboard.AlwaysOnTop = false
 	billboard.MaxDistance = 75
@@ -327,7 +331,7 @@ local function constructPodModel(landingPos: Vector3, locationName: string): Mod
 
 	local titleLabel = Instance.new("TextLabel")
 	titleLabel.Name = "StatusLabel"
-	titleLabel.Size = UDim2.new(1, 0, 0, 26)
+	titleLabel.Size = UDim2.new(1, 0, 0, 22)
 	titleLabel.Position = UDim2.new(0, 0, 0, 4)
 	titleLabel.BackgroundTransparency = 1
 	titleLabel.Font = Enum.Font.GothamBlack
@@ -339,8 +343,8 @@ local function constructPodModel(landingPos: Vector3, locationName: string): Mod
 
 	local hpLabel = Instance.new("TextLabel")
 	hpLabel.Name = "HpLabel"
-	hpLabel.Size = UDim2.new(1, 0, 0, 18)
-	hpLabel.Position = UDim2.new(0, 0, 0, 26)
+	hpLabel.Size = UDim2.new(1, 0, 0, 16)
+	hpLabel.Position = UDim2.new(0, 0, 0, 24)
 	hpLabel.BackgroundTransparency = 1
 	hpLabel.Font = Enum.Font.GothamBold
 	hpLabel.TextSize = 12
@@ -350,8 +354,8 @@ local function constructPodModel(landingPos: Vector3, locationName: string): Mod
 
 	local barBG = Instance.new("Frame")
 	barBG.Name = "HealthBarBG"
-	barBG.Size = UDim2.new(1, -20, 0, 14)
-	barBG.Position = UDim2.new(0, 10, 0, 50)
+	barBG.Size = UDim2.new(1, -20, 0, 12)
+	barBG.Position = UDim2.new(0, 10, 0, 44)
 	barBG.BackgroundColor3 = Color3.fromRGB(35, 40, 50)
 	barBG.BorderSizePixel = 0
 	barBG.ClipsDescendants = true
@@ -372,10 +376,44 @@ local function constructPodModel(landingPos: Vector3, locationName: string): Mod
 	barFC.CornerRadius = UDim.new(0, 5)
 	barFC.Parent = barFill
 
+	local timerLabel = Instance.new("TextLabel")
+	timerLabel.Name = "TimerLabel"
+	timerLabel.Size = UDim2.new(1, 0, 0, 20)
+	timerLabel.Position = UDim2.new(0, 0, 0, 64)
+	timerLabel.BackgroundTransparency = 1
+	timerLabel.Font = Enum.Font.GothamBold
+	timerLabel.TextSize = 11
+	timerLabel.TextColor3 = Color3.fromRGB(255, 215, 60)
+	timerLabel.Text = "⏳ DESPAWNS IN: 04:00"
+	timerLabel.Parent = bg
+
+	task.spawn(function()
+		while pod and pod.Parent do
+			local currentDespawn = pod:GetAttribute("DespawnTime") or despawnTime
+			local remaining = math.max(0, currentDespawn - os.time())
+			local mins = math.floor(remaining / 60)
+			local secs = remaining % 60
+			timerLabel.Text = string.format("⏳ DESPAWNS IN: %02d:%02d", mins, secs)
+			if remaining <= 30 then
+				timerLabel.TextColor3 = Color3.fromRGB(255, 75, 75)
+			elseif remaining <= 60 then
+				timerLabel.TextColor3 = Color3.fromRGB(255, 160, 40)
+			else
+				timerLabel.TextColor3 = Color3.fromRGB(255, 215, 60)
+			end
+			if remaining <= 0 then
+				break
+			end
+			task.wait(1)
+		end
+	end)
+
 	pod.Destroying:Connect(function()
 		if activePodModel == pod then
 			activePodModel = nil
 			EventService.resetContributions()
+			local endEv = Remotes.getEvent("OrbitalEventEnded")
+			safeFireAllClients(endEv)
 		end
 	end)
 
@@ -449,10 +487,12 @@ function EventService.triggerDropPod(forcedPos: Vector3?, targetZoneId: number?,
 		ZoneId = zoneId,
 		ZoneName = locationName,
 		LandingPosition = landingPos,
+		DespawnTime = os.time() + 240,
+		Duration = 240,
 	})
 
 	-- 2. Build the pod model and parent to Workspace
-	local pod = constructPodModel(landingPos, locationName)
+	local pod = constructPodModel(landingPos, locationName, zoneId)
 	activePodModel = pod
 	pod.Parent = Workspace
 
@@ -481,6 +521,9 @@ function EventService.triggerDropPod(forcedPos: Vector3?, targetZoneId: number?,
 		safeFireAllClients(impactEvent, {
 			LandingPosition = landingPos,
 			ZoneId = zoneId,
+			ZoneName = locationName,
+			DespawnTime = pod:GetAttribute("DespawnTime") or (os.time() + 240),
+			Duration = 240,
 		})
 
 		-- Fade out and remove SkyBeacon on touchdown so it doesn't glare at close range
@@ -532,6 +575,8 @@ function EventService.triggerDropPod(forcedPos: Vector3?, targetZoneId: number?,
 			if activePodModel == pod then
 				activePodModel = nil
 				EventService.resetContributions()
+				local endEv = Remotes.getEvent("OrbitalEventEnded")
+				safeFireAllClients(endEv)
 			end
 		end
 	end)
@@ -547,6 +592,8 @@ function EventService.clearActivePod(podModel: Model?)
 	if not podModel or activePodModel == podModel then
 		activePodModel = nil
 		EventService.resetContributions()
+		local endEv = Remotes.getEvent("OrbitalEventEnded")
+		safeFireAllClients(endEv)
 	end
 end
 

@@ -30,6 +30,7 @@ local REMOTE_EVENTS = {
 	"EquipTool",
 	"OrbitalEventAnnounce",
 	"OrbitalEventImpact",
+	"OrbitalEventEnded",
 	"PromptGamepass",
 	"PromptProduct",
 	"CompleteTutorial",
