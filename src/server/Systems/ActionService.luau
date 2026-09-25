@@ -478,8 +478,8 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 	local toolDamage = toolConf and toolConf.Damage or 1
 	currentHP = currentHP - toolDamage
 
-	local corePart = nodeModel:FindFirstChild("Core") :: BasePart
-	local basePart = nodeModel:FindFirstChild("Base") :: BasePart
+	local corePart = nodeModel:FindFirstChild("Core", true) :: BasePart
+	local basePart = nodeModel:FindFirstChild("Base", true) :: BasePart
 	local statusLabel = nodeModel:FindFirstChild("StatusLabel", true) :: TextLabel
 
 	-- Visual Hit squash & flash (strictly bounded to CoreBaseSize to prevent compounding light growth)

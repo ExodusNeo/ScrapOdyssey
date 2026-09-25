@@ -42,7 +42,14 @@ local REMOTE_FUNCTIONS = {
 }
 
 local function isServerOrEdit(): boolean
-	return RunService:IsServer() or RunService:IsEdit()
+	if RunService:IsServer() then
+		return true
+	end
+	local isEdit = false
+	pcall(function()
+		isEdit = RunService:IsEdit()
+	end)
+	return isEdit
 end
 
 local function getOrCreateFolder(): Folder

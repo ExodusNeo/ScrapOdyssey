@@ -404,8 +404,8 @@ function HUDController.updateGateBarriers(maxZone: number)
 	for z = 2, totalZones do
 		local gateModel = bridgesFolder:FindFirstChild("Gate_Zone" .. tostring(z))
 		if gateModel then
-			local barrier = gateModel:FindFirstChild("Forcefield") :: BasePart?
-			local perimeterBarrier = gateModel:FindFirstChild("PerimeterForcefield") :: BasePart?
+			local barrier = gateModel:FindFirstChild("Forcefield", true) :: BasePart?
+			local perimeterBarrier = gateModel:FindFirstChild("PerimeterForcefield", true) :: BasePart?
 			local isUnlocked = (z <= maxZone)
 			if barrier then
 				barrier.CanCollide = not isUnlocked

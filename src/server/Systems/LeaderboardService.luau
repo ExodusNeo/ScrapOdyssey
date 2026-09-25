@@ -33,25 +33,33 @@ function LeaderboardService.createInWorldBoard()
 	local boardCenter = Vector3.new(42, 8.5, 0)
 	local boardCF = CFrame.lookAt(boardCenter, Vector3.new(0, 8.5, 0))
 
-	-- 1. Outer Grounded Steel Support Pillars (Flanking outside the 18-stud display at Z = -10 and +10 to prevent any occlusion)
+	-- 1. Support Pillars (Flanking outside the 18-stud display at Z = -10 and +10)
+	local pillarsModel = Instance.new("Model")
+	pillarsModel.Name = "SupportPillars"
+	pillarsModel.Parent = model
+
 	for _, zOff in ipairs({ -10, 10 }) do
+		local pillarAssembly = Instance.new("Model")
+		pillarAssembly.Name = zOff < 0 and "Pillar_Left" or "Pillar_Right"
+		pillarAssembly.Parent = pillarsModel
+
 		local footing = Instance.new("Part")
-		footing.Name = "LeaderboardFooting"
+		footing.Name = "Footing"
 		footing.Size = Vector3.new(2.8, 0.8, 2.8)
 		footing.Position = Vector3.new(42, 0.4, zOff)
 		footing.Anchored = true
 		footing.Material = Enum.Material.Concrete
 		footing.Color = Color3.fromRGB(38, 42, 50)
-		footing.Parent = model
+		footing.Parent = pillarAssembly
 
 		local pillar = Instance.new("Part")
-		pillar.Name = "LeaderboardPillar"
+		pillar.Name = "PillarColumn"
 		pillar.Size = Vector3.new(1.8, 14, 1.8)
 		pillar.Position = Vector3.new(42, 7.0, zOff)
 		pillar.Anchored = true
 		pillar.Material = Enum.Material.Metal
 		pillar.Color = Color3.fromRGB(30, 32, 40)
-		pillar.Parent = model
+		pillar.Parent = pillarAssembly
 
 		-- Horizontal Mounting Bracket connecting the pillar to the side of the display
 		local bracket = Instance.new("Part")
@@ -61,10 +69,14 @@ function LeaderboardService.createInWorldBoard()
 		bracket.Anchored = true
 		bracket.Material = Enum.Material.Metal
 		bracket.Color = Color3.fromRGB(48, 52, 64)
-		bracket.Parent = model
+		bracket.Parent = pillarAssembly
 	end
 
-	-- 2. Golden-Amber Backing Bezel Plate (Positioned strictly BEHIND the display at +Z in boardCF space)
+	-- 2. Display Assembly (Display Screen + Golden Backplate)
+	local displayAssembly = Instance.new("Model")
+	displayAssembly.Name = "DisplayAssembly"
+	displayAssembly.Parent = model
+
 	local backplate = Instance.new("Part")
 	backplate.Name = "Backplate"
 	backplate.Size = Vector3.new(18.6, 11.6, 0.4)
@@ -72,7 +84,7 @@ function LeaderboardService.createInWorldBoard()
 	backplate.Anchored = true
 	backplate.Material = Enum.Material.SmoothPlastic
 	backplate.Color = Color3.fromRGB(240, 160, 30)
-	backplate.Parent = model
+	backplate.Parent = displayAssembly
 
 	-- 3. Main Display Screen Part (Width 18, Height 11, Depth 0.8)
 	boardPart = Instance.new("Part")
@@ -82,18 +94,22 @@ function LeaderboardService.createInWorldBoard()
 	boardPart.Anchored = true
 	boardPart.Material = Enum.Material.SmoothPlastic
 	boardPart.Color = Color3.fromRGB(15, 17, 24)
-	boardPart.Parent = model
+	boardPart.Parent = displayAssembly
 
 	-- 4. Overhead Industrial Down-Lamps
+	local lightingModel = Instance.new("Model")
+	lightingModel.Name = "OverheadLighting"
+	lightingModel.Parent = model
+
 	for _, lz in ipairs({ -5, 5 }) do
 		local lamp = Instance.new("Part")
-		lamp.Name = "LeaderboardLamp"
+		lamp.Name = lz < 0 and "Lamp_Left" or "Lamp_Right"
 		lamp.Size = Vector3.new(1.4, 0.8, 1.4)
 		lamp.CFrame = boardCF * CFrame.new(lz, 6.0, -1.2)
 		lamp.Anchored = true
 		lamp.Material = Enum.Material.SmoothPlastic
 		lamp.Color = Color3.fromRGB(235, 230, 215)
-		lamp.Parent = model
+		lamp.Parent = lightingModel
 
 		local pLight = Instance.new("PointLight")
 		pLight.Color = Color3.fromRGB(255, 245, 220)
@@ -286,14 +302,6 @@ function LeaderboardService.createInWorldBoard()
 	end
 
 	model.Parent = Workspace
-
-	-- In Edit Mode, trigger a tiny property cycle to immediately invalidate viewport cache
-	if RunService:IsEdit() then
-		boardPart.Size = boardPart.Size + Vector3.new(0.002, 0, 0)
-		boardPart.Size = boardPart.Size - Vector3.new(0.002, 0, 0)
-	end
-
-	-- Immediately populate with active player telemetry
 	LeaderboardService.updateBoard()
 end
 

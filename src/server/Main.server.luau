@@ -37,13 +37,11 @@ local function safeInit(name: string)
 	end
 end
 
--- Initialize Phase 2 core services
-DataService.init()
-CurrencyService.init()
-ZoneService.init()
-ActionService.init()
-
--- Initialize progression & retention systems if present
+-- Initialize Core & Progression Systems
+safeInit("DataService")
+safeInit("CurrencyService")
+safeInit("ZoneService")
+safeInit("ActionService")
 safeInit("ShopService")
 safeInit("BackpackService")
 safeInit("PetService")
