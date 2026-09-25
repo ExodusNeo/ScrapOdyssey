@@ -305,7 +305,7 @@ local function onToolActivated(tool: Tool)
 	local character = player.Character
 	if not character then return end
 
-	local toolRange = (tool:GetAttribute("Range") or 26) + 6
+	local toolRange = (tool:GetAttribute("Range") or 8) + 2
 	local targetModel = getBestScrapTarget(character, toolRange)
 
 	if targetModel then

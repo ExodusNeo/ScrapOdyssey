@@ -433,9 +433,9 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 	if not data then return end
 
 	local toolConf = Config.getTool(data.EquippedTool or "OmniWrench")
-	local maxRange = (toolConf and toolConf.Range or 26) + 14
+	local maxRange = (toolConf and toolConf.Range or 8) + 4
 
-	-- 1. Distance Sanity Check (scales with tool range, bounding radius, and network ping buffer)
+	-- 1. Distance Sanity Check (requires close melee proximity to node surface)
 	local nodeRadius = nodeHitbox.Size.Magnitude * 0.35
 	local distance = math.max(0, (rootPart.Position - nodeHitbox.Position).Magnitude - nodeRadius)
 	if distance > maxRange then return end
@@ -868,7 +868,7 @@ function ActionService.init()
 					if root then
 						local pPos = root.Position
 						local tConf = Config.getTool(data.EquippedTool or "OmniWrench")
-						local aRange = (tConf and tConf.Range or 26) + 4
+						local aRange = (tConf and tConf.Range or 8) + 2
 						for _, node in ipairs(scrapNodes) do
 							if node:IsA("Model") and node.Parent then
 								local hb = (node:FindFirstChild("Hitbox") or node.PrimaryPart or node:FindFirstChildWhichIsA("BasePart")) :: BasePart?
