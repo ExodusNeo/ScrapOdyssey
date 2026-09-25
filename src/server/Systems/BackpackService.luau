@@ -11,11 +11,13 @@ local DataService = require(script.Parent.DataService)
 local BackpackService = {}
 
 -- Visual tier color themes based on bag level
+-- Visual tier color themes based on bag level (calibrated across all 40 levels)
 local TIER_THEMES = {
 	{ MinLevel = 1, Name = "Rusted Rig", TankColor = Color3.fromRGB(85, 75, 70), TankMat = Enum.Material.CorrodedMetal, TrimColor = Color3.fromRGB(150, 100, 60) },
-	{ MinLevel = 5, Name = "Steel Canister", TankColor = Color3.fromRGB(90, 95, 105), TankMat = Enum.Material.DiamondPlate, TrimColor = Color3.fromRGB(40, 180, 255) },
-	{ MinLevel = 10, Name = "Titanium Battery", TankColor = Color3.fromRGB(45, 50, 65), TankMat = Enum.Material.Metal, TrimColor = Color3.fromRGB(170, 70, 255) },
-	{ MinLevel = 15, Name = "Quantum Rig", TankColor = Color3.fromRGB(25, 28, 40), TankMat = Enum.Material.SmoothPlastic, TrimColor = Color3.fromRGB(255, 170, 0) },
+	{ MinLevel = 8, Name = "Steel Canister", TankColor = Color3.fromRGB(90, 95, 105), TankMat = Enum.Material.DiamondPlate, TrimColor = Color3.fromRGB(40, 180, 255) },
+	{ MinLevel = 16, Name = "Titanium Battery", TankColor = Color3.fromRGB(45, 50, 65), TankMat = Enum.Material.Metal, TrimColor = Color3.fromRGB(170, 70, 255) },
+	{ MinLevel = 25, Name = "Cyber Plasma Cell", TankColor = Color3.fromRGB(25, 28, 40), TankMat = Enum.Material.SmoothPlastic, TrimColor = Color3.fromRGB(255, 170, 0) },
+	{ MinLevel = 33, Name = "Void Singularity Rig", TankColor = Color3.fromRGB(18, 14, 28), TankMat = Enum.Material.Neon, TrimColor = Color3.fromRGB(200, 45, 255) },
 }
 
 local function getThemeForLevel(level: number)
@@ -55,8 +57,11 @@ function BackpackService.updateCharacterBackpack(player: Player)
 	end
 
 	local theme = getThemeForLevel(bagLevel)
-	-- Scale starts at 0.85 and grows by 8.5% with each upgrade level
-	local scale = 0.85 + (bagLevel - 1) * 0.085
+	-- Bounded scaling curve: starts compact at 0.78, smoothly scales to a max of 1.25 at Level 40.
+	-- This provides rewarding visual size progression without EVER obstructing the player character or camera!
+	local maxLevel = (Config.Upgrades.BackpackCapacity and Config.Upgrades.BackpackCapacity.MaxLevel) or 40
+	local progress = math.clamp((bagLevel - 1) / math.max(1, maxLevel - 1), 0, 1)
+	local scale = 0.78 + (progress ^ 0.75) * 0.47
 
 	local model = Instance.new("Model")
 	model.Name = "ScrapBackpack"
@@ -68,9 +73,11 @@ function BackpackService.updateCharacterBackpack(player: Player)
 	frame.Material = Enum.Material.Metal
 	frame.Color = Color3.fromRGB(28, 30, 38)
 	frame.CanCollide = false
+	frame.CanTouch = false
+	frame.CanQuery = false
 	frame.Massless = true
 	frame.CastShadow = true
-	frame.CFrame = torso.CFrame * CFrame.new(0, 0.1, 0.65 + (scale * 0.12))
+	frame.CFrame = torso.CFrame * CFrame.new(0, 0.05, 0.58 + (scale * 0.10))
 	frame.Parent = model
 
 	local frameWeld = Instance.new("WeldConstraint")
@@ -88,6 +95,8 @@ function BackpackService.updateCharacterBackpack(player: Player)
 	tankLeft.Material = theme.TankMat
 	tankLeft.Color = theme.TankColor
 	tankLeft.CanCollide = false
+	tankLeft.CanTouch = false
+	tankLeft.CanQuery = false
 	tankLeft.Massless = true
 	tankLeft.CastShadow = true
 	tankLeft.Parent = model
@@ -107,6 +116,8 @@ function BackpackService.updateCharacterBackpack(player: Player)
 	tankRight.Material = theme.TankMat
 	tankRight.Color = theme.TankColor
 	tankRight.CanCollide = false
+	tankRight.CanTouch = false
+	tankRight.CanQuery = false
 	tankRight.Massless = true
 	tankRight.CastShadow = true
 	tankRight.Parent = model
@@ -126,6 +137,8 @@ function BackpackService.updateCharacterBackpack(player: Player)
 	core.Material = Enum.Material.SmoothPlastic
 	core.Color = Color3.fromRGB(50, 180, 100)
 	core.CanCollide = false
+	core.CanTouch = false
+	core.CanQuery = false
 	core.Massless = true
 	core.Parent = model
 
@@ -137,7 +150,7 @@ function BackpackService.updateCharacterBackpack(player: Player)
 	-- Gauge light (Subtle soft accent, no camera flaring)
 	local light = Instance.new("PointLight")
 	light.Name = "CoreLight"
-	light.Range = 3 * scale
+	light.Range = 2.5 * scale
 	light.Brightness = 0.2
 	light.Parent = core
 
@@ -149,6 +162,8 @@ function BackpackService.updateCharacterBackpack(player: Player)
 	ventL.Material = Enum.Material.Metal
 	ventL.Color = theme.TrimColor
 	ventL.CanCollide = false
+	ventL.CanTouch = false
+	ventL.CanQuery = false
 	ventL.Massless = true
 	ventL.Parent = model
 
@@ -164,6 +179,8 @@ function BackpackService.updateCharacterBackpack(player: Player)
 	ventR.Material = Enum.Material.Metal
 	ventR.Color = theme.TrimColor
 	ventR.CanCollide = false
+	ventR.CanTouch = false
+	ventR.CanQuery = false
 	ventR.Massless = true
 	ventR.Parent = model
 
@@ -176,12 +193,12 @@ function BackpackService.updateCharacterBackpack(player: Player)
 	local steam = Instance.new("ParticleEmitter")
 	steam.Name = "Exhaust"
 	steam.Color = ColorSequence.new(theme.TrimColor)
-	steam.Size = NumberSequence.new(0.2 * scale, 0.6 * scale)
-	steam.Transparency = NumberSequence.new(0.4, 1.0)
-	steam.Rate = 4
-	steam.Lifetime = NumberRange.new(0.6, 1.2)
-	steam.Speed = NumberRange.new(1.5, 3.0)
-	steam.Acceleration = Vector3.new(0, 2, 0)
+	steam.Size = NumberSequence.new(0.12 * scale, 0.35 * scale)
+	steam.Transparency = NumberSequence.new(0.5, 1.0)
+	steam.Rate = 3
+	steam.Lifetime = NumberRange.new(0.5, 1.0)
+	steam.Speed = NumberRange.new(1.0, 2.0)
+	steam.Acceleration = Vector3.new(0, 1.5, 0)
 	steam.Parent = ventL
 	steam:Clone().Parent = ventR
 
