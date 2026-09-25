@@ -307,9 +307,9 @@ local function constructPodModel(landingPos: Vector3, locationName: string, zone
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "HealthBillboard"
 	billboard.Size = UDim2.new(0, 280, 0, 96)
-	billboard.StudsOffset = Vector3.new(0, 10, 0)
+	billboard.StudsOffset = Vector3.new(0, 5.5, 0)
 	billboard.AlwaysOnTop = false
-	billboard.MaxDistance = 75
+	billboard.MaxDistance = 150
 	billboard.Parent = hitbox
 
 	local bg = Instance.new("Frame")
@@ -388,6 +388,11 @@ local function constructPodModel(landingPos: Vector3, locationName: string, zone
 	timerLabel.Parent = bg
 
 	task.spawn(function()
+		local waitStart = os.clock()
+		while not pod.Parent and (os.clock() - waitStart < 5) do
+			task.wait()
+		end
+
 		while pod and pod.Parent do
 			local currentDespawn = pod:GetAttribute("DespawnTime") or despawnTime
 			local remaining = math.max(0, currentDespawn - os.time())
