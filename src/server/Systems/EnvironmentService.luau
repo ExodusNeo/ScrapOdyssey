@@ -21,10 +21,10 @@ local EnvironmentService = {}
 
 local ZONE_CENTERS = {
 	[1] = Vector3.new(0, 0, 0),
-	[2] = Vector3.new(150, 0, -90),
-	[3] = Vector3.new(240, 0, 40),
-	[4] = Vector3.new(150, 0, 180),
-	[5] = Vector3.new(-20, 0, 200),
+	[2] = Vector3.new(180, 0, -110),
+	[3] = Vector3.new(280, 0, 60),
+	[4] = Vector3.new(170, 0, 230),
+	[5] = Vector3.new(-30, 0, 260),
 }
 
 -- 1. Setup Celestial Cosmic Skybox, Fog, and Eye-Friendly Atmospheric Lighting (No Sun Glare)
@@ -105,7 +105,7 @@ function EnvironmentService.constructIslandUnderside(parent: Instance, centerPos
 	local t1 = Instance.new("Part")
 	t1.Name = "RootTier1"
 	t1.Shape = Enum.PartType.Cylinder
-	t1.Size = Vector3.new(6, 86, 86)
+	t1.Size = Vector3.new(6, 116, 116)
 	t1.CFrame = CFrame.new(centerPos - Vector3.new(0, 5, 0)) * CFrame.Angles(0, 0, math.rad(90))
 	t1.Anchored = true
 	t1.CanCollide = false
@@ -113,18 +113,18 @@ function EnvironmentService.constructIslandUnderside(parent: Instance, centerPos
 	t1.Color = rockColor
 	t1.Parent = undersideModel
 
-	-- Tier 2: 10 Angled Faceted Rock Boulders along the oval perimeter
+	-- Tier 2: 10 Angled Faceted Rock Boulders along the circular perimeter
 	local facetOffsets = {
-		{ Pos = Vector3.new(-38, -9, -30), Size = Vector3.new(24, 10, 24), Rot = Vector3.new(8, 12, -6) },
-		{ Pos = Vector3.new(38, -9, -30),  Size = Vector3.new(24, 10, 24), Rot = Vector3.new(8, -12, 6) },
-		{ Pos = Vector3.new(-38, -9, 30),  Size = Vector3.new(24, 10, 24), Rot = Vector3.new(-8, 12, -6) },
-		{ Pos = Vector3.new(38, -9, 30),   Size = Vector3.new(24, 10, 24), Rot = Vector3.new(-8, -12, 6) },
-		{ Pos = Vector3.new(-45, -9, 0),   Size = Vector3.new(20, 12, 32), Rot = Vector3.new(0, 5, -8) },
-		{ Pos = Vector3.new(45, -9, 0),    Size = Vector3.new(20, 12, 32), Rot = Vector3.new(0, -5, 8) },
-		{ Pos = Vector3.new(0, -9, -38),   Size = Vector3.new(34, 10, 20), Rot = Vector3.new(8, 0, 0) },
-		{ Pos = Vector3.new(0, -9, 38),    Size = Vector3.new(34, 10, 20), Rot = Vector3.new(-8, 0, 0) },
-		{ Pos = Vector3.new(-22, -9, -34), Size = Vector3.new(22, 10, 22), Rot = Vector3.new(6, 18, -4) },
-		{ Pos = Vector3.new(22, -9, 34),   Size = Vector3.new(22, 10, 22), Rot = Vector3.new(-6, -18, 4) },
+		{ Pos = Vector3.new(-50, -9, -38), Size = Vector3.new(30, 10, 30), Rot = Vector3.new(8, 12, -6) },
+		{ Pos = Vector3.new(50, -9, -38),  Size = Vector3.new(30, 10, 30), Rot = Vector3.new(8, -12, 6) },
+		{ Pos = Vector3.new(-50, -9, 38),  Size = Vector3.new(30, 10, 30), Rot = Vector3.new(-8, 12, -6) },
+		{ Pos = Vector3.new(50, -9, 38),   Size = Vector3.new(30, 10, 30), Rot = Vector3.new(-8, -12, 6) },
+		{ Pos = Vector3.new(-58, -9, 0),   Size = Vector3.new(24, 12, 40), Rot = Vector3.new(0, 5, -8) },
+		{ Pos = Vector3.new(58, -9, 0),    Size = Vector3.new(24, 12, 40), Rot = Vector3.new(0, -5, 8) },
+		{ Pos = Vector3.new(0, -9, -50),   Size = Vector3.new(44, 10, 24), Rot = Vector3.new(8, 0, 0) },
+		{ Pos = Vector3.new(0, -9, 50),    Size = Vector3.new(44, 10, 24), Rot = Vector3.new(-8, 0, 0) },
+		{ Pos = Vector3.new(-32, -9, -46), Size = Vector3.new(28, 10, 28), Rot = Vector3.new(6, 18, -4) },
+		{ Pos = Vector3.new(32, -9, 46),   Size = Vector3.new(28, 10, 28), Rot = Vector3.new(-6, -18, 4) },
 	}
 
 	for i, f in ipairs(facetOffsets) do

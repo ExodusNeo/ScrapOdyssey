@@ -28,7 +28,7 @@ function LeaderboardService.createInWorldBoard()
 	local model = Instance.new("Model")
 	model.Name = "GlobalLeaderboard"
 
-	local boardCenter = Vector3.new(28, 7.5, 0)
+	local boardCenter = Vector3.new(42, 7.5, 0)
 	local boardCF = CFrame.lookAt(boardCenter, Vector3.new(0, 7.5, 0))
 
 	-- Grounded Steel Support Pillars (Left & Right)
@@ -36,7 +36,7 @@ function LeaderboardService.createInWorldBoard()
 		local footing = Instance.new("Part")
 		footing.Name = "LeaderboardFooting"
 		footing.Size = Vector3.new(2.4, 0.8, 2.4)
-		footing.Position = Vector3.new(28, 0.4, zOff)
+		footing.Position = Vector3.new(42, 0.4, zOff)
 		footing.Anchored = true
 		footing.Material = Enum.Material.Metal
 		footing.Color = Color3.fromRGB(35, 38, 48)
@@ -45,7 +45,7 @@ function LeaderboardService.createInWorldBoard()
 		local pillar = Instance.new("Part")
 		pillar.Name = "LeaderboardPillar"
 		pillar.Size = Vector3.new(1.6, 9, 1.6)
-		pillar.Position = Vector3.new(28, 4.5, zOff)
+		pillar.Position = Vector3.new(42, 4.5, zOff)
 		pillar.Anchored = true
 		pillar.Material = Enum.Material.Metal
 		pillar.Color = Color3.fromRGB(30, 32, 40)

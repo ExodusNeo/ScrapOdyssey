@@ -28,10 +28,10 @@ end
 -- Zone center coordinates in the scrap archipelago
 local ZONE_CENTERS: { [number]: Vector3 } = {
 	[1] = Vector3.new(0, 1.0, 0),
-	[2] = Vector3.new(150, 1.0, -90),
-	[3] = Vector3.new(240, 1.0, 40),
-	[4] = Vector3.new(150, 1.0, 180),
-	[5] = Vector3.new(-20, 1.0, 200),
+	[2] = Vector3.new(180, 1.0, -110),
+	[3] = Vector3.new(280, 1.0, 60),
+	[4] = Vector3.new(170, 1.0, 230),
+	[5] = Vector3.new(-30, 1.0, 260),
 }
 
 local rng = Random.new()

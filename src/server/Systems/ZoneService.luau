@@ -26,10 +26,10 @@ local patrolDebounces: { [Player]: number } = {}
 -- Safe zone center coordinates for each zone (Zone 1 is Central Hub)
 local ZONE_CENTERS = {
 	[1] = Vector3.new(0, 0, 0),
-	[2] = Vector3.new(150, 0, -90),
-	[3] = Vector3.new(240, 0, 40),
-	[4] = Vector3.new(150, 0, 180),
-	[5] = Vector3.new(-20, 0, 200),
+	[2] = Vector3.new(180, 0, -110),
+	[3] = Vector3.new(280, 0, 60),
+	[4] = Vector3.new(170, 0, 230),
+	[5] = Vector3.new(-30, 0, 260),
 }
 
 -- 1. Calm, Eye-Friendly Lighting Setup (Delegated to EnvironmentService with zero sun glare)
@@ -37,30 +37,52 @@ function ZoneService.setupLighting()
 	EnvironmentService.setupAtmosphereAndSky()
 end
 
--- Helper to create a Fast-Travel Portal Pad on any platform
+-- Helper to create a Fast-Travel Portal Pad on any platform (Stepped 3-tier cylinder design: 100% zero Z-fighting)
 local function createPortalPad(parent: Instance, position: Vector3, zoneId: number)
+	-- Tier 1: Outer Heavy Foundation Base Ring (Bottom at Y=0, Top at Y=0.45)
+	local baseRing = Instance.new("Part")
+	baseRing.Name = "PortalBaseRing"
+	baseRing.Shape = Enum.PartType.Cylinder
+	baseRing.Size = Vector3.new(0.45, 8.6, 8.6)
+	baseRing.Position = Vector3.new(position.X, 0.225, position.Z)
+	baseRing.Orientation = Vector3.new(0, 0, 90)
+	baseRing.Anchored = true
+	baseRing.CanCollide = true
+	baseRing.Material = Enum.Material.DiamondPlate
+	baseRing.Color = Color3.fromRGB(30, 32, 40)
+	baseRing.Parent = parent
+
+	-- Tier 2: Mid Beveled Steel Collar Frame (Bottom at Y=0.05, Top at Y=0.55)
+	local padRim = Instance.new("Part")
+	padRim.Name = "PortalCollarRim"
+	padRim.Shape = Enum.PartType.Cylinder
+	padRim.Size = Vector3.new(0.50, 7.8, 7.8)
+	padRim.Position = Vector3.new(position.X, 0.30, position.Z)
+	padRim.Orientation = Vector3.new(0, 0, 90)
+	padRim.Anchored = true
+	padRim.CanCollide = true
+	padRim.Material = Enum.Material.Metal
+	padRim.Color = Color3.fromRGB(55, 58, 70)
+	padRim.Parent = parent
+
+	-- Tier 3: Inner Elevated Active Purple Warp Pad (Bottom at Y=0.10, Top at Y=0.68)
 	local pad = Instance.new("Part")
 	pad.Name = "PortalPad_Zone" .. tostring(zoneId)
 	pad.Shape = Enum.PartType.Cylinder
-	pad.Size = Vector3.new(0.6, 7, 7)
-	pad.Position = position
+	pad.Size = Vector3.new(0.58, 6.8, 6.8)
+	pad.Position = Vector3.new(position.X, 0.39, position.Z)
 	pad.Orientation = Vector3.new(0, 0, 90)
 	pad.Anchored = true
 	pad.CanCollide = true
 	pad.Material = Enum.Material.SmoothPlastic
-	pad.Color = Color3.fromRGB(150, 90, 215)
+	pad.Color = Color3.fromRGB(160, 85, 235)
 	pad.Parent = parent
 
-	local padRim = Instance.new("Part")
-	padRim.Name = "Rim"
-	padRim.Shape = Enum.PartType.Cylinder
-	padRim.Size = Vector3.new(0.8, 7.8, 7.8)
-	padRim.Position = position - Vector3.new(0, 0.1, 0)
-	padRim.Orientation = Vector3.new(0, 0, 90)
-	padRim.Anchored = true
-	padRim.Material = Enum.Material.Metal
-	padRim.Color = Color3.fromRGB(35, 38, 48)
-	padRim.Parent = parent
+	local portalLight = Instance.new("PointLight")
+	portalLight.Color = Color3.fromRGB(180, 100, 255)
+	portalLight.Brightness = 0.8
+	portalLight.Range = 10
+	portalLight.Parent = pad
 
 	local bb = Instance.new("BillboardGui")
 	bb.Size = UDim2.new(0, 160, 0, 45)
@@ -524,11 +546,11 @@ end
 
 -- Helper to build an authentic Junkyard Patchwork Ground for a zone (Zero Z-Fighting, Solid Cylinder Geometry)
 local function buildScrapyardGround(folder: Instance, centerPos: Vector3, zone: Types.ZoneConfig): Part
-	-- Main solid circular cylinder platform (Diameter 90, Height 4, smooth top surface at Y = 0)
+	-- Main solid circular cylinder platform (Diameter 120, Height 4, smooth top surface at Y = 0)
 	local platform = Instance.new("Part")
 	platform.Name = "Platform"
 	platform.Shape = Enum.PartType.Cylinder
-	platform.Size = Vector3.new(4, 90, 90) -- Roblox Cylinder: X is height along axis, Y & Z are diameter
+	platform.Size = Vector3.new(4, 120, 120) -- Spacious 120-stud diameter
 	platform.CFrame = CFrame.new(centerPos - Vector3.new(0, 2, 0)) * CFrame.Angles(0, 0, math.rad(90))
 	platform.Anchored = true
 	platform.CanCollide = true
@@ -575,7 +597,7 @@ local function buildScrapyardGround(folder: Instance, centerPos: Vector3, zone: 
 	local apron = Instance.new("Part")
 	apron.Name = "ScrapApron"
 	apron.Shape = Enum.PartType.Cylinder
-	apron.Size = Vector3.new(0.08, 44, 44)
+	apron.Size = Vector3.new(0.08, 56, 56)
 	apron.CFrame = CFrame.new(centerPos + Vector3.new(0, 0.04, 0)) * CFrame.Angles(0, 0, math.rad(90))
 	apron.Anchored = true
 	apron.CanCollide = false
@@ -587,7 +609,7 @@ local function buildScrapyardGround(folder: Instance, centerPos: Vector3, zone: 
 	local innerRing = Instance.new("Part")
 	innerRing.Name = "ApronAccentRing"
 	innerRing.Shape = Enum.PartType.Cylinder
-	innerRing.Size = Vector3.new(0.08, 20, 20)
+	innerRing.Size = Vector3.new(0.08, 26, 26)
 	innerRing.CFrame = CFrame.new(centerPos + Vector3.new(0, 0.08, 0)) * CFrame.Angles(0, 0, math.rad(90))
 	innerRing.Anchored = true
 	innerRing.CanCollide = false
@@ -604,7 +626,7 @@ local function buildScrapyardPerimeter(folder: Instance, centerPos: Vector3, zon
 	fenceModel.Name = "JunkyardFence_Zone" .. tostring(zone.Id)
 
 	local segments = 24
-	local radius = 44
+	local radius = 58
 
 	for i = 1, segments do
 		local angle = (i - 1) * (math.pi * 2 / segments)
@@ -790,27 +812,27 @@ function ZoneService.constructCentralHub()
 	if decal then decal:Destroy() end
 
 	-- 5. Scrap Recycler Machine & Sell Pad along North perimeter (Ample clearance from fence)
-	ZoneService.constructRecycler(hubFolder, centerPos + Vector3.new(0, 0, -26), 1)
+	ZoneService.constructRecycler(hubFolder, centerPos + Vector3.new(0, 0, -38), 1)
 
 	-- 6. Zone 1 Exclusive Egg Pod along South-West perimeter
-	ZoneService.constructEggPod(hubFolder, centerPos + Vector3.new(-18, 0.4, 24), "RustEgg")
+	ZoneService.constructEggPod(hubFolder, centerPos + Vector3.new(-26, 0.4, 38), "RustEgg")
 
 	-- 7. Tool Armory Forge Kiosk along West perimeter (Facing East toward Spawn)
-	ZoneService.constructToolArmoryKiosk(hubFolder, centerPos + Vector3.new(-28, 0, 0))
+	ZoneService.constructToolArmoryKiosk(hubFolder, centerPos + Vector3.new(-42, 0, 0))
 
-	-- 8. Fast-Travel Portal Pad along South-East perimeter
-	createPortalPad(hubFolder, centerPos + Vector3.new(18, 0.3, 24), 1)
+	-- 8. Fast-Travel Portal Pad along South-East perimeter (Distance to scrap nodes is >12 studs)
+	createPortalPad(hubFolder, centerPos + Vector3.new(26, 0, 38), 1)
 
 	-- 9. 8 Scrap Nodes in Hub (Zone 1) - Generously spaced in radial mining bays (clear of all corridors)
 	local zone1Offsets = {
-		Vector3.new(30, 0, 8),
-		Vector3.new(14, 0, -28),
-		Vector3.new(-14, 0, -28),
-		Vector3.new(-26, 0, -14),
-		Vector3.new(-26, 0, 14),
-		Vector3.new(-14, 0, 28),
-		Vector3.new(14, 0, 28),
-		Vector3.new(24, 0, 24),
+		Vector3.new(42, 0, -18),
+		Vector3.new(22, 0, -40),
+		Vector3.new(-22, 0, -40),
+		Vector3.new(-42, 0, -18),
+		Vector3.new(-42, 0, 18),
+		Vector3.new(-14, 0, 42),
+		Vector3.new(14, 0, 42),
+		Vector3.new(42, 0, 18),
 	}
 	for i, off in ipairs(zone1Offsets) do
 		local pile = ZoneService.createScrapPile(zone1Config, centerPos + off, i)
@@ -1085,8 +1107,8 @@ function ZoneService.buildZone1Props(folder: Instance, center: Vector3)
 	props.Name = "ThematicProps_Zone1"
 	props.Parent = folder
 
-	-- 1. Heavy Industrial Salvage Crane (North-West Perimeter: -26, 0, -28 - completely clear of pathways)
-	local cranePos = center + Vector3.new(-26, 0, -28)
+	-- 1. Heavy Industrial Salvage Crane (North-West Perimeter: -38, 0, -38 - completely clear of pathways)
+	local cranePos = center + Vector3.new(-38, 0, -38)
 	createPropPart(props, "CraneBase", Vector3.new(8, 2, 8), CFrame.new(cranePos + Vector3.new(0, 1, 0)), Color3.fromRGB(40, 42, 48), Enum.Material.Concrete)
 	createPropPart(props, "CraneMast", Vector3.new(3.5, 26, 3.5), CFrame.new(cranePos + Vector3.new(0, 14, 0)), Color3.fromRGB(215, 145, 30), Enum.Material.Metal)
 	createPropPart(props, "CraneBoom", Vector3.new(3, 3, 24), CFrame.new(cranePos + Vector3.new(0, 26, 6)), Color3.fromRGB(215, 145, 30), Enum.Material.Metal)
@@ -1094,19 +1116,19 @@ function ZoneService.buildZone1Props(folder: Instance, center: Vector3)
 	createPropPart(props, "CraneCable", Vector3.new(0.3, 10, 0.3), CFrame.new(cranePos + Vector3.new(0, 19, 14)), Color3.fromRGB(30, 30, 35), Enum.Material.Metal)
 	createPropPart(props, "CraneMagnet", Vector3.new(1.8, 6, 6), CFrame.new(cranePos + Vector3.new(0, 14, 14)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(65, 65, 75), Enum.Material.Metal, Enum.PartType.Cylinder)
 
-	-- 2. Rusted Coolant Silo (South Border Center: 0, 0, 36)
-	local siloPos = center + Vector3.new(0, 0, 36)
+	-- 2. Rusted Coolant Silo (South Border Center: 0, 0, 48)
+	local siloPos = center + Vector3.new(0, 0, 48)
 	createPropPart(props, "SiloBody", Vector3.new(18, 7.5, 7.5), CFrame.new(siloPos + Vector3.new(0, 9, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(150, 85, 50), Enum.Material.CorrodedMetal, Enum.PartType.Cylinder)
 	createPropPart(props, "SiloDome", Vector3.new(7.5, 5, 7.5), CFrame.new(siloPos + Vector3.new(0, 19, 0)), Color3.fromRGB(130, 75, 45), Enum.Material.Metal, Enum.PartType.Ball)
 	createPropPart(props, "SiloCatwalk", Vector3.new(1, 9, 9), CFrame.new(siloPos + Vector3.new(0, 11, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(50, 50, 55), Enum.Material.Metal, Enum.PartType.Cylinder)
 
 	-- 3. Rusted Oil Drum Clusters (Placed along South border beside Silo, never on pathways)
 	local drumOffsets = {
-		Vector3.new(-8, 1.4, 34),
-		Vector3.new(-6, 1.4, 36),
-		Vector3.new(-7, 4.2, 35),
-		Vector3.new(8, 1.4, 34),
-		Vector3.new(6, 1.4, 36),
+		Vector3.new(-8, 1.4, 46),
+		Vector3.new(-6, 1.4, 48),
+		Vector3.new(-7, 4.2, 47),
+		Vector3.new(8, 1.4, 46),
+		Vector3.new(6, 1.4, 48),
 	}
 	for i, dOff in ipairs(drumOffsets) do
 		createPropPart(props, "Drum_" .. i, Vector3.new(2.8, 1.8, 1.8), CFrame.new(center + dOff) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(125, 65, 40), Enum.Material.CorrodedMetal, Enum.PartType.Cylinder)
@@ -1282,7 +1304,7 @@ function ZoneService.constructZoneSign(parent: Instance, centerPos: Vector3, zon
 	local model = Instance.new("Model")
 	model.Name = "SignGantry_Zone" .. tostring(zone.Id)
 
-	local signPos = centerPos + Vector3.new(0, 21, -38)
+	local signPos = centerPos + Vector3.new(0, 21, -50)
 	local signWidth = 28
 	local signHeight = 8.5
 	local signDepth = 1.6
@@ -1293,7 +1315,7 @@ function ZoneService.constructZoneSign(parent: Instance, centerPos: Vector3, zon
 		local footing = Instance.new("Part")
 		footing.Name = "Footing"
 		footing.Size = Vector3.new(3.6, 1.2, 3.6)
-		footing.Position = centerPos + Vector3.new(colX, 0.6, -38)
+		footing.Position = centerPos + Vector3.new(colX, 0.6, -50)
 		footing.Anchored = true
 		footing.Material = Enum.Material.Concrete
 		footing.Color = Color3.fromRGB(45, 48, 55)
@@ -1302,7 +1324,7 @@ function ZoneService.constructZoneSign(parent: Instance, centerPos: Vector3, zon
 		local col = Instance.new("Part")
 		col.Name = "TrussColumn"
 		col.Size = Vector3.new(2.0, 25, 2.0)
-		col.Position = centerPos + Vector3.new(colX, 12.5, -38)
+		col.Position = centerPos + Vector3.new(colX, 12.5, -50)
 		col.Anchored = true
 		col.Material = Enum.Material.Metal
 		col.Color = Color3.fromRGB(32, 35, 44)
@@ -1313,7 +1335,7 @@ function ZoneService.constructZoneSign(parent: Instance, centerPos: Vector3, zon
 		strut.Name = "DiagonalStrut"
 		strut.Size = Vector3.new(1.0, 10, 1.0)
 		local strutSign = colX > 0 and -1 or 1
-		strut.Position = centerPos + Vector3.new(colX + strutSign * 3.5, 18, -38.2)
+		strut.Position = centerPos + Vector3.new(colX + strutSign * 3.5, 18, -50.2)
 		strut.Orientation = Vector3.new(0, 0, strutSign * 35)
 		strut.Anchored = true
 		strut.Material = Enum.Material.Metal
@@ -1579,18 +1601,18 @@ function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Ve
 	ZoneService.constructZoneSign(folder, centerPos, zone)
 
 	-- 4. Scrap Recycler Machine & Deposit Sell Pad on North perimeter (Ample clearance from fence)
-	ZoneService.constructRecycler(folder, centerPos + Vector3.new(0, 0, -26), zone.Id)
+	ZoneService.constructRecycler(folder, centerPos + Vector3.new(0, 0, -38), zone.Id)
 
 	-- 5. 8 Scrap Nodes per zone - Generously distributed radially across the compound (clear of corridors)
 	local offsets = {
-		Vector3.new(20, 0, -10),
-		Vector3.new(14, 0, -28),
-		Vector3.new(-14, 0, -28),
-		Vector3.new(-26, 0, -12),
-		Vector3.new(-26, 0, 12),
-		Vector3.new(-14, 0, 28),
-		Vector3.new(14, 0, 28),
-		Vector3.new(28, 0, 14),
+		Vector3.new(38, 0, -18),
+		Vector3.new(22, 0, -40),
+		Vector3.new(-22, 0, -40),
+		Vector3.new(-38, 0, -18),
+		Vector3.new(-38, 0, 18),
+		Vector3.new(-14, 0, 42),
+		Vector3.new(14, 0, 42),
+		Vector3.new(38, 0, 18),
 	}
 
 	for i, offset in ipairs(offsets) do
@@ -1600,7 +1622,7 @@ function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Ve
 	end
 
 	-- 6. Fast Travel Portal on this platform (along South-West perimeter)
-	createPortalPad(folder, centerPos + Vector3.new(-20, 0.3, 24), zone.Id)
+	createPortalPad(folder, centerPos + Vector3.new(-28, 0, 38), zone.Id)
 
 	-- 7. Dedicated Zone Egg Pod along South-East perimeter
 	local zoneEggTypeMap = {
@@ -1611,7 +1633,7 @@ function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Ve
 	}
 	local eggTypeForZone = zoneEggTypeMap[zone.Id]
 	if eggTypeForZone then
-		ZoneService.constructEggPod(folder, centerPos + Vector3.new(20, 0.4, 24), eggTypeForZone)
+		ZoneService.constructEggPod(folder, centerPos + Vector3.new(28, 0.4, 38), eggTypeForZone)
 	end
 
 	-- 8. Thematic Environmental Sci-Fi Props for Zones 2 to 5
@@ -1976,16 +1998,16 @@ function ZoneService.constructBridge(zoneId: number)
 	local mainDir = (toCenter - fromCenter).Unit
 	local lateralNorm = Vector3.new(-mainDir.Z, 0, mainDir.X).Unit
 
-	local startPos = fromCenter + mainDir * 44
-	local endPos = toCenter - mainDir * 44
+	local startPos = fromCenter + mainDir * 58
+	local endPos = toCenter - mainDir * 58
 
-	-- 1. Initial Straight Approach Pier from Island 1 gateway (Length 14 studs, Width 18 - completely unblocked)
-	local pierEnd = startPos + mainDir * 14
+	-- 1. Initial Straight Approach Pier from Island 1 gateway (Length 16 studs, Width 18 - completely unblocked)
+	local pierEnd = startPos + mainDir * 16
 	buildBridgeSegment(bridgeContainer, startPos, pierEnd, 18, targetZone.Color, zoneId, Enum.Material.DiamondPlate, Color3.fromRGB(70, 75, 85))
 
-	-- 2. Midway Landmark Island (Circle diameter 24, centered at midway between pierEnd and endPos - 14)
-	local midwayPos = (pierEnd + (endPos - mainDir * 16)) / 2
-	buildMidwayIsland(bridgeContainer, midwayPos, Vector3.new(24, 4, 24), Color3.fromRGB(48, 45, 52), zoneId)
+	-- 2. Midway Landmark Island (Circle diameter 26, centered at midway between pierEnd and endPos - 18)
+	local midwayPos = (pierEnd + (endPos - mainDir * 18)) / 2
+	buildMidwayIsland(bridgeContainer, midwayPos, Vector3.new(26, 4, 26), Color3.fromRGB(48, 45, 52), zoneId)
 
 	-- 3. Creative Split Paths: Route A (Elevated Catwalk) & Route B (Low Causeway)
 	-- Route A begins at pierEnd + lateralNorm * 5, peaks at forkA_Mid (+3.5 Y), ends at midwayPos + lateralNorm * 5
@@ -2088,12 +2110,12 @@ function ZoneService.constructBridge(zoneId: number)
 		hullFin.Parent = bridgeContainer
 	end
 
-	-- 5. Final Approach Span from Midway Island to Target Zone (Length ~16 studs, Width 18)
-	local finalSpanStart = midwayPos + mainDir * 10
+	-- 5. Final Approach Span from Midway Island to Target Zone (Length ~18 studs, Width 18)
+	local finalSpanStart = midwayPos + mainDir * 12
 	buildBridgeSegment(bridgeContainer, finalSpanStart, endPos, 18, targetZone.Color, zoneId, Enum.Material.DiamondPlate, Color3.fromRGB(70, 75, 85))
 
 	-- 6. Gate Model positioned on the final approach span
-	local gatePos = endPos - mainDir * 10
+	local gatePos = endPos - mainDir * 12
 	buildZoneGate(bridgeFolder, gatePos, mainDir, 18, targetZone)
 end
 
@@ -2261,12 +2283,12 @@ function ZoneService.setupZonePatrol()
 						local maxZone = data and (data.MaxZoneReached or 1) or 1
 						if maxZone < #Config.Zones then
 							local playerPos2D = Vector3.new(root.Position.X, 0, root.Position.Z)
-							-- Check if player is trespassing inside any locked zone compound (radius < 50)
+							-- Check if player is trespassing inside any locked zone compound (radius < 62)
 							for lockedZoneId = maxZone + 1, #Config.Zones do
 								local lockedCenter = ZONE_CENTERS[lockedZoneId]
 								if lockedCenter then
 									local lockedPos2D = Vector3.new(lockedCenter.X, 0, lockedCenter.Z)
-									if (playerPos2D - lockedPos2D).Magnitude < 50 then
+									if (playerPos2D - lockedPos2D).Magnitude < 62 then
 										-- Trespassing! Safely bounce back to the player's highest unlocked zone center
 										local safeZoneId = math.clamp(maxZone, 1, #Config.Zones)
 										local safeCenter = ZONE_CENTERS[safeZoneId] or Vector3.new(0, 0, 0)
