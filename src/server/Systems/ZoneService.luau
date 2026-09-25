@@ -707,10 +707,9 @@ function ZoneService.applyNodeVariant(model: Model, zone: Types.ZoneConfig, isDe
 		bStroke.Thickness = isDense and 2 or 1.5
 	end
 
-	local prompt = root and root:FindFirstChild("ScrapPrompt") :: ProximityPrompt?
-	if prompt then
-		prompt.ObjectText = isDense and string.format("Dense %s Cache", zone.Name) or zone.Name
-		prompt.ActionText = "Strike Scrap (E)"
+	local oldPrompt = root and root:FindFirstChild("ScrapPrompt")
+	if oldPrompt then
+		oldPrompt:Destroy()
 	end
 end
 
@@ -866,21 +865,11 @@ function ZoneService.createScrapPile(zone: Types.ZoneConfig, position: Vector3, 
 	hpLabel.Text = "[ HP ]"
 	hpLabel.Parent = badge
 
-	local prompt = Instance.new("ProximityPrompt")
-	prompt.Name = "ScrapPrompt"
-	prompt.ObjectText = zone.Name
-	prompt.ActionText = "Strike Scrap (E)"
-	prompt.HoldDuration = 0.1
-	prompt.MaxActivationDistance = 15
-	prompt.RequiresLineOfSight = false
-	prompt.Parent = root
-
 	-- Randomize initial dense node per zone (25% RNG per pile)
 	local isDenseInitial = (math.random(1, 4) == 1)
 	ZoneService.applyNodeVariant(model, zone, isDenseInitial)
 
 	CollectionService:AddTag(model, "ScrapNode")
-	CollectionService:AddTag(prompt, "ScrapPrompt")
 
 	return model
 end

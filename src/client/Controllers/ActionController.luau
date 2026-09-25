@@ -73,9 +73,10 @@ local function bindCharacter(character: Model)
 
 	local isR15 = humanoid.RigType == Enum.HumanoidRigType.R15
 
-	-- Official verified responsive swing/slash and lunge/thrust animation tracks
+	-- Strictly upper-body only strike animations (Right Arm & Upper Torso)
+	-- NEVER include lower body / leg / hip keyframes so the player's legs run smoothly without freezing
+	local chopId = isR15 and "rbxassetid://507768375" or "rbxassetid://129967390"
 	local slashId = isR15 and "rbxassetid://522635514" or "rbxassetid://129967390"
-	local lungeId = isR15 and "rbxassetid://522638767" or "rbxassetid://129967342"
 
 	local function loadTrack(id: string, name: string): AnimationTrack?
 		local anim = Instance.new("Animation")
@@ -88,8 +89,8 @@ local function bindCharacter(character: Model)
 	end
 
 	pcall(function()
+		loadTrack(chopId, "Chop")
 		loadTrack(slashId, "Slash")
-		loadTrack(lungeId, "Lunge")
 	end)
 
 	table.insert(characterConnections, humanoid.Died:Connect(function()
@@ -108,25 +109,25 @@ local function playToolAnimation(tool: Tool, cooldown: number)
 	local baseRate = math.clamp(0.4 / math.max(0.15, cooldown), 0.8, 2.2)
 
 	if toolId == "PneumaticDrill" then
-		trackToPlay = loadedTracks["Lunge"] or loadedTracks["Slash"]
+		trackToPlay = loadedTracks["Chop"] or loadedTracks["Slash"]
 		animSpeed = baseRate * 1.35
 	elseif toolId == "PlasmaCutter" then
-		trackToPlay = loadedTracks["Slash"]
+		trackToPlay = loadedTracks["Slash"] or loadedTracks["Chop"]
 		animSpeed = baseRate * 1.25
 	elseif toolId == "CyberScythe" then
-		trackToPlay = loadedTracks["Slash"]
+		trackToPlay = loadedTracks["Slash"] or loadedTracks["Chop"]
 		animSpeed = baseRate * 1.15
 	elseif toolId == "VoidRipper" then
 		comboStep = (comboStep % 2) + 1
 		if comboStep == 1 then
-			trackToPlay = loadedTracks["Slash"]
+			trackToPlay = loadedTracks["Slash"] or loadedTracks["Chop"]
 		else
-			trackToPlay = loadedTracks["Lunge"] or loadedTracks["Slash"]
+			trackToPlay = loadedTracks["Chop"] or loadedTracks["Slash"]
 		end
 		animSpeed = baseRate * 1.2
 	else
 		-- OmniWrench / Default
-		trackToPlay = loadedTracks["Slash"] or loadedTracks["Lunge"]
+		trackToPlay = loadedTracks["Chop"] or loadedTracks["Slash"]
 		animSpeed = baseRate * 1.05
 	end
 

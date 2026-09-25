@@ -288,21 +288,6 @@ local function constructPodModel(landingPos: Vector3, locationName: string, zone
 	fire.Rate = 20
 	fire.Parent = att
 
-	-- 7. Interactive ProximityPrompt
-	local prompt = Instance.new("ProximityPrompt")
-	prompt.Name = "ScrapPrompt"
-	prompt.ObjectText = "ORBITAL RAID POD"
-	prompt.ActionText = "Dismantle Pod"
-	prompt.HoldDuration = 0.05
-	prompt.MaxActivationDistance = 24
-	prompt.RequiresLineOfSight = false
-	prompt.Parent = hitbox
-
-	prompt.Triggered:Connect(function(player)
-		local ActionService = require(script.Parent.ActionService)
-		ActionService.performScrapAction(player, pod)
-	end)
-
 	-- 8. High-Visibility Boss Health Bar Billboard
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "HealthBillboard"
@@ -423,7 +408,6 @@ local function constructPodModel(landingPos: Vector3, locationName: string, zone
 	end)
 
 	CollectionService:AddTag(pod, "ScrapNode")
-	CollectionService:AddTag(prompt, "ScrapPrompt")
 
 	return pod
 end
