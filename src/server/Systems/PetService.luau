@@ -579,13 +579,34 @@ function PetService.init()
 		end
 	end)
 
-	Players.PlayerAdded:Connect(function(player)
-		player.CharacterAdded:Connect(function()
-			task.delay(1, function()
-				PetService.updateVisualDrones(player)
+	local function setupPlayer(player: Player)
+		local function onCharacter(character: Model)
+			task.spawn(function()
+				local root = character:WaitForChild("HumanoidRootPart", 10)
+				if root and character.Parent and player.Parent then
+					-- Retry loading/waiting for player data up to 6 seconds if needed
+					local startTime = os.clock()
+					while not DataService.get(player) and (os.clock() - startTime) < 6 do
+						task.wait(0.2)
+					end
+					task.wait(0.15)
+					if character.Parent and player.Parent then
+						PetService.updateVisualDrones(player)
+					end
+				end
 			end)
-		end)
-	end)
+		end
+
+		player.CharacterAdded:Connect(onCharacter)
+		if player.Character then
+			onCharacter(player.Character)
+		end
+	end
+
+	Players.PlayerAdded:Connect(setupPlayer)
+	for _, player in ipairs(Players:GetPlayers()) do
+		task.spawn(setupPlayer, player)
+	end
 
 	Players.PlayerRemoving:Connect(function(player)
 		PetService.despawnDrones(player)

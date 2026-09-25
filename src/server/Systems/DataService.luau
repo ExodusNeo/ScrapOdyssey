@@ -147,6 +147,26 @@ function DataService.loadData(player: Player): Types.PlayerData
 
 	sessionData[player.UserId] = data
 	DataService.sync(player)
+
+	-- Immediately spawn equipped drones & character backpack upon data load
+	task.defer(function()
+		if not player.Parent then return end
+		local petModule = script.Parent:FindFirstChild("PetService")
+		if petModule then
+			local success, petService = pcall(require, petModule)
+			if success and type(petService) == "table" and type(petService.updateVisualDrones) == "function" then
+				petService.updateVisualDrones(player)
+			end
+		end
+		local bpModule = script.Parent:FindFirstChild("BackpackService")
+		if bpModule then
+			local success, bpService = pcall(require, bpModule)
+			if success and type(bpService) == "table" and type(bpService.updateCharacterBackpack) == "function" then
+				bpService.updateCharacterBackpack(player)
+			end
+		end
+	end)
+
 	return data
 end
 
