@@ -26,22 +26,37 @@ function CurrencyService.getMultiplier(player: Player): number
 		multiplier = multiplier + ((scrapPowerLvl - 1) * powerConfig.EffectPerLevel)
 	end
 
-	-- 4. Equipped Pets multiplier
+	-- 4. Equipped Pets multiplier (Additive bonus to avoid exponential runaway)
+	local petBonus = 0
 	for _, pet in ipairs(data.Pets or {}) do
 		if pet.Equipped then
 			for _, template in ipairs(Config.Pets.List) do
 				if template.Id == pet.Id then
-					multiplier = multiplier * template.Multiplier
+					petBonus = petBonus + template.Multiplier
 					break
 				end
 			end
 		end
 	end
+	multiplier = multiplier + petBonus
 
-	-- 5. Gears Prestige Perk: ScrapSurge (+100% permanent bonus)
-	if data.GearsPerks and data.GearsPerks["ScrapSurge"] then
-		multiplier = multiplier + 1.0
+	-- 5. Gears Prestige Perks
+	if data.GearsPerks then
+		if data.GearsPerks["ScrapSurge"] then
+			multiplier = multiplier + 1.0 -- +100% bonus
+		end
+		if data.GearsPerks["QuantumDrone"] then
+			multiplier = multiplier + 10.0 -- +1,000% bonus Apex Mythic companion
+		end
 	end
+
+	-- 6. Gamepass: 2x Scrap Multiplier
+	pcall(function()
+		local MonetizationService = require(script.Parent.MonetizationService)
+		if MonetizationService.ownsGamepass(player, "DoubleScrap") then
+			multiplier = multiplier * 2.0
+		end
+	end)
 
 	return math.max(1.0, multiplier)
 end

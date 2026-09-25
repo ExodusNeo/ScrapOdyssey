@@ -1399,19 +1399,19 @@ function MenuController.buildRebirthPanel()
 	panels["Rebirth"] = panel
 
 	local desc = Instance.new("TextLabel")
-	desc.Size = UDim2.new(1, 0, 0, 75)
+	desc.Size = UDim2.new(1, 0, 0, 92)
 	desc.BackgroundTransparency = 1
 	desc.Font = Enum.Font.Gotham
 	desc.TextSize = 13
 	desc.TextColor3 = Color3.fromRGB(200, 210, 230)
 	desc.TextWrapped = true
-	desc.Text = "PRESTIGE REBIRTH CONDITIONS:\n• RESETS: Scrap, Cargo, Regular Upgrades (to Tier 1), and Unlocked Sectors\n• PRESERVES: Gears, Drones, Prestige Perks, and Scrapper Tools\n• BONUS: Permanent +50% Scrap multiplier per Rebirth level"
+	desc.Text = "PRESTIGE REBIRTH CONDITIONS:\n• REQUIREMENT: Reach Zone 5 (Orbital Crashsite)\n• RESETS: Scrap, Cargo, Regular Upgrades (to Lv 1), and Unlocked Sectors\n• PRESERVES: Gears, Drones, Prestige Perks, and Scrapper Tools\n• BONUS: Permanent +75% Scrap multiplier per Rebirth level\n• REWARD: +3 Gears on 1st Rebirth (+2 more every tier thereafter)"
 	desc.ZIndex = 24
 	desc.Parent = body
 
 	local statFrame = Instance.new("Frame")
-	statFrame.Size = UDim2.new(1, 0, 0, 130)
-	statFrame.Position = UDim2.new(0, 0, 0, 96)
+	statFrame.Size = UDim2.new(1, 0, 0, 140)
+	statFrame.Position = UDim2.new(0, 0, 0, 104)
 	statFrame.BackgroundColor3 = Color3.fromRGB(26, 30, 42)
 	statFrame.BorderSizePixel = 0
 	statFrame.ZIndex = 24
@@ -1427,17 +1427,17 @@ function MenuController.buildRebirthPanel()
 	rebirthInfoLabel.Position = UDim2.new(0, 12, 0, 10)
 	rebirthInfoLabel.BackgroundTransparency = 1
 	rebirthInfoLabel.Font = Enum.Font.GothamBold
-	rebirthInfoLabel.TextSize = 16
+	rebirthInfoLabel.TextSize = 15
 	rebirthInfoLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
 	rebirthInfoLabel.TextXAlignment = Enum.TextXAlignment.Left
-	rebirthInfoLabel.Text = "Required Scrap: 100K\nReward: +1 Gears\nCurrent Multiplier: +0%"
+	rebirthInfoLabel.Text = "Required Scrap: 5M\nReward: +3 Gears\nCurrent Multiplier: +0%"
 	rebirthInfoLabel.ZIndex = 25
 	rebirthInfoLabel.Parent = statFrame
 
 	rebirthButton = Instance.new("TextButton")
 	rebirthButton.Name = "RebirthButton"
 	rebirthButton.Size = UDim2.new(1, 0, 0, 60)
-	rebirthButton.Position = UDim2.new(0, 0, 0, 240)
+	rebirthButton.Position = UDim2.new(0, 0, 0, 256)
 	rebirthButton.BackgroundColor3 = Color3.fromRGB(80, 130, 255)
 	rebirthButton.Font = Enum.Font.GothamBlack
 	rebirthButton.TextSize = 18
@@ -1451,6 +1451,12 @@ function MenuController.buildRebirthPanel()
 	rCorner.Parent = rebirthButton
 
 	rebirthButton.Activated:Connect(function()
+		local reqZone = Config.Rebirth.RequiredZone or 5
+		if currentData and (currentData.MaxZoneReached or 1) < reqZone then
+			playSound("rbxassetid://6895079853", 0.8)
+			showToast(string.format("You must reach Zone %d (Orbital Crashsite) before rebirthing!", reqZone), Color3.fromRGB(240, 90, 90))
+			return
+		end
 		playSound("rbxassetid://743521656", 1.0)
 		local rebirthRemote = Remotes.getEvent("RequestRebirth")
 		rebirthRemote:FireServer()
@@ -2760,8 +2766,9 @@ local function renderDroneInventory(data: Types.PlayerData)
 			nameLabel.Font = Enum.Font.GothamBold
 			nameLabel.TextSize = 14
 			nameLabel.TextColor3 = template and template.Color or Color3.new(1, 1, 1)
-			nameLabel.TextXAlignment = Enum.TextXAlignment.Left
-			nameLabel.Text = string.format("%s (+%.1fx Scrap)", template and template.Name or "Drone", template and template.Multiplier or 1.0)
+			local multVal = template and template.Multiplier or 1.0
+			local multText = multVal >= 1.0 and string.format("+%.1fx Scrap", multVal) or string.format("+%d%% Scrap", math.floor(multVal * 100))
+			nameLabel.Text = string.format("%s (%s)", template and template.Name or "Drone", multText)
 			nameLabel.ZIndex = 26
 			nameLabel.Parent = row
 
@@ -3005,19 +3012,26 @@ function MenuController.updateUI(data: Types.PlayerData)
 		local cost = math.floor(Config.Rebirth.BaseCost * (Config.Rebirth.CostMultiplier ^ rebirths))
 		local gearsEarned = Config.Rebirth.GearsRewardFormula(rebirths)
 		local multPercent = math.floor(rebirths * Config.Rebirth.MultiplierPerRebirth * 100)
+		local requiredZone = Config.Rebirth.RequiredZone or 5
+		local maxZone = data.MaxZoneReached or 1
+		local hasReachedZone = maxZone >= requiredZone
 
 		rebirthInfoLabel.Text = string.format(
-			"Rebirth Level: %d\nPermanent Bonus: +%d%%\nRequired Scrap: %s\nReward: +%d Gears",
+			"Rebirth Level: %d\nPermanent Bonus: +%d%%\nRequired Scrap: %s\nSector Access: %s\nReward: +%d Gears",
 			rebirths,
 			multPercent,
 			formatNumber(cost),
+			hasReachedZone and string.format("Zone %d Reached", requiredZone) or string.format("Requires Zone %d (Current: %d)", requiredZone, maxZone),
 			gearsEarned
 		)
 
 		if rebirthButton then
-			if data.Scrap >= cost then
+			if not hasReachedZone then
+				rebirthButton.BackgroundColor3 = Color3.fromRGB(75, 80, 95)
+				rebirthButton.Text = string.format("REACH ZONE %d TO REBIRTH", requiredZone)
+			elseif data.Scrap >= cost then
 				rebirthButton.BackgroundColor3 = Color3.fromRGB(80, 140, 255)
-				rebirthButton.Text = "REBIRTH"
+				rebirthButton.Text = "QUANTUM REBIRTH"
 			else
 				rebirthButton.BackgroundColor3 = Color3.fromRGB(90, 95, 110)
 				rebirthButton.Text = string.format("NEED %s SCRAP", formatNumber(cost))

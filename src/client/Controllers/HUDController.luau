@@ -30,6 +30,10 @@ local cargoLabel: TextLabel
 local currentScrap = 0
 local currentGears = 0
 local currentBackpack = -1
+local comboBadge: Frame
+local comboLabel: TextLabel
+local cbStroke: UIStroke
+local lastComboTime = 0
 local recentPopups: { { Pos: Vector3, Time: number } } = {}
 
 local function formatNumber(n: number): string
@@ -232,6 +236,77 @@ function HUDController.createHUD()
 	multLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
 	multLabel.Text = "⚡ BOOST: 1.0x"
 	multLabel.Parent = badge
+
+	-- Combo Streak Badge (Top Right, immediately left of MultiplierBadge)
+	comboBadge = Instance.new("Frame")
+	comboBadge.Name = "ComboBadge"
+	comboBadge.AnchorPoint = Vector2.new(1, 0)
+	comboBadge.Size = UDim2.new(0, 160, 0, 22)
+	comboBadge.Position = UDim2.new(1, -160, 0, 116)
+	comboBadge.BackgroundColor3 = Color3.fromRGB(12, 15, 22)
+	comboBadge.BackgroundTransparency = 1
+	comboBadge.BorderSizePixel = 0
+	comboBadge.Parent = mainGui
+
+	local cbCorner = Instance.new("UICorner")
+	cbCorner.CornerRadius = UDim.new(0, 5)
+	cbCorner.Parent = comboBadge
+
+	cbStroke = Instance.new("UIStroke")
+	cbStroke.Color = Color3.fromRGB(255, 140, 20)
+	cbStroke.Thickness = 1.2
+	cbStroke.Transparency = 1
+	cbStroke.Parent = comboBadge
+
+	comboLabel = Instance.new("TextLabel")
+	comboLabel.Name = "ComboLabel"
+	comboLabel.Size = UDim2.new(1, 0, 1, 0)
+	comboLabel.BackgroundTransparency = 1
+	comboLabel.TextTransparency = 1
+	comboLabel.Font = Enum.Font.GothamBlack
+	comboLabel.TextSize = 11
+	comboLabel.TextColor3 = Color3.fromRGB(255, 160, 30)
+	comboLabel.Text = "🔥 STREAK x2 (+5%)"
+	comboLabel.Parent = comboBadge
+end
+
+function HUDController.updateComboStreak(combo: number)
+	if not comboBadge or not comboLabel or not cbStroke then return end
+	if combo < 2 then
+		TweenService:Create(comboBadge, TweenInfo.new(0.3), { BackgroundTransparency = 1 }):Play()
+		TweenService:Create(cbStroke, TweenInfo.new(0.3), { Transparency = 1 }):Play()
+		TweenService:Create(comboLabel, TweenInfo.new(0.3), { TextTransparency = 1 }):Play()
+		return
+	end
+
+	lastComboTime = os.clock()
+	local bonusPct = math.min(45, (combo - 1) * 5)
+	if combo >= 10 then
+		comboLabel.Text = string.format("⚡ OVERDRIVE x%d (+%d%%)!", combo, bonusPct)
+		comboLabel.TextColor3 = Color3.fromRGB(255, 220, 50)
+		cbStroke.Color = Color3.fromRGB(255, 215, 0)
+	else
+		comboLabel.Text = string.format("🔥 STREAK x%d (+%d%%)", combo, bonusPct)
+		comboLabel.TextColor3 = Color3.fromRGB(255, 160, 40)
+		cbStroke.Color = Color3.fromRGB(255, 130, 20)
+	end
+
+	comboBadge.BackgroundTransparency = 0.15
+	cbStroke.Transparency = 0
+	comboLabel.TextTransparency = 0
+
+	local bounce = TweenService:Create(comboBadge, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true), {
+		Size = UDim2.new(0, 172, 0, 24),
+	})
+	bounce:Play()
+
+	task.delay(3.8, function()
+		if os.clock() - lastComboTime >= 3.7 and comboBadge and comboLabel and cbStroke then
+			TweenService:Create(comboBadge, TweenInfo.new(0.4), { BackgroundTransparency = 1 }):Play()
+			TweenService:Create(cbStroke, TweenInfo.new(0.4), { Transparency = 1 }):Play()
+			TweenService:Create(comboLabel, TweenInfo.new(0.4), { TextTransparency = 1 }):Play()
+		end
+	end)
 end
 
 function HUDController.updateCurrencies(data: Types.PlayerData)
@@ -292,10 +367,29 @@ function HUDController.updateCurrencies(data: Types.PlayerData)
 		end
 	end
 
-	-- Calculate approx multiplier display
+	-- Calculate true total multiplier display (Rebirth + Upgrades + Drones + Perks)
 	if multLabel then
-		local rebirthMult = 1 + (data.Rebirths * 0.5)
-		multLabel.Text = string.format("⚡ BOOST: %.1fx", rebirthMult)
+		local rebirthMult = (data.Rebirths or 0) * (Config.Rebirth.MultiplierPerRebirth or 0.75)
+		local powerLvl = (data.Upgrades and data.Upgrades["ScrapPower"]) or 1
+		local powerMult = (powerLvl - 1) * (Config.Upgrades.ScrapPower and Config.Upgrades.ScrapPower.EffectPerLevel or 0.20)
+		local petMult = 0
+		for _, p in ipairs(data.Pets or {}) do
+			if p.Equipped then
+				for _, t in ipairs(Config.Pets.List) do
+					if t.Id == p.Id then
+						petMult = petMult + t.Multiplier
+						break
+					end
+				end
+			end
+		end
+		local perkMult = 0
+		if data.GearsPerks then
+			if data.GearsPerks["ScrapSurge"] then perkMult = perkMult + 1.0 end
+			if data.GearsPerks["QuantumDrone"] then perkMult = perkMult + 10.0 end
+		end
+		local totalMult = 1.0 + rebirthMult + powerMult + petMult + perkMult
+		multLabel.Text = string.format("⚡ BOOST: %.1fx", totalMult)
 	end
 
 	-- Instant client-side gate collision disable for reached zones
@@ -354,6 +448,9 @@ function HUDController.spawnRewardPopup(info: any)
 		if info.IsOrbital then
 			text = string.format("POD SALVAGED\n+%s SCRAP | +%d GEARS\n[%d%% CONTRIBUTION]", formatNumber(info.ScrapEarned), info.GearsEarned or 1, info.DamagePercent or 100)
 			textColor = Color3.fromRGB(255, 170, 20)
+		elseif info.IsCrit then
+			text = string.format("⚡ CRIT HARVEST! +%s SCRAP\n[%s]", formatNumber(info.ScrapEarned), info.TierName or "CRIT")
+			textColor = Color3.fromRGB(255, 215, 0)
 		elseif isDense then
 			text = string.format("HARVESTED +%s SCRAP\n[%s]", formatNumber(info.ScrapEarned), info.TierName or "DENSE")
 			textColor = Color3.fromRGB(0, 240, 255)
@@ -364,12 +461,20 @@ function HUDController.spawnRewardPopup(info: any)
 	elseif info.IsOrbital then
 		text = string.format("-%d HP", info.DamageDealt or 1)
 		textColor = Color3.fromRGB(255, 130, 20)
+	elseif info.IsCrit then
+		text = string.format("⚡ CRIT +%s", formatNumber(info.ScrapEarned))
+		textColor = Color3.fromRGB(255, 215, 0)
 	elseif isDense then
 		text = string.format("+%s", formatNumber(info.ScrapEarned))
 		textColor = Color3.fromRGB(0, 240, 255)
 	else
 		text = string.format("+%s", formatNumber(info.ScrapEarned))
 		textColor = info.TierColor or Color3.fromRGB(255, 215, 0)
+	end
+
+	-- Notify Combo Streak UI
+	if info.Combo and info.Combo >= 2 then
+		HUDController.updateComboStreak(info.Combo)
 	end
 
 	-- Anti-overlap dispersal calculation

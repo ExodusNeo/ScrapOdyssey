@@ -15,6 +15,7 @@ local CurrencyService = require(script.Parent.CurrencyService)
 local ActionService = {}
 local playerLastActionTime: { [Player]: number } = {}
 local nodeCooldown: { [Model]: boolean } = {}
+local playerCombo: { [Player]: { Count: number, LastHitTime: number } } = {}
 
 -- Procedural 3D Scrapper Tool Construction (5 Tiers)
 function ActionService.buildTool(toolId: string): Tool
@@ -513,6 +514,31 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 	local baseYield = nodeModel:GetAttribute("BaseYield") or (zone and zone.BaseYield) or 10
 	local isDense = nodeModel:GetAttribute("IsDense")
 
+	-- Active Gameplay Engagement: Combo Streak & Critical Salvage Calculation
+	local comboInfo = playerCombo[player]
+	if not comboInfo then
+		comboInfo = { Count = 0, LastHitTime = 0 }
+		playerCombo[player] = comboInfo
+	end
+	local comboWindow = (Config.Engagement and Config.Engagement.ComboWindow) or 3.8
+	local maxCombo = (Config.Engagement and Config.Engagement.MaxCombo) or 10
+	local bonusPerCombo = (Config.Engagement and Config.Engagement.BonusPerCombo) or 0.05
+
+	if now - comboInfo.LastHitTime <= comboWindow then
+		comboInfo.Count = math.min(maxCombo, comboInfo.Count + 1)
+	else
+		comboInfo.Count = 1
+	end
+	comboInfo.LastHitTime = now
+
+	local comboMult = 1.0 + ((comboInfo.Count - 1) * bonusPerCombo)
+
+	-- Critical Salvage Proc
+	local critChance = (Config.Engagement and Config.Engagement.CritChance) or 0.12
+	local critMultiplier = (Config.Engagement and Config.Engagement.CritMultiplier) or 2.0
+	local isCrit = (math.random() <= critChance)
+	local effectiveCritMult = isCrit and critMultiplier or 1.0
+
 	if currentHP > 0 then
 		-- Partial Strike: Fill backpack partially
 		nodeModel:SetAttribute("CurrentHP", currentHP)
@@ -554,7 +580,7 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 			local EventService = require(script.Parent.EventService)
 			EventService.recordDamage(player, toolDamage)
 		else
-			strikeScrap = math.max(1, math.floor((baseYield * tier.Multiplier) * (damageRatio * 0.75)))
+			strikeScrap = math.max(1, math.floor(((baseYield * tier.Multiplier) * (damageRatio * 0.75)) * comboMult * effectiveCritMult))
 			local spaceLeft = math.max(0, maxCapacity - (data.Backpack or 0))
 			added = math.min(spaceLeft, strikeScrap)
 			data.Backpack = (data.Backpack or 0) + added
@@ -567,6 +593,10 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 			end)
 		end
 
+		local displayTierName = isOrbital and "ORBITAL RAID" or (isCrit and ("[CRIT] " .. (isDense and "DENSE" or tier.Name)) or (isDense and "Dense Hit" or "Hit"))
+		local displayTierColor = isOrbital and Color3.fromRGB(255, 140, 20) or (isCrit and Color3.fromRGB(255, 215, 0) or (isDense and Color3.fromRGB(0, 240, 255) or Color3.fromRGB(200, 200, 200)))
+		local soundPitch = isOrbital and 1.35 or (isCrit and 1.55 or (0.9 + math.random() * 0.2))
+
 		local actionCompletedEvent = Remotes.getEvent("ActionCompleted")
 		actionCompletedEvent:FireClient(player, {
 			IsBreak = false,
@@ -575,10 +605,12 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 			DamageDealt = toolDamage,
 			MaxHP = maxHP,
 			CurrentHP = currentHP,
-			TierName = isOrbital and "ORBITAL RAID" or (isDense and "Dense Hit" or "Hit"),
-			TierColor = isOrbital and Color3.fromRGB(255, 140, 20) or (isDense and Color3.fromRGB(0, 240, 255) or Color3.fromRGB(200, 200, 200)),
+			TierName = displayTierName,
+			TierColor = displayTierColor,
 			ScrapEarned = added,
-			SoundPitch = isOrbital and 1.35 or (0.9 + math.random() * 0.2),
+			SoundPitch = soundPitch,
+			Combo = comboInfo.Count,
+			IsCrit = isCrit,
 			Position = nodeHitbox.Position + Vector3.new(0, 3, 0),
 		})
 	else
@@ -679,7 +711,7 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 			barFill.Size = UDim2.new(0, 0, 1, 0)
 		end
 
-		local breakScrap = math.floor((baseYield * tier.Multiplier) * 1.5)
+		local breakScrap = math.floor(((baseYield * tier.Multiplier) * 1.5) * comboMult * effectiveCritMult)
 		local spaceLeft = math.max(0, maxCapacity - (data.Backpack or 0))
 		local added = math.min(spaceLeft, breakScrap)
 		data.Backpack = (data.Backpack or 0) + added
@@ -691,6 +723,10 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 			BackpackService.updateCoreColor(player)
 		end)
 
+		local displayBreakTier = isCrit and ("[CRIT] " .. (isDense and "DENSE" or tier.Name)) or (isDense and ("DENSE " .. tier.Name) or tier.Name)
+		local displayBreakColor = isCrit and Color3.fromRGB(255, 215, 0) or (isDense and Color3.fromRGB(0, 240, 255) or tier.Color)
+		local breakSoundPitch = isCrit and (tier.SoundPitch * 1.3) or tier.SoundPitch
+
 		local actionCompletedEvent = Remotes.getEvent("ActionCompleted")
 		actionCompletedEvent:FireClient(player, {
 			IsBreak = true,
@@ -698,10 +734,12 @@ function ActionService.performScrapAction(player: Player, nodeModel: Model)
 			IsOrbital = false,
 			MaxHP = maxHP,
 			CurrentHP = 0,
-			TierName = isDense and ("DENSE " .. tier.Name) or tier.Name,
-			TierColor = isDense and Color3.fromRGB(0, 240, 255) or tier.Color,
+			TierName = displayBreakTier,
+			TierColor = displayBreakColor,
 			ScrapEarned = added,
-			SoundPitch = tier.SoundPitch,
+			SoundPitch = breakSoundPitch,
+			Combo = comboInfo.Count,
+			IsCrit = isCrit,
 			Position = nodeHitbox.Position + Vector3.new(0, 4, 0),
 		})
 
@@ -812,6 +850,7 @@ function ActionService.init()
 
 	Players.PlayerRemoving:Connect(function(player)
 		playerLastActionTime[player] = nil
+		playerCombo[player] = nil
 	end)
 
 	-- AutoScrap Perk Loop: background automatic harvesting for players with the perk!

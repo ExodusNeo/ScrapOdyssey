@@ -5,7 +5,18 @@ import time
 
 import os
 
-MCP_PATH = r"C:\Users\ddgut\AppData\Local\Roblox\Versions\version-55808de4b1914919\StudioMCP.exe"
+import glob
+
+def find_mcp_path():
+    versions_dir = os.path.expandvars(r"%LOCALAPPDATA%\Roblox\Versions")
+    candidates = glob.glob(os.path.join(versions_dir, "*", "StudioMCP.exe"))
+    if candidates:
+        # Pick the most recently modified StudioMCP.exe
+        candidates.sort(key=lambda p: os.path.getmtime(p), reverse=True)
+        return candidates[0]
+    return r"C:\Users\ddgut\AppData\Local\Roblox\Versions\version-c792f79abddd41bd\StudioMCP.exe"
+
+MCP_PATH = find_mcp_path()
 
 class StudioClient:
     def __init__(self):

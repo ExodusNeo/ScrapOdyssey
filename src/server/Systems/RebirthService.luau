@@ -19,6 +19,14 @@ function RebirthService.rebirth(player: Player): boolean
 	local data = DataService.get(player)
 	if not data then return false end
 
+	local reqZone = Config.Rebirth.RequiredZone or 5
+	if (data.MaxZoneReached or 1) < reqZone then
+		local notif = Remotes.getEvent("ShowNotification")
+		local zName = Config.Zones[reqZone] and Config.Zones[reqZone].Name or ("Zone " .. reqZone)
+		notif:FireClient(player, "Prestige Locked", string.format("You must reach Zone %d (%s) before initiating a Prestige Rebirth!", reqZone, zName), Color3.fromRGB(255, 70, 70))
+		return false
+	end
+
 	local cost = RebirthService.getRebirthCost(data.Rebirths)
 	if data.Scrap < cost then
 		local notif = Remotes.getEvent("ShowNotification")

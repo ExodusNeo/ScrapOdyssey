@@ -24,7 +24,7 @@ Config = {
 
 	getBackpackCapacity = function(level: number): number
 		level = level or 1
-		return math.floor(50 * (1.6 ^ (level - 1)))
+		return math.floor(50 * (1.24 ^ (level - 1)))
 	end,
 
 	-- Reward rarity tiers with weights and multipliers
@@ -73,7 +73,7 @@ Config = {
 		},
 	} :: { Types.RewardTier },
 
-	-- 5 Progressively unlocked zones
+	-- 5 Progressively unlocked zones with calibrated long-term progression
 	Zones = {
 		{
 			Id = 1,
@@ -90,8 +90,8 @@ Config = {
 		{
 			Id = 2,
 			Name = "Automotive Graveyard",
-			UnlockCost = 500,
-			BaseYield = 40,
+			UnlockCost = 2500,
+			BaseYield = 35,
 			ActionTime = 1.2,
 			Color = Color3.fromRGB(90, 120, 140),
 			Description = "Crushed vehicles and electric motor batteries ripe for extraction.",
@@ -102,8 +102,8 @@ Config = {
 		{
 			Id = 3,
 			Name = "Industrial Foundry",
-			UnlockCost = 5000,
-			BaseYield = 180,
+			UnlockCost = 35000,
+			BaseYield = 140,
 			ActionTime = 1.5,
 			Color = Color3.fromRGB(220, 100, 30),
 			Description = "Abandoned blast furnaces and titanium hydraulic machinery.",
@@ -114,8 +114,8 @@ Config = {
 		{
 			Id = 4,
 			Name = "Cybernetic Wasteland",
-			UnlockCost = 50000,
-			BaseYield = 750,
+			UnlockCost = 350000,
+			BaseYield = 650,
 			ActionTime = 1.8,
 			Color = Color3.fromRGB(30, 220, 200),
 			Description = "Neon scrap, quantum microchips, and sentient AI circuits.",
@@ -126,8 +126,8 @@ Config = {
 		{
 			Id = 5,
 			Name = "Orbital Crashsite",
-			UnlockCost = 500000,
-			BaseYield = 3500,
+			UnlockCost = 2500000,
+			BaseYield = 3000,
 			ActionTime = 2.0,
 			Color = Color3.fromRGB(160, 50, 255),
 			Description = "Fallen starship wreckage containing antimatter warp drives.",
@@ -137,53 +137,54 @@ Config = {
 		},
 	} :: { Types.ZoneConfig },
 
-	-- Upgrades configuration
+	-- Upgrades configuration (Expanded 40-50 levels for sustained progression)
 	Upgrades = {
 		ScrapPower = {
 			Name = "Scrapper Power",
 			Description = "Increases scrap gathered per action",
-			MaxLevel = 25,
-			BaseCost = 25,
-			CostMultiplier = 1.35,
-			EffectPerLevel = 0.5, -- +50% per level
+			MaxLevel = 50,
+			BaseCost = 50,
+			CostMultiplier = 1.22,
+			EffectPerLevel = 0.20, -- +20% per level (+980% bonus at max)
 		},
 		ScrapSpeed = {
 			Name = "Scrap Speed",
 			Description = "Reduces time required to dismantle scrap",
-			MaxLevel = 15,
-			BaseCost = 50,
-			CostMultiplier = 1.45,
-			EffectPerLevel = 0.04, -- -0.04s per level
+			MaxLevel = 25,
+			BaseCost = 75,
+			CostMultiplier = 1.26,
+			EffectPerLevel = 0.015, -- -0.015s per level (-0.36s at max)
 		},
 		BackpackCapacity = {
 			Name = "Magnetic Cargo",
 			Description = "Increases maximum scrap capacity before selling",
-			MaxLevel = 20,
+			MaxLevel = 40,
 			BaseCost = 100,
-			CostMultiplier = 1.50,
-			EffectPerLevel = 50, -- +50 cap per level
+			CostMultiplier = 1.24,
+			EffectPerLevel = 1, -- Scales smoothly via getBackpackCapacity
 		},
 	} :: { [string]: Types.UpgradeConfig },
 
-	-- Rebirth system
+	-- Rebirth system (Late-game prestige requiring Zone 5 with instant reward gratification)
 	Rebirth = {
-		BaseCost = 100000,
+		BaseCost = 5000000,
+		RequiredZone = 5,
 		CostMultiplier = 3.0,
-		MultiplierPerRebirth = 0.5, -- +50% permanent scrap multiplier
+		MultiplierPerRebirth = 0.75, -- +75% permanent scrap multiplier
 		GearsRewardFormula = function(currentRebirths: number): number
-			return 1 + currentRebirths
+			return 3 + (currentRebirths * 2)
 		end,
 	},
 
-	-- Pet / Drone Hatching system
+	-- Pet / Drone Hatching system (Additive bonuses to prevent runaway exponential inflation)
 	Pets = {
-		EggCost = 250,
+		EggCost = 500,
 		List = {
 			{
 				Id = "drone_rust",
 				Name = "Rust Bot",
 				Tier = "Common",
-				Multiplier = 1.2,
+				Multiplier = 0.25, -- +25% Scrap
 				Weight = 50,
 				Color = Color3.fromRGB(160, 130, 110),
 			},
@@ -191,7 +192,7 @@ Config = {
 				Id = "drone_spark",
 				Name = "Spark Drone",
 				Tier = "Uncommon",
-				Multiplier = 1.6,
+				Multiplier = 0.60, -- +60% Scrap
 				Weight = 28,
 				Color = Color3.fromRGB(80, 200, 120),
 			},
@@ -199,7 +200,7 @@ Config = {
 				Id = "drone_welder",
 				Name = "Plasma Welder",
 				Tier = "Rare",
-				Multiplier = 2.5,
+				Multiplier = 1.50, -- +150% Scrap
 				Weight = 14,
 				Color = Color3.fromRGB(50, 150, 255),
 			},
@@ -207,7 +208,7 @@ Config = {
 				Id = "drone_hound",
 				Name = "Scrap Hound",
 				Tier = "Epic",
-				Multiplier = 5.0,
+				Multiplier = 3.50, -- +350% Scrap
 				Weight = 6,
 				Color = Color3.fromRGB(180, 60, 240),
 			},
@@ -215,7 +216,7 @@ Config = {
 				Id = "drone_mech",
 				Name = "Cyber Mech",
 				Tier = "Legendary",
-				Multiplier = 12.0,
+				Multiplier = 8.00, -- +800% Scrap
 				Weight = 1.8,
 				Color = Color3.fromRGB(255, 170, 0),
 			},
@@ -223,7 +224,7 @@ Config = {
 				Id = "drone_titan",
 				Name = "Void Titan",
 				Tier = "Mythic",
-				Multiplier = 30.0,
+				Multiplier = 20.00, -- +2,000% Scrap
 				Weight = 0.2,
 				Color = Color3.fromRGB(255, 40, 100),
 			},
@@ -238,7 +239,7 @@ Config = {
 			ZoneId = 1,
 			Cost = 500,
 			Color = Color3.fromRGB(160, 130, 110),
-			SubText = "Rust Bot (70%)\nSpark Drone (30%)",
+			SubText = "Rust Bot (+25%)\nSpark Drone (+60%)",
 			Pool = {
 				{ Id = "drone_rust", Weight = 70 },
 				{ Id = "drone_spark", Weight = 30 },
@@ -250,7 +251,7 @@ Config = {
 			ZoneId = 2,
 			Cost = 7500,
 			Color = Color3.fromRGB(90, 150, 180),
-			SubText = "Spark Drone (65%)\nPlasma Welder (35%)",
+			SubText = "Spark Drone (+60%)\nPlasma Welder (+150%)",
 			Pool = {
 				{ Id = "drone_spark", Weight = 65 },
 				{ Id = "drone_welder", Weight = 35 },
@@ -262,7 +263,7 @@ Config = {
 			ZoneId = 3,
 			Cost = 75000,
 			Color = Color3.fromRGB(220, 110, 30),
-			SubText = "Plasma Welder (60%)\nScrap Hound (40%)",
+			SubText = "Plasma Welder (+150%)\nScrap Hound (+350%)",
 			Pool = {
 				{ Id = "drone_welder", Weight = 60 },
 				{ Id = "drone_hound", Weight = 40 },
@@ -272,9 +273,9 @@ Config = {
 			Id = "CyberEgg",
 			Name = "Cyber Egg",
 			ZoneId = 4,
-			Cost = 750000,
+			Cost = 600000,
 			Color = Color3.fromRGB(30, 220, 200),
-			SubText = "Scrap Hound (65%)\nCyber Mech (35%)",
+			SubText = "Scrap Hound (+350%)\nCyber Mech (+800%)",
 			Pool = {
 				{ Id = "drone_hound", Weight = 65 },
 				{ Id = "drone_mech", Weight = 35 },
@@ -284,9 +285,9 @@ Config = {
 			Id = "VoidEgg",
 			Name = "Void Egg",
 			ZoneId = 5,
-			Cost = 5000000,
+			Cost = 4000000,
 			Color = Color3.fromRGB(180, 50, 255),
-			SubText = "Cyber Mech (75%)\nVoid Titan (25%)",
+			SubText = "Cyber Mech (+800%)\nVoid Titan (+2,000%)",
 			Pool = {
 				{ Id = "drone_mech", Weight = 75 },
 				{ Id = "drone_titan", Weight = 25 },
@@ -333,7 +334,7 @@ Config = {
 		QuantumDrone = {
 			Id = "QuantumDrone",
 			Name = "Apex Quantum Drone",
-			Description = "Grants an exclusive Mythic companion with a massive +15.0x Scrap multiplier.",
+			Description = "Grants an exclusive Mythic companion with a massive +10.0x (+1,000%) Scrap multiplier.",
 			Cost = 8,
 			Icon = "👑",
 		},
@@ -389,7 +390,7 @@ Config = {
 		},
 	},
 
-	-- 5 Tools (Upgraded Dismantlers)
+	-- 5 Tools (Upgraded Dismantlers calibrated with zone tiers)
 	Tools = {
 		{
 			Id = "OmniWrench",
@@ -407,7 +408,7 @@ Config = {
 			Id = "PneumaticDrill",
 			Name = "Pneumatic Jackdrill",
 			Tier = 2,
-			Cost = 5000,
+			Cost = 3500,
 			Damage = 2,
 			Cooldown = 0.40,
 			Range = 24,
@@ -419,7 +420,7 @@ Config = {
 			Id = "PlasmaCutter",
 			Name = "Thermal Plasma Torch",
 			Tier = 3,
-			Cost = 35000,
+			Cost = 45000,
 			Damage = 4,
 			Cooldown = 0.32,
 			Range = 26,
@@ -431,9 +432,9 @@ Config = {
 			Id = "CyberScythe",
 			Name = "Cyber Energy Scythe",
 			Tier = 4,
-			Cost = 250000,
+			Cost = 400000,
 			Damage = 8,
-			Cooldown = 0.25,
+			Cooldown = 0.24,
 			Range = 28,
 			Color = Color3.fromRGB(255, 45, 125),
 			Description = "Electrified high-density carbon scythe that cleaves massive quantum alloy.",
@@ -443,7 +444,7 @@ Config = {
 			Id = "VoidRipper",
 			Name = "Void Singularity Ripper",
 			Tier = 5,
-			Cost = 1500000,
+			Cost = 3000000,
 			Damage = 16,
 			Cooldown = 0.18,
 			Range = 32,
@@ -461,6 +462,15 @@ Config = {
 		end
 		return Config.Tools[1]
 	end,
+
+	-- Active Gameplay Engagement: Combos & Critical Salvage
+	Engagement = {
+		ComboWindow = 3.8, -- Seconds before combo resets
+		MaxCombo = 10, -- Maximum combo streak
+		BonusPerCombo = 0.05, -- +5% scrap bonus per combo tier (up to +45% at x10)
+		CritChance = 0.12, -- 12% critical salvage chance
+		CritMultiplier = 2.0, -- 2x yield on critical strike
+	},
 
 	-- Character Movement & Sprinting
 	Sprint = {
