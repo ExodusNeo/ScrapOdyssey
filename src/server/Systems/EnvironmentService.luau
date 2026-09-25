@@ -101,11 +101,12 @@ function EnvironmentService.constructIslandUnderside(parent: Instance, centerPos
 	local rockColor = Color3.fromRGB(28, 30, 36)
 	local darkSteel = Color3.fromRGB(36, 40, 48)
 
-	-- Tier 1: Sub-surface Collar (Inset from oval platform rim)
+	-- Tier 1: Sub-surface Collar (Inset from circular platform rim)
 	local t1 = Instance.new("Part")
 	t1.Name = "RootTier1"
-	t1.Size = Vector3.new(94, 6, 82)
-	t1.Position = centerPos - Vector3.new(0, 5, 0)
+	t1.Shape = Enum.PartType.Cylinder
+	t1.Size = Vector3.new(6, 86, 86)
+	t1.CFrame = CFrame.new(centerPos - Vector3.new(0, 5, 0)) * CFrame.Angles(0, 0, math.rad(90))
 	t1.Anchored = true
 	t1.CanCollide = false
 	t1.Material = rockMat
@@ -403,54 +404,17 @@ function EnvironmentService.constructBridgeUnderside(parent: Instance, arg2: any
 	return bridgeModel
 end
 
--- 4. Surface Dressing (Arterial Diamond-Plate Catwalks, Hazard Stripes & Corner Floodlights)
+-- 4. Surface Dressing (Perimeter Floodlights for atmospheric lighting with zero texture Z-fighting)
 function EnvironmentService.constructSurfaceDressing(parent: Instance, centerPos: Vector3, zone: Types.ZoneConfig)
 	local dressFolder = Instance.new("Folder")
 	dressFolder.Name = "SurfaceDressing"
 
-	-- Main Central Junkyard Spine Catwalks (Intersecting cross catwalk)
-	local spineWalkEW = Instance.new("Part")
-	spineWalkEW.Name = "CatwalkSpineEW"
-	spineWalkEW.Size = Vector3.new(72, 0.08, 10)
-	spineWalkEW.Position = centerPos + Vector3.new(0, 0.04, 0)
-	spineWalkEW.Anchored = true
-	spineWalkEW.CanCollide = true
-	spineWalkEW.Material = Enum.Material.DiamondPlate
-	spineWalkEW.Color = Color3.fromRGB(52, 56, 66)
-	spineWalkEW.Parent = dressFolder
-
-	local spineWalkNS = Instance.new("Part")
-	spineWalkNS.Name = "CatwalkSpineNS"
-	spineWalkNS.Size = Vector3.new(10, 0.08, 64)
-	spineWalkNS.Position = centerPos + Vector3.new(0, 0.04, 0)
-	spineWalkNS.Anchored = true
-	spineWalkNS.CanCollide = true
-	spineWalkNS.Material = Enum.Material.DiamondPlate
-	spineWalkNS.Color = Color3.fromRGB(48, 52, 60)
-	spineWalkNS.Parent = dressFolder
-
-	-- Hazard Warning Border Bevels on Catwalk Edges
-	local hazardColor = Color3.fromRGB(235, 175, 25)
-
-	local borderN = Instance.new("Part")
-	borderN.Size = Vector3.new(72, 0.12, 0.8)
-	borderN.Position = centerPos + Vector3.new(0, 0.06, -5)
-	borderN.Anchored = true
-	borderN.CanCollide = false
-	borderN.Material = Enum.Material.SmoothPlastic
-	borderN.Color = hazardColor
-	borderN.Parent = dressFolder
-
-	local borderS = borderN:Clone()
-	borderS.Position = centerPos + Vector3.new(0, 0.06, 5)
-	borderS.Parent = dressFolder
-
-	-- 4 Heavy Industrial Perimeter Floodlight Towers
+	-- 4 Heavy Industrial Perimeter Floodlight Towers placed along the outer rim (clear of gateways)
 	local floodCoords = {
-		Vector3.new(-38, 0, -30),
-		Vector3.new(38, 0, -30),
-		Vector3.new(-38, 0, 30),
-		Vector3.new(38, 0, 30),
+		Vector3.new(-32, 0, -22), -- North-West
+		Vector3.new(-32, 0, 22),  -- South-West
+		Vector3.new(30, 0, 26),   -- South-East
+		Vector3.new(0, 0, 38),    -- South
 	}
 
 	for fIdx, fPos in ipairs(floodCoords) do
@@ -459,17 +423,17 @@ function EnvironmentService.constructSurfaceDressing(parent: Instance, centerPos
 
 		-- Tower Base Mount
 		local baseMount = Instance.new("Part")
-		baseMount.Size = Vector3.new(3, 0.6, 3)
+		baseMount.Size = Vector3.new(2.4, 0.6, 2.4)
 		baseMount.Position = centerPos + fPos + Vector3.new(0, 0.3, 0)
 		baseMount.Anchored = true
-		baseMount.Material = Enum.Material.DiamondPlate
+		baseMount.Material = Enum.Material.Metal
 		baseMount.Color = Color3.fromRGB(35, 38, 45)
 		baseMount.Parent = tower
 
 		-- Lattice Mast
 		local mast = Instance.new("Part")
-		mast.Size = Vector3.new(1.4, 16, 1.4)
-		mast.Position = centerPos + fPos + Vector3.new(0, 8.3, 0)
+		mast.Size = Vector3.new(1.2, 14, 1.2)
+		mast.Position = centerPos + fPos + Vector3.new(0, 7.3, 0)
 		mast.Anchored = true
 		mast.Material = Enum.Material.Metal
 		mast.Color = Color3.fromRGB(42, 45, 54)
@@ -480,8 +444,8 @@ function EnvironmentService.constructSurfaceDressing(parent: Instance, centerPos
 		local dirZ = (fPos.Z > 0 and -25) or 25
 
 		local headCasing = Instance.new("Part")
-		headCasing.Size = Vector3.new(2.8, 1.8, 3.2)
-		headCasing.CFrame = CFrame.new(centerPos + fPos + Vector3.new(0, 16.5, 0)) * CFrame.Angles(math.rad(dirZ), 0, math.rad(dirX))
+		headCasing.Size = Vector3.new(2.4, 1.6, 2.8)
+		headCasing.CFrame = CFrame.new(centerPos + fPos + Vector3.new(0, 14.5, 0)) * CFrame.Angles(math.rad(dirZ), 0, math.rad(dirX))
 		headCasing.Anchored = true
 		headCasing.Material = Enum.Material.Metal
 		headCasing.Color = Color3.fromRGB(30, 32, 40)
@@ -489,8 +453,8 @@ function EnvironmentService.constructSurfaceDressing(parent: Instance, centerPos
 
 		-- Glowing Glass Bulb Lens
 		local bulb = Instance.new("Part")
-		bulb.Size = Vector3.new(2.4, 1.4, 0.2)
-		bulb.CFrame = headCasing.CFrame * CFrame.new(0, 0, -1.6)
+		bulb.Size = Vector3.new(2.0, 1.2, 0.2)
+		bulb.CFrame = headCasing.CFrame * CFrame.new(0, 0, -1.4)
 		bulb.Anchored = true
 		bulb.CanCollide = false
 		bulb.Material = Enum.Material.Neon
@@ -499,68 +463,13 @@ function EnvironmentService.constructSurfaceDressing(parent: Instance, centerPos
 
 		-- Soft Halogen Pool of Light
 		local light = Instance.new("PointLight")
-		light.Brightness = 1.05
-		light.Range = 44
+		light.Brightness = 0.8
+		light.Range = 36
 		light.Color = Color3.fromRGB(250, 240, 225)
 		light.Shadows = false
 		light.Parent = bulb
 
 		tower.Parent = dressFolder
-	end
-
-	-- Edge Prop Clusters (Industrial Cargo Container, Stacked Barrels, Steam Vent)
-	local propClusters = {
-		Vector3.new(-34, 0, -26),
-		Vector3.new(34, 0, 26),
-	}
-
-	for pIdx, pPos in ipairs(propClusters) do
-		-- Industrial Cargo Container
-		local crate = Instance.new("Part")
-		crate.Name = "CargoCrate_" .. tostring(pIdx)
-		crate.Size = Vector3.new(6, 5, 8)
-		crate.Position = centerPos + pPos + Vector3.new(0, 2.5, 0)
-		crate.Anchored = true
-		crate.Material = Enum.Material.CorrodedMetal
-		crate.Color = (pIdx == 1 and zone.Color) or Color3.fromRGB(55, 60, 70)
-		crate.Parent = dressFolder
-
-		-- Stacked Salvage Barrels
-		for bIdx = 1, 3 do
-			local bOffset = Vector3.new(4, 1.5, (bIdx - 2) * 2)
-			local barrel = Instance.new("Part")
-			barrel.Shape = Enum.PartType.Cylinder
-			barrel.Size = Vector3.new(3, 2.2, 2.2)
-			barrel.CFrame = CFrame.new(centerPos + pPos + bOffset) * CFrame.Angles(0, 0, math.rad(90))
-			barrel.Anchored = true
-			barrel.Material = Enum.Material.Metal
-			barrel.Color = Color3.fromRGB(38, 42, 50)
-			barrel.Parent = dressFolder
-		end
-
-		-- Steam Exhaust Vent
-		local vent = Instance.new("Part")
-		vent.Size = Vector3.new(2, 2, 2)
-		vent.Position = centerPos + pPos + Vector3.new(-4.5, 1, 0)
-		vent.Anchored = true
-		vent.Material = Enum.Material.DiamondPlate
-		vent.Color = Color3.fromRGB(40, 44, 52)
-		vent.Parent = dressFolder
-
-		local steam = Instance.new("ParticleEmitter")
-		steam.Color = ColorSequence.new(Color3.fromRGB(220, 225, 235))
-		steam.Size = NumberSequence.new(0.8, 3.0)
-		steam.Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 0.4),
-			NumberSequenceKeypoint.new(0.7, 0.7),
-			NumberSequenceKeypoint.new(1, 1),
-		})
-		steam.Lifetime = NumberRange.new(1.5, 2.5)
-		steam.Rate = 5
-		steam.Speed = NumberRange.new(3, 6)
-		steam.SpreadAngle = Vector2.new(12, 12)
-		steam.EmissionDirection = Enum.NormalId.Top
-		steam.Parent = vent
 	end
 
 	dressFolder.Parent = parent

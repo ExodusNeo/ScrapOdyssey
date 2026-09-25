@@ -22,13 +22,40 @@ type BoardRow = {
 local boardRows: { BoardRow } = {}
 
 function LeaderboardService.createInWorldBoard()
+	local old = Workspace:FindFirstChild("GlobalLeaderboard")
+	if old then old:Destroy() end
+
 	local model = Instance.new("Model")
 	model.Name = "GlobalLeaderboard"
 
+	local boardCenter = Vector3.new(28, 7.5, 0)
+	local boardCF = CFrame.lookAt(boardCenter, Vector3.new(0, 7.5, 0))
+
+	-- Grounded Steel Support Pillars (Left & Right)
+	for _, zOff in ipairs({ -7, 7 }) do
+		local footing = Instance.new("Part")
+		footing.Name = "LeaderboardFooting"
+		footing.Size = Vector3.new(2.4, 0.8, 2.4)
+		footing.Position = Vector3.new(28, 0.4, zOff)
+		footing.Anchored = true
+		footing.Material = Enum.Material.Metal
+		footing.Color = Color3.fromRGB(35, 38, 48)
+		footing.Parent = model
+
+		local pillar = Instance.new("Part")
+		pillar.Name = "LeaderboardPillar"
+		pillar.Size = Vector3.new(1.6, 9, 1.6)
+		pillar.Position = Vector3.new(28, 4.5, zOff)
+		pillar.Anchored = true
+		pillar.Material = Enum.Material.Metal
+		pillar.Color = Color3.fromRGB(30, 32, 40)
+		pillar.Parent = model
+	end
+
 	boardPart = Instance.new("Part")
 	boardPart.Name = "Display"
-	boardPart.Size = Vector3.new(16, 12, 1)
-	boardPart.CFrame = CFrame.new(24, 9, -70) * CFrame.Angles(0, math.rad(180), 0)
+	boardPart.Size = Vector3.new(16, 9.5, 1)
+	boardPart.CFrame = boardCF
 	boardPart.Anchored = true
 	boardPart.Material = Enum.Material.SmoothPlastic
 	boardPart.Color = Color3.fromRGB(16, 18, 24)
@@ -37,8 +64,8 @@ function LeaderboardService.createInWorldBoard()
 	-- Stylized border
 	local border = Instance.new("Part")
 	border.Name = "Border"
-	border.Size = Vector3.new(16.4, 12.4, 0.8)
-	border.CFrame = CFrame.new(24, 9, -70.6) * CFrame.Angles(0, math.rad(180), 0)
+	border.Size = Vector3.new(16.4, 9.9, 0.8)
+	border.CFrame = boardCF * CFrame.new(0, 0, -0.2)
 	border.Anchored = true
 	border.Material = Enum.Material.SmoothPlastic
 	border.Color = Color3.fromRGB(200, 140, 30)
