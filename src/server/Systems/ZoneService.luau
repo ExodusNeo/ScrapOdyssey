@@ -26,10 +26,10 @@ local patrolDebounces: { [Player]: number } = {}
 -- Safe zone center coordinates for each zone (Zone 1 is Central Hub)
 local ZONE_CENTERS = {
 	[1] = Vector3.new(0, 0, 0),
-	[2] = Vector3.new(160, 0, 0),
-	[3] = Vector3.new(320, 0, 0),
-	[4] = Vector3.new(480, 0, 0),
-	[5] = Vector3.new(640, 0, 0),
+	[2] = Vector3.new(150, 0, -90),
+	[3] = Vector3.new(240, 0, 40),
+	[4] = Vector3.new(150, 0, 180),
+	[5] = Vector3.new(-20, 0, 200),
 }
 
 -- 1. Calm, Eye-Friendly Lighting Setup (Delegated to EnvironmentService with zero sun glare)
@@ -522,7 +522,252 @@ function ZoneService.constructEggPod(parentFolder: Instance, pos: Vector3, eggTy
 	return podModel
 end
 
--- 3. Build the Central Town Hub (Plaza, Pedestals, Recycler Machine, Props)
+-- Helper to build an authentic Junkyard Patchwork Ground for a zone
+local function buildScrapyardGround(folder: Instance, centerPos: Vector3, zone: Types.ZoneConfig): Part
+	-- Main solid platform slab (non-flickering, solid collision)
+	local platform = Instance.new("Part")
+	platform.Name = "Platform"
+	platform.Size = Vector3.new(94, 4, 80)
+	platform.Position = centerPos - Vector3.new(0, 2, 0)
+	platform.Anchored = true
+	platform.Material = Enum.Material.Slate
+	platform.Color = Color3.fromRGB(36, 38, 44)
+	platform.Parent = folder
+
+	-- Platform anti-trespass touch handler for locked zones
+	local platformDebounce: { [Player]: number } = {}
+	platform.Touched:Connect(function(hit)
+		local char = hit.Parent
+		if not char then return end
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		if not hum then return end
+		local player = Players:GetPlayerFromCharacter(char)
+		if not player then return end
+
+		local data = DataService.get(player)
+		local maxZ = data and (data.MaxZoneReached or 1) or 1
+		if maxZ < zone.Id then
+			local now = os.clock()
+			if platformDebounce[player] and now - platformDebounce[player] < 1.0 then
+				return
+			end
+			platformDebounce[player] = now
+
+			local root = char:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if root then
+				local safeZoneId = math.clamp(maxZ, 1, #Config.Zones)
+				local safeCenter = ZONE_CENTERS[safeZoneId] or Vector3.new(0, 0, 0)
+				root.AssemblyLinearVelocity = Vector3.zero
+				root.AssemblyAngularVelocity = Vector3.zero
+				root.CFrame = CFrame.new(safeCenter + Vector3.new(0, 3.5, 0))
+
+				local notif = Remotes.getEvent("ShowNotification")
+				if notif then
+					notif:FireClient(player, "SECURITY LOCK", string.format("Zone %d is locked! Unlock it with Scrap to enter.", zone.Id), Color3.fromRGB(255, 75, 75))
+				end
+			end
+		end
+	end)
+
+	-- 4 Beveled Corner Fills to make the ground an authentic rounded oval compound
+	local cornerCoords = {
+		Vector3.new(-38, 0, -30),
+		Vector3.new(38, 0, -30),
+		Vector3.new(-38, 0, 30),
+		Vector3.new(38, 0, 30),
+	}
+	for i, cCoord in ipairs(cornerCoords) do
+		local cornerFill = Instance.new("Part")
+		cornerFill.Name = "OvalCorner_" .. tostring(i)
+		cornerFill.Size = Vector3.new(22, 4, 22)
+		cornerFill.Position = centerPos + cCoord - Vector3.new(0, 2, 0)
+		cornerFill.Anchored = true
+		cornerFill.Material = Enum.Material.Slate
+		cornerFill.Color = Color3.fromRGB(36, 38, 44)
+		cornerFill.Parent = folder
+	end
+
+	-- Welded Scrapyard Floor Patchwork Plates (Layered plates giving authentic scrapyard texture)
+	local patchPlates = {
+		{ Pos = Vector3.new(-14, 0.04, -12), Size = Vector3.new(26, 0.08, 20), Mat = Enum.Material.CorrodedMetal, Col = Color3.fromRGB(135, 75, 42) },
+		{ Pos = Vector3.new(16, 0.04, 12),   Size = Vector3.new(22, 0.08, 22), Mat = Enum.Material.DiamondPlate, Col = Color3.fromRGB(56, 60, 70) },
+		{ Pos = Vector3.new(14, 0.04, -14),  Size = Vector3.new(18, 0.08, 16), Mat = Enum.Material.CorrodedMetal, Col = Color3.fromRGB(115, 65, 38) },
+		{ Pos = Vector3.new(-16, 0.04, 14),  Size = Vector3.new(22, 0.08, 16), Mat = Enum.Material.Metal,         Col = Color3.fromRGB(65, 70, 80) },
+		{ Pos = Vector3.new(0, 0.04, 0),     Size = Vector3.new(16, 0.08, 16), Mat = Enum.Material.DiamondPlate, Col = Color3.fromRGB(48, 52, 62) },
+		{ Pos = Vector3.new(0, 0.04, -28),   Size = Vector3.new(20, 0.08, 14), Mat = Enum.Material.DiamondPlate, Col = Color3.fromRGB(52, 56, 66) },
+	}
+
+	for pIdx, p in ipairs(patchPlates) do
+		local patch = Instance.new("Part")
+		patch.Name = "ScrapPatch_" .. tostring(pIdx)
+		patch.Size = p.Size
+		patch.Position = centerPos + p.Pos
+		patch.Anchored = true
+		patch.CanCollide = false
+		patch.Material = p.Mat
+		patch.Color = p.Col
+		patch.Parent = folder
+	end
+
+	-- Dark Oil and Coolant Spill Puddles
+	local puddleOffsets = {
+		Vector3.new(-8, 0.06, 6),
+		Vector3.new(10, 0.06, -6),
+		Vector3.new(-18, 0.06, -20),
+		Vector3.new(18, 0.06, 20),
+	}
+	for oIdx, oPos in ipairs(puddleOffsets) do
+		local puddle = Instance.new("Part")
+		puddle.Name = "OilPuddle_" .. tostring(oIdx)
+		puddle.Shape = Enum.PartType.Cylinder
+		puddle.Size = Vector3.new(0.04, 7, 7)
+		puddle.CFrame = CFrame.new(centerPos + oPos) * CFrame.Angles(0, 0, math.rad(90))
+		puddle.Anchored = true
+		puddle.CanCollide = false
+		puddle.Material = Enum.Material.SmoothPlastic
+		puddle.Color = Color3.fromRGB(16, 18, 22)
+		puddle.Transparency = 0.2
+		puddle.Parent = folder
+	end
+
+	return platform
+end
+
+-- Helper to build the Stereotypical Junkyard Corrugated Perimeter Fence with Barricades
+local function buildScrapyardPerimeter(folder: Instance, centerPos: Vector3, zone: Types.ZoneConfig, entranceAngle: number?, exitAngle: number?)
+	local fenceModel = Instance.new("Model")
+	fenceModel.Name = "JunkyardFence_Zone" .. tostring(zone.Id)
+
+	local segments = 16
+	local radiusX = 46
+	local radiusZ = 39
+
+	for i = 1, segments do
+		local angle = (i - 1) * (math.pi * 2 / segments)
+		local deg = math.deg(angle)
+
+		-- Check if near entrance or exit gateway
+		local isGateway = false
+		if entranceAngle then
+			local diff = math.abs((angle - entranceAngle + math.pi) % (math.pi * 2) - math.pi)
+			if diff < math.rad(22) then
+				isGateway = true
+			end
+		end
+		if exitAngle then
+			local diff = math.abs((angle - exitAngle + math.pi) % (math.pi * 2) - math.pi)
+			if diff < math.rad(22) then
+				isGateway = true
+			end
+		end
+
+		local posX = math.cos(angle) * radiusX
+		local posZ = math.sin(angle) * radiusZ
+		local segPos = centerPos + Vector3.new(posX, 0, posZ)
+		local tangent = Vector3.new(-math.sin(angle), 0, math.cos(angle)).Unit
+		local lookAngle = math.atan2(tangent.Z, tangent.X)
+
+		if isGateway then
+			-- Gateway Opening: Build heavy industrial gate posts with hazard stripes
+			local postL = Instance.new("Part")
+			postL.Name = "GatewayPostL"
+			postL.Size = Vector3.new(2.4, 11, 2.4)
+			postL.Position = segPos + tangent * 6.5 + Vector3.new(0, 5.5, 0)
+			postL.Anchored = true
+			postL.Material = Enum.Material.Metal
+			postL.Color = Color3.fromRGB(35, 38, 48)
+			postL.Parent = fenceModel
+
+			local stripeL = Instance.new("Part")
+			stripeL.Size = Vector3.new(2.6, 1.2, 2.6)
+			stripeL.Position = postL.Position + Vector3.new(0, 2.5, 0)
+			stripeL.Anchored = true
+			stripeL.Material = Enum.Material.SmoothPlastic
+			stripeL.Color = Color3.fromRGB(255, 170, 0)
+			stripeL.Parent = fenceModel
+
+			local postR = postL:Clone()
+			postR.Name = "GatewayPostR"
+			postR.Position = segPos - tangent * 6.5 + Vector3.new(0, 5.5, 0)
+			postR.Parent = fenceModel
+
+			local stripeR = stripeL:Clone()
+			stripeR.Position = postR.Position + Vector3.new(0, 2.5, 0)
+			stripeR.Parent = fenceModel
+		else
+			-- Corrugated Sheet Metal Wall Section
+			local segLength = (math.pi * 2 / segments) * ((radiusX + radiusZ) / 2) * 1.05
+			local wallHeight = 7.5 + ((i % 3) * 0.4)
+			local wallTilt = (i % 2 == 0 and 2.5 or -2.5)
+
+			local panelCF = CFrame.new(segPos + Vector3.new(0, wallHeight / 2, 0))
+				* CFrame.Angles(0, -lookAngle, 0)
+				* CFrame.Angles(0, 0, math.rad(wallTilt))
+
+			local wall = Instance.new("Part")
+			wall.Name = "FencePanel_" .. tostring(i)
+			wall.Size = Vector3.new(segLength, wallHeight, 1.2)
+			wall.CFrame = panelCF
+			wall.Anchored = true
+			wall.CanCollide = true
+			wall.Material = (i % 2 == 0 and Enum.Material.CorrodedMetal or Enum.Material.Metal)
+			wall.Color = (i % 3 == 0 and zone.Color or (i % 2 == 0 and Color3.fromRGB(130, 70, 40) or Color3.fromRGB(65, 70, 80)))
+			wall.Parent = fenceModel
+
+			-- Steel Post
+			local post = Instance.new("Part")
+			post.Name = "FencePost_" .. tostring(i)
+			post.Size = Vector3.new(1.4, wallHeight + 1.5, 1.4)
+			post.Position = segPos + Vector3.new(0, (wallHeight + 1.5) / 2, 0)
+			post.Anchored = true
+			post.Material = Enum.Material.Metal
+			post.Color = Color3.fromRGB(32, 35, 42)
+			post.Parent = fenceModel
+
+			-- Top Barbed Wire Bracket
+			local bracket = Instance.new("Part")
+			bracket.Size = Vector3.new(0.6, 1.6, 0.6)
+			bracket.CFrame = CFrame.new(post.Position + Vector3.new(0, (wallHeight + 1.5) / 2, 0)) * CFrame.Angles(0, -lookAngle, math.rad(30))
+			bracket.Anchored = true
+			bracket.CanCollide = false
+			bracket.Material = Enum.Material.Metal
+			bracket.Color = Color3.fromRGB(45, 48, 55)
+			bracket.Parent = fenceModel
+
+			-- Stereotypical Junkyard Barricade Clutter (Car cubes, tires, oil drums)
+			if i % 4 == 1 then
+				for cubeIdx = 1, 2 do
+					local cube = Instance.new("Part")
+					cube.Name = "CrushedCarCube"
+					cube.Size = Vector3.new(5.0, 4.2, 5.0)
+					cube.Position = segPos + (panelCF.LookVector * 3.5) + Vector3.new(0, 2.1 + (cubeIdx - 1) * 4.2, 0)
+					cube.Orientation = Vector3.new(0, deg + (cubeIdx * 15), 0)
+					cube.Anchored = true
+					cube.Material = Enum.Material.CorrodedMetal
+					cube.Color = (cubeIdx == 1 and Color3.fromRGB(90, 75, 60) or Color3.fromRGB(120, 65, 40))
+					cube.Parent = fenceModel
+				end
+			elseif i % 4 == 3 then
+				for tIdx = 1, 3 do
+					local tire = Instance.new("Part")
+					tire.Name = "PerimeterTire"
+					tire.Shape = Enum.PartType.Cylinder
+					tire.Size = Vector3.new(1.4, 4.5, 4.5)
+					tire.CFrame = CFrame.new(segPos + (panelCF.LookVector * 2.8) + Vector3.new(0, 0.7 + (tIdx - 1) * 1.4, 0)) * CFrame.Angles(0, 0, math.rad(90))
+					tire.Anchored = true
+					tire.Material = Enum.Material.SmoothPlastic
+					tire.Color = Color3.fromRGB(24, 25, 28)
+					tire.Parent = fenceModel
+				end
+			end
+		end
+	end
+
+	fenceModel.Parent = folder
+	return fenceModel
+end
+
+-- 3. Build the Central Town Hub (Oval Scrapyard, Spawn, Pedestals, Recycler Machine, Props)
 function ZoneService.constructCentralHub()
 	local hubFolder = Workspace:FindFirstChild("CentralHub") :: Folder
 	if not hubFolder then
@@ -536,59 +781,22 @@ function ZoneService.constructCentralHub()
 		c:Destroy()
 	end
 
-	-- Main Plaza Floor: 100 x 4 x 170 centered at (0, -2, 0) -> X spans -50 to +50, Z spans -85 to +85
-	local plaza = Instance.new("Part")
-	plaza.Name = "PlazaGround"
-	plaza.Size = Vector3.new(100, 4, 170)
-	plaza.Position = Vector3.new(0, -2, 0)
-	plaza.Anchored = true
-	plaza.Material = Enum.Material.Concrete
-	plaza.Color = Color3.fromRGB(76, 82, 96)
-	plaza.Parent = hubFolder
+	local zone1Config = Config.Zones[1]
+	local centerPos = ZONE_CENTERS[1]
 
-	-- Floating Island Underside Rock Root & Anti-Gravity Thruster Units
-	EnvironmentService.constructIslandUnderside(hubFolder, Vector3.new(0, 0, 0), 1, Color3.fromRGB(140, 100, 70))
-	EnvironmentService.constructSurfaceDressing(hubFolder, Vector3.new(0, 0, 0), Config.Zones[1])
+	-- 1. Oval Scrapyard Ground Foundation & Patchwork Floor
+	buildScrapyardGround(hubFolder, centerPos, zone1Config)
 
-	-- Beveled Decorative Curbs
-	local curbThickness = 3
-	local curbHeight = 0.6
-	local curbNorth = Instance.new("Part")
-	curbNorth.Name = "CurbN"
-	curbNorth.Size = Vector3.new(100, curbHeight, curbThickness)
-	curbNorth.Position = Vector3.new(0, 0.3, -83.5)
-	curbNorth.Anchored = true
-	curbNorth.Material = Enum.Material.SmoothPlastic
-	curbNorth.Color = Color3.fromRGB(255, 170, 0)
-	curbNorth.Parent = hubFolder
+	-- 2. Stereotypical Junkyard Corrugated Perimeter Fence (Exit gateway towards Zone 2)
+	local exitDir = (ZONE_CENTERS[2] - centerPos).Unit
+	local exitAngle = math.atan2(exitDir.Z, exitDir.X)
+	buildScrapyardPerimeter(hubFolder, centerPos, zone1Config, nil, exitAngle)
 
-	local curbSouth = curbNorth:Clone()
-	curbSouth.Position = Vector3.new(0, 0.3, 83.5)
-	curbSouth.Parent = hubFolder
+	-- 3. Floating Island Underside Rock Root & Anti-Gravity Thruster Units
+	EnvironmentService.constructIslandUnderside(hubFolder, centerPos, 1, Color3.fromRGB(140, 100, 70))
+	EnvironmentService.constructSurfaceDressing(hubFolder, centerPos, zone1Config)
 
-	local curbWest = Instance.new("Part")
-	curbWest.Name = "CurbW"
-	curbWest.Size = Vector3.new(curbThickness, curbHeight, 170)
-	curbWest.Position = Vector3.new(-48.5, 0.3, 0)
-	curbWest.Anchored = true
-	curbWest.Material = Enum.Material.SmoothPlastic
-	curbWest.Color = Color3.fromRGB(255, 170, 0)
-	curbWest.Parent = hubFolder
-
-	-- East edge opening curb segments (Bridge connects at X = 50, width = 22 from Z = -11 to +11)
-	local curbEastNorth = Instance.new("Part")
-	curbEastNorth.Size = Vector3.new(curbThickness, curbHeight, 74)
-	curbEastNorth.Position = Vector3.new(48.5, 0.3, -48)
-	curbEastNorth.Anchored = true
-	curbEastNorth.Material = Enum.Material.SmoothPlastic
-	curbEastNorth.Color = Color3.fromRGB(255, 170, 0)
-	curbEastNorth.Parent = hubFolder
-
-	local curbEastSouth = curbEastNorth:Clone()
-	curbEastSouth.Position = Vector3.new(48.5, 0.3, 48)
-	curbEastSouth.Parent = hubFolder
-
-	-- Spawn Location in Plaza Center
+	-- 4. Spawn Location in Central Plaza
 	local spawn = Workspace:FindFirstChild("SpawnLocation") :: SpawnLocation
 	if not spawn then
 		spawn = Instance.new("SpawnLocation")
@@ -596,48 +804,48 @@ function ZoneService.constructCentralHub()
 		spawn.Parent = Workspace
 	end
 	spawn.Size = Vector3.new(12, 0.5, 12)
-	spawn.Position = Vector3.new(0, 0.25, 0)
+	spawn.Position = centerPos + Vector3.new(0, 0.25, 0)
 	spawn.Anchored = true
-	spawn.Material = Enum.Material.SmoothPlastic
+	spawn.Material = Enum.Material.DiamondPlate
 	spawn.Color = Color3.fromRGB(45, 115, 195)
 	spawn.Duration = 0
 	local decal = spawn:FindFirstChildOfClass("Decal")
 	if decal then decal:Destroy() end
 
-	-- Scrap Recycler Machine & Sell Pad along North perimeter
-	ZoneService.constructRecycler(hubFolder, Vector3.new(0, 0, -68), 1)
+	-- 5. Scrap Recycler Machine & Sell Pad along North perimeter
+	ZoneService.constructRecycler(hubFolder, centerPos + Vector3.new(0, 0, -36), 1)
 
-	-- Zone 1 Exclusive Egg Pod along West perimeter
-	ZoneService.constructEggPod(hubFolder, Vector3.new(-38, 0.4, -40), "RustEgg")
+	-- 6. Zone 1 Exclusive Egg Pod along West perimeter
+	ZoneService.constructEggPod(hubFolder, centerPos + Vector3.new(-30, 0.4, -18), "RustEgg")
 
-	-- Tool Armory Forge Kiosk along West perimeter (South of corridor)
-	ZoneService.constructToolArmoryKiosk(hubFolder, Vector3.new(-38, 0, 28))
+	-- 7. Tool Armory Forge Kiosk along West perimeter
+	ZoneService.constructToolArmoryKiosk(hubFolder, centerPos + Vector3.new(-28, 0, 14))
 
-	-- Fast-Travel Portal Pad along West perimeter (South-West corner)
-	createPortalPad(hubFolder, Vector3.new(-38, 0.3, 62), 1)
+	-- 8. Fast-Travel Portal Pad along South-West perimeter
+	createPortalPad(hubFolder, centerPos + Vector3.new(-30, 0.3, 28), 1)
 
-	-- 8 Scrap Nodes in Hub (Zone 1) - Generously spaced with >18 studs clearance
+	-- 9. 8 Scrap Nodes in Hub (Zone 1) - Generously spaced in radial mining bays
 	local zone1Offsets = {
-		Vector3.new(22, 0, -26),
-		Vector3.new(38, 0, -26),
-		Vector3.new(22, 0, -50),
-		Vector3.new(38, 0, -50),
-		Vector3.new(22, 0, 26),
-		Vector3.new(38, 0, 26),
-		Vector3.new(22, 0, 52),
-		Vector3.new(38, 0, 52),
+		Vector3.new(18, 0, -18),
+		Vector3.new(30, 0, -12),
+		Vector3.new(32, 0, 6),
+		Vector3.new(22, 0, 20),
+		Vector3.new(8, 0, 28),
+		Vector3.new(-12, 0, 28),
+		Vector3.new(14, 0, -28),
+		Vector3.new(-14, 0, -28),
 	}
 	for i, off in ipairs(zone1Offsets) do
-		local pile = ZoneService.createScrapPile(Config.Zones[1], off, i)
+		local pile = ZoneService.createScrapPile(zone1Config, centerPos + off, i)
 		pile.Parent = hubFolder
 		table.insert(activeNodes, pile)
 	end
 
-	-- Thematic Environmental Sci-Fi Props for Zone 1 (Rusty Outpost)
-	ZoneService.buildZone1Props(hubFolder, Vector3.new(0, 0, 0))
+	-- 10. Thematic Environmental Sci-Fi Props for Zone 1 (Rusty Outpost)
+	ZoneService.buildZone1Props(hubFolder, centerPos)
 
-	-- Towering Gantry Billboard for Zone 1
-	ZoneService.constructZoneSign(hubFolder, Vector3.new(0, 0, 0), Config.Zones[1])
+	-- 11. Overhead Gantry Billboard for Zone 1
+	ZoneService.constructZoneSign(hubFolder, centerPos, zone1Config)
 end
 
 -- Configure a scrap pile dynamically between Standard and Dense variant
@@ -901,21 +1109,21 @@ function ZoneService.buildZone1Props(folder: Instance, center: Vector3)
 	props.Parent = folder
 
 	-- 1. Heavy Shipping Container A (North-East Border, Angled)
-	local c1Pos = center + Vector3.new(38, 4, -70)
+	local c1Pos = center + Vector3.new(26, 4, -26)
 	local c1Rot = CFrame.Angles(0, math.rad(18), 0)
 	createPropPart(props, "ShippingContainer_A", Vector3.new(12, 8, 20), CFrame.new(c1Pos) * c1Rot, Color3.fromRGB(145, 75, 42), Enum.Material.CorrodedMetal)
 	createPropPart(props, "ContA_Rib1", Vector3.new(12.4, 8.2, 1), CFrame.new(c1Pos + c1Rot * Vector3.new(0, 0, -9.5)) * c1Rot, Color3.fromRGB(50, 45, 45), Enum.Material.Metal)
 	createPropPart(props, "ContA_Rib2", Vector3.new(12.4, 8.2, 1), CFrame.new(c1Pos + c1Rot * Vector3.new(0, 0, 9.5)) * c1Rot, Color3.fromRGB(50, 45, 45), Enum.Material.Metal)
 
 	-- 2. Heavy Shipping Container B (Double-Stacked on Container A in North-East, Weathered Industrial Olive)
-	local c2Pos = center + Vector3.new(37.5, 12, -69.5)
+	local c2Pos = center + Vector3.new(25.5, 12, -25.5)
 	local c2Rot = CFrame.Angles(0, math.rad(24), 0)
 	createPropPart(props, "ShippingContainer_B", Vector3.new(12, 8, 20), CFrame.new(c2Pos) * c2Rot, Color3.fromRGB(80, 95, 75), Enum.Material.Metal)
 	createPropPart(props, "ContB_Rib1", Vector3.new(12.4, 8.2, 1), CFrame.new(c2Pos + c2Rot * Vector3.new(0, 0, -9.5)) * c2Rot, Color3.fromRGB(45, 50, 45), Enum.Material.Metal)
 	createPropPart(props, "ContB_Rib2", Vector3.new(12.4, 8.2, 1), CFrame.new(c2Pos + c2Rot * Vector3.new(0, 0, 9.5)) * c2Rot, Color3.fromRGB(45, 50, 45), Enum.Material.Metal)
 
 	-- 3. Heavy Industrial Salvage Crane (South-East Perimeter)
-	local cranePos = center + Vector3.new(38, 0, 68)
+	local cranePos = center + Vector3.new(28, 0, 24)
 	createPropPart(props, "CraneBase", Vector3.new(8, 2, 8), CFrame.new(cranePos + Vector3.new(0, 1, 0)), Color3.fromRGB(40, 42, 48), Enum.Material.Concrete)
 	createPropPart(props, "CraneMast", Vector3.new(3.5, 26, 3.5), CFrame.new(cranePos + Vector3.new(0, 14, 0)), Color3.fromRGB(215, 145, 30), Enum.Material.Metal)
 	createPropPart(props, "CraneBoom", Vector3.new(3, 3, 24), CFrame.new(cranePos + Vector3.new(0, 26, -5)), Color3.fromRGB(215, 145, 30), Enum.Material.Metal)
@@ -924,18 +1132,18 @@ function ZoneService.buildZone1Props(folder: Instance, center: Vector3)
 	createPropPart(props, "CraneMagnet", Vector3.new(1.8, 6, 6), CFrame.new(cranePos + Vector3.new(0, 14, -12)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(65, 65, 75), Enum.Material.Metal, Enum.PartType.Cylinder)
 
 	-- 4. Rusted Coolant Silo (South Border Center)
-	local siloPos = center + Vector3.new(0, 0, 72)
+	local siloPos = center + Vector3.new(0, 0, 30)
 	createPropPart(props, "SiloBody", Vector3.new(18, 7.5, 7.5), CFrame.new(siloPos + Vector3.new(0, 9, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(150, 85, 50), Enum.Material.CorrodedMetal, Enum.PartType.Cylinder)
 	createPropPart(props, "SiloDome", Vector3.new(7.5, 5, 7.5), CFrame.new(siloPos + Vector3.new(0, 19, 0)), Color3.fromRGB(130, 75, 45), Enum.Material.Metal, Enum.PartType.Ball)
 	createPropPart(props, "SiloCatwalk", Vector3.new(1, 9, 9), CFrame.new(siloPos + Vector3.new(0, 11, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(50, 50, 55), Enum.Material.Metal, Enum.PartType.Cylinder)
 
 	-- 5. Rusted Oil Drum Clusters (Placed along borders)
 	local drumOffsets = {
-		Vector3.new(24, 1.4, -70),
-		Vector3.new(26, 1.4, -68),
-		Vector3.new(25, 4.2, -69),
-		Vector3.new(-24, 1.4, 70),
-		Vector3.new(-22, 1.4, 72),
+		Vector3.new(18, 1.4, -26),
+		Vector3.new(20, 1.4, -24),
+		Vector3.new(19, 4.2, -25),
+		Vector3.new(-18, 1.4, 26),
+		Vector3.new(-16, 1.4, 28),
 	}
 	for i, dOff in ipairs(drumOffsets) do
 		createPropPart(props, "Drum_" .. i, Vector3.new(2.8, 1.8, 1.8), CFrame.new(center + dOff) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(125, 65, 40), Enum.Material.CorrodedMetal, Enum.PartType.Cylinder)
@@ -949,7 +1157,7 @@ function ZoneService.buildZone2Props(folder: Instance, center: Vector3)
 	props.Parent = folder
 
 	-- 1. Heavy Hydraulic Car-Crusher Press (North Border Directly Behind Recycler)
-	local crusherPos = center + Vector3.new(0, 0, -78)
+	local crusherPos = center + Vector3.new(0, 0, -36)
 	createPropPart(props, "CrusherCol1", Vector3.new(2.2, 18, 2.2), CFrame.new(crusherPos + Vector3.new(-9, 9, -3)), Color3.fromRGB(70, 85, 100), Enum.Material.Metal)
 	createPropPart(props, "CrusherCol2", Vector3.new(2.2, 18, 2.2), CFrame.new(crusherPos + Vector3.new(9, 9, -3)), Color3.fromRGB(70, 85, 100), Enum.Material.Metal)
 	createPropPart(props, "CrusherCol3", Vector3.new(2.2, 18, 2.2), CFrame.new(crusherPos + Vector3.new(-9, 9, 3)), Color3.fromRGB(70, 85, 100), Enum.Material.Metal)
@@ -960,22 +1168,22 @@ function ZoneService.buildZone2Props(folder: Instance, center: Vector3)
 	createPropPart(props, "CrushRam", Vector3.new(17, 2, 6.5), CFrame.new(crusherPos + Vector3.new(0, 7, 0)), Color3.fromRGB(100, 115, 130), Enum.Material.Metal)
 
 	-- 2. Crushed Cyber-Car Stack (North-West Border)
-	local carPos1 = center + Vector3.new(-40, 0, -68)
+	local carPos1 = center + Vector3.new(-26, 0, -26)
 	createPropPart(props, "CarLower_1", Vector3.new(7.5, 2.2, 12), CFrame.new(carPos1 + Vector3.new(0, 1.1, 0)), Color3.fromRGB(60, 95, 120), Enum.Material.Metal)
 	createPropPart(props, "CarLower_Windshield", Vector3.new(6.5, 1.0, 4), CFrame.new(carPos1 + Vector3.new(0, 2.7, -1)), Color3.fromRGB(20, 30, 40), Enum.Material.SmoothPlastic)
 	local rotCar2 = CFrame.Angles(math.rad(6), math.rad(14), math.rad(-4))
 	createPropPart(props, "CarUpper_1", Vector3.new(7, 2, 11), CFrame.new(carPos1 + Vector3.new(0.4, 2.9, 0)) * rotCar2, Color3.fromRGB(140, 50, 60), Enum.Material.Metal)
 
 	-- 3. Crushed Cyber-Car Stack (North-East Border)
-	local carPos2 = center + Vector3.new(40, 0, -68)
+	local carPos2 = center + Vector3.new(26, 0, -26)
 	local rotCar3 = CFrame.Angles(math.rad(-5), math.rad(-16), math.rad(6))
 	createPropPart(props, "CarStack2_Base", Vector3.new(8, 2.2, 12), CFrame.new(carPos2 + Vector3.new(0, 1.1, 0)), Color3.fromRGB(160, 120, 40), Enum.Material.Metal)
 	createPropPart(props, "CarStack2_Top", Vector3.new(7.2, 2.0, 10.5), CFrame.new(carPos2 + Vector3.new(-0.3, 2.9, 0)) * rotCar3, Color3.fromRGB(75, 80, 95), Enum.Material.Metal)
 
 	-- 4. Giant Radial Tire Stacks (South Borders)
 	local tireClusters = {
-		Vector3.new(38, 0, 70),
-		Vector3.new(0, 0, 72),
+		Vector3.new(26, 0, 26),
+		Vector3.new(0, 0, 30),
 	}
 	for idx, tPos in ipairs(tireClusters) do
 		createPropPart(props, "Tire1_" .. idx, Vector3.new(1.6, 5.0, 5.0), CFrame.new(center + tPos + Vector3.new(-2.6, 0.8, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(25, 26, 30), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
@@ -993,7 +1201,7 @@ function ZoneService.buildZone3Props(folder: Instance, center: Vector3)
 	props.Parent = folder
 
 	-- 1. Twin Blast Smelting Chimney Kilns (North Border Flanking Recycler)
-	local chimneyOffsets = { Vector3.new(-26, 0, -74), Vector3.new(26, 0, -74) }
+	local chimneyOffsets = { Vector3.new(-18, 0, -34), Vector3.new(18, 0, -34) }
 	for idx, cOff in ipairs(chimneyOffsets) do
 		local chPos = center + cOff
 		createPropPart(props, "Chimney_" .. idx, Vector3.new(24, 7, 7), CFrame.new(chPos + Vector3.new(0, 12, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(65, 48, 42), Enum.Material.Metal, Enum.PartType.Cylinder)
@@ -1007,20 +1215,20 @@ function ZoneService.buildZone3Props(folder: Instance, center: Vector3)
 	end
 
 	-- 2. Molten Slag Crucible Cauldron (North-West Border)
-	local crucPos = center + Vector3.new(-38, 0, -66)
+	local crucPos = center + Vector3.new(-26, 0, -24)
 	createPropPart(props, "CrucibleStandL", Vector3.new(1.8, 8, 1.8), CFrame.new(crucPos + Vector3.new(-4.5, 4, 0)), Color3.fromRGB(50, 48, 55), Enum.Material.Metal)
 	createPropPart(props, "CrucibleStandR", Vector3.new(1.8, 8, 1.8), CFrame.new(crucPos + Vector3.new(4.5, 4, 0)), Color3.fromRGB(50, 48, 55), Enum.Material.Metal)
 	createPropPart(props, "CruciblePot", Vector3.new(6, 6.5, 6.5), CFrame.new(crucPos + Vector3.new(0, 4.5, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(40, 38, 45), Enum.Material.Metal, Enum.PartType.Cylinder)
 	createPropPart(props, "MoltenSlag", Vector3.new(0.5, 5.5, 5.5), CFrame.new(crucPos + Vector3.new(0, 7.2, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(255, 105, 20), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 
 	-- 3. Overhead Conveyor Truss Span (South Border Perimeter)
-	local convPos = center + Vector3.new(0, 0, 72)
+	local convPos = center + Vector3.new(0, 0, 30)
 	createPropPart(props, "ConvTowerL", Vector3.new(2.5, 16, 2.5), CFrame.new(convPos + Vector3.new(-18, 8, 0)), Color3.fromRGB(180, 85, 25), Enum.Material.Metal)
 	createPropPart(props, "ConvTowerR", Vector3.new(2.5, 16, 2.5), CFrame.new(convPos + Vector3.new(18, 8, 0)), Color3.fromRGB(180, 85, 25), Enum.Material.Metal)
 	createPropPart(props, "ConvTrack", Vector3.new(38, 2.5, 3.5), CFrame.new(convPos + Vector3.new(0, 16, 0)), Color3.fromRGB(190, 95, 30), Enum.Material.Metal)
 
 	-- 4. Titanium Ingot Pallet Stack (South-East Border)
-	local palletPos = center + Vector3.new(38, 0, 70)
+	local palletPos = center + Vector3.new(26, 0, 26)
 	createPropPart(props, "Pallet", Vector3.new(8, 0.8, 8), CFrame.new(palletPos + Vector3.new(0, 0.4, 0)), Color3.fromRGB(120, 85, 55), Enum.Material.Wood)
 	for layer = 1, 3 do
 		for bar = 1, 3 do
@@ -1037,7 +1245,7 @@ function ZoneService.buildZone4Props(folder: Instance, center: Vector3)
 	props.Parent = folder
 
 	-- 1. Twin Monolithic Server Mainframe Banks (North Border Flanking Recycler)
-	local serverOffsets = { Vector3.new(-26, 0, -74), Vector3.new(26, 0, -74) }
+	local serverOffsets = { Vector3.new(-18, 0, -34), Vector3.new(18, 0, -34) }
 	for idx, sOff in ipairs(serverOffsets) do
 		local sPos = center + sOff
 		createPropPart(props, "ServerFrame_" .. idx, Vector3.new(10, 14, 4), CFrame.new(sPos + Vector3.new(0, 7, 0)), Color3.fromRGB(28, 32, 42), Enum.Material.Metal)
@@ -1048,14 +1256,14 @@ function ZoneService.buildZone4Props(folder: Instance, center: Vector3)
 	end
 
 	-- 2. Quantum Transmitter Tower Spire (South Border Perimeter)
-	local towerPos = center + Vector3.new(0, 0, 72)
+	local towerPos = center + Vector3.new(0, 0, 30)
 	createPropPart(props, "TowerBase", Vector3.new(6, 2, 6), CFrame.new(towerPos + Vector3.new(0, 1, 0)), Color3.fromRGB(35, 40, 52), Enum.Material.Metal)
 	createPropPart(props, "TowerSpire", Vector3.new(3, 26, 3), CFrame.new(towerPos + Vector3.new(0, 14, 0)), Color3.fromRGB(45, 55, 70), Enum.Material.Metal)
 	createPropPart(props, "ArrayRing1", Vector3.new(0.6, 7.5, 7.5), CFrame.new(towerPos + Vector3.new(0, 20, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(35, 210, 190), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 	createPropPart(props, "ArrayRing2", Vector3.new(0.6, 5.5, 5.5), CFrame.new(towerPos + Vector3.new(0, 24, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(35, 210, 190), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 
 	-- 3. Slanted Data Consoles (North-West & North-East Perimeter)
-	local consoleOffsets = { Vector3.new(-38, 0, -66), Vector3.new(38, 0, -66) }
+	local consoleOffsets = { Vector3.new(-26, 0, -24), Vector3.new(26, 0, -24) }
 	for idx, cOff in ipairs(consoleOffsets) do
 		local cPos = center + cOff
 		createPropPart(props, "ConsolePedestal_" .. idx, Vector3.new(5, 3.5, 3), CFrame.new(cPos + Vector3.new(0, 1.75, 0)), Color3.fromRGB(30, 35, 48), Enum.Material.Metal)
@@ -1071,14 +1279,14 @@ function ZoneService.buildZone5Props(folder: Instance, center: Vector3)
 	props.Parent = folder
 
 	-- 1. Massive Starship Ion Thruster Bell (North-West Border, 28 deg Impact Tilt)
-	local thrustPos = center + Vector3.new(-26, 0, -72)
+	local thrustPos = center + Vector3.new(-18, 0, -32)
 	local thrustRot = CFrame.Angles(math.rad(28), math.rad(15), 0)
 	createPropPart(props, "ThrusterBell", Vector3.new(12, 11, 11), CFrame.new(thrustPos + Vector3.new(0, 6, 0)) * thrustRot * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(42, 36, 54), Enum.Material.Metal, Enum.PartType.Cylinder)
 	createPropPart(props, "ThrusterRing", Vector3.new(2, 12.5, 12.5), CFrame.new(thrustPos + Vector3.new(0, 8.5, 0)) * thrustRot * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(60, 50, 75), Enum.Material.Metal, Enum.PartType.Cylinder)
 	createPropPart(props, "ThrusterCore", Vector3.new(1, 8.5, 8.5), CFrame.new(thrustPos + Vector3.new(0, 4.5, 0)) * thrustRot * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(150, 50, 230), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 
 	-- 2. Warp Drive Antimatter Containment Housing (North-East Border)
-	local warpPos = center + Vector3.new(26, 0, -72)
+	local warpPos = center + Vector3.new(18, 0, -32)
 	createPropPart(props, "WarpHousingBase", Vector3.new(8, 2, 8), CFrame.new(warpPos + Vector3.new(0, 1, 0)), Color3.fromRGB(38, 32, 48), Enum.Material.Metal)
 	createPropPart(props, "WarpHousingTop", Vector3.new(8, 2, 8), CFrame.new(warpPos + Vector3.new(0, 10, 0)), Color3.fromRGB(38, 32, 48), Enum.Material.Metal)
 	createPropPart(props, "WarpStrut1", Vector3.new(1.4, 8, 1.4), CFrame.new(warpPos + Vector3.new(-3, 5.5, -3)), Color3.fromRGB(55, 45, 70), Enum.Material.Metal)
@@ -1088,15 +1296,15 @@ function ZoneService.buildZone5Props(folder: Instance, center: Vector3)
 	createPropPart(props, "SingularityCore", Vector3.new(4, 4, 4), CFrame.new(warpPos + Vector3.new(0, 5.5, 0)), Color3.fromRGB(175, 60, 255), Enum.Material.SmoothPlastic, Enum.PartType.Ball)
 
 	-- 3. Fractured Dreadnought Armor Bulkhead Slab (South Border Perimeter)
-	local slabPos = center + Vector3.new(0, 0, 72)
+	local slabPos = center + Vector3.new(0, 0, 30)
 	local slabRot = CFrame.Angles(math.rad(-20), 0, math.rad(5))
 	createPropPart(props, "HullArmorSlab", Vector3.new(28, 8, 2.5), CFrame.new(slabPos + Vector3.new(0, 4, 0)) * slabRot, Color3.fromRGB(48, 42, 60), Enum.Material.Metal)
 	createPropPart(props, "HullArmorRib", Vector3.new(28.4, 1.5, 3.2), CFrame.new(slabPos + Vector3.new(0, 6, 0)) * slabRot, Color3.fromRGB(65, 55, 80), Enum.Material.Metal)
 
 	-- 4. Alien Void Crystal Formations (North-West & South-East Perimeter)
 	local crystalClusters = {
-		Vector3.new(-38, 0, -66),
-		Vector3.new(38, 0, 70),
+		Vector3.new(-26, 0, -24),
+		Vector3.new(26, 0, 26),
 	}
 	for idx, crOff in ipairs(crystalClusters) do
 		local crPos = center + crOff
@@ -1111,7 +1319,7 @@ function ZoneService.constructZoneSign(parent: Instance, centerPos: Vector3, zon
 	local model = Instance.new("Model")
 	model.Name = "SignGantry_Zone" .. tostring(zone.Id)
 
-	local signPos = centerPos + Vector3.new(0, 21, -72)
+	local signPos = centerPos + Vector3.new(0, 21, -38)
 	local signWidth = 28
 	local signHeight = 8.5
 	local signDepth = 1.6
@@ -1122,7 +1330,7 @@ function ZoneService.constructZoneSign(parent: Instance, centerPos: Vector3, zon
 		local footing = Instance.new("Part")
 		footing.Name = "Footing"
 		footing.Size = Vector3.new(3.6, 1.2, 3.6)
-		footing.Position = centerPos + Vector3.new(colX, 0.6, -72)
+		footing.Position = centerPos + Vector3.new(colX, 0.6, -38)
 		footing.Anchored = true
 		footing.Material = Enum.Material.Concrete
 		footing.Color = Color3.fromRGB(45, 48, 55)
@@ -1131,7 +1339,7 @@ function ZoneService.constructZoneSign(parent: Instance, centerPos: Vector3, zon
 		local col = Instance.new("Part")
 		col.Name = "TrussColumn"
 		col.Size = Vector3.new(2.0, 25, 2.0)
-		col.Position = centerPos + Vector3.new(colX, 12.5, -72)
+		col.Position = centerPos + Vector3.new(colX, 12.5, -38)
 		col.Anchored = true
 		col.Material = Enum.Material.Metal
 		col.Color = Color3.fromRGB(32, 35, 44)
@@ -1142,7 +1350,7 @@ function ZoneService.constructZoneSign(parent: Instance, centerPos: Vector3, zon
 		strut.Name = "DiagonalStrut"
 		strut.Size = Vector3.new(1.0, 10, 1.0)
 		local strutSign = colX > 0 and -1 or 1
-		strut.Position = centerPos + Vector3.new(colX + strutSign * 3.5, 18, -72.2)
+		strut.Position = centerPos + Vector3.new(colX + strutSign * 3.5, 18, -38.2)
 		strut.Orientation = Vector3.new(0, 0, strutSign * 35)
 		strut.Anchored = true
 		strut.Material = Enum.Material.Metal
@@ -1389,137 +1597,37 @@ function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Ve
 		c:Destroy()
 	end
 
-	-- Solid Non-flickering Platform Floor: 100 x 4 x 170 (X spans -50 to +50, Z spans -85 to +85)
-	local platform = Instance.new("Part")
-	platform.Name = "Platform"
-	platform.Size = Vector3.new(100, 4, 170)
-	platform.Position = centerPos - Vector3.new(0, 2, 0)
-	platform.Anchored = true
-	platform.Material = Enum.Material.Concrete
-	platform.Color = Color3.fromRGB(72, 78, 92)
-	platform.Parent = folder
+	-- 1. Oval Scrapyard Ground Foundation & Patchwork Floor
+	buildScrapyardGround(folder, centerPos, zone)
 
-	-- Platform anti-trespass touch handler for locked zones
-	local platformDebounce: { [Player]: number } = {}
-	platform.Touched:Connect(function(hit)
-		local char = hit.Parent
-		if not char then return end
-		local hum = char:FindFirstChildOfClass("Humanoid")
-		if not hum then return end
-		local player = Players:GetPlayerFromCharacter(char)
-		if not player then return end
+	-- 2. Stereotypical Junkyard Corrugated Perimeter Fence with Entry and Exit Gateways
+	local enterDir = (ZONE_CENTERS[zone.Id - 1] - centerPos).Unit
+	local enterAngle = math.atan2(enterDir.Z, enterDir.X)
 
-		local data = DataService.get(player)
-		local maxZ = data and (data.MaxZoneReached or 1) or 1
-		if maxZ < zone.Id then
-			local now = os.clock()
-			if platformDebounce[player] and now - platformDebounce[player] < 1.0 then
-				return
-			end
-			platformDebounce[player] = now
-
-			local root = char:FindFirstChild("HumanoidRootPart") :: BasePart?
-			if root then
-				local fromCenter = ZONE_CENTERS[zone.Id - 1]
-				local toCenter = ZONE_CENTERS[zone.Id]
-				local gateX = (fromCenter.X + 50 + toCenter.X - 50) / 2
-				root.AssemblyLinearVelocity = Vector3.zero
-				root.AssemblyAngularVelocity = Vector3.zero
-				root.CFrame = CFrame.new(gateX - 14, 3.5, math.clamp(root.Position.Z, -6, 6))
-
-				local notif = Remotes.getEvent("ShowNotification")
-				if notif then
-					notif:FireClient(player, "SECURITY LOCK", string.format("Zone %d is locked! Unlock it with Scrap to enter.", zone.Id), Color3.fromRGB(255, 75, 75))
-				end
-			end
-		end
-	end)
-
-	-- Perimeter Safety Curb Barrier
-	local curbThickness = 2
-	local curbHeight = 0.6
-
-	local curbN = Instance.new("Part")
-	curbN.Name = "CurbN"
-	curbN.Size = Vector3.new(100, curbHeight, curbThickness)
-	curbN.Position = centerPos + Vector3.new(0, 0.3, -83.5)
-	curbN.Anchored = true
-	curbN.Material = Enum.Material.SmoothPlastic
-	curbN.Color = zone.Color
-	curbN.Parent = folder
-
-	local curbS = curbN:Clone()
-	curbS.Name = "CurbS"
-	curbS.Position = centerPos + Vector3.new(0, 0.3, 83.5)
-	curbS.Parent = folder
-
-	-- Outer Safety Border Trim
-	local trimN = Instance.new("Part")
-	trimN.Name = "TrimN"
-	trimN.Size = Vector3.new(100, 0.6, 2)
-	trimN.Position = centerPos + Vector3.new(0, 0.3, -83.5)
-	trimN.Anchored = true
-	trimN.Material = Enum.Material.SmoothPlastic
-	trimN.Color = zone.Color
-	trimN.Parent = folder
-
-	local trimS = trimN:Clone()
-	trimS.Position = centerPos + Vector3.new(0, 0.3, 83.5)
-	trimS.Parent = folder
-
-	-- West Curb Opening (Bridge from previous zone connects at X = centerPos.X - 50, width = 22 from Z = -11 to +11)
-	local curbWN = Instance.new("Part")
-	curbWN.Size = Vector3.new(2, 0.6, 74)
-	curbWN.Position = centerPos + Vector3.new(-49, 0.3, -48)
-	curbWN.Anchored = true
-	curbWN.Material = Enum.Material.SmoothPlastic
-	curbWN.Color = zone.Color
-	curbWN.Parent = folder
-
-	local curbWS = curbWN:Clone()
-	curbWS.Position = centerPos + Vector3.new(-49, 0.3, 48)
-	curbWS.Parent = folder
-
-	-- East Curb (Solid for Zone 5, or Bridge opening for Zones 2-4)
-	if zone.Id == 5 then
-		local curbE = Instance.new("Part")
-		curbE.Name = "CurbE"
-		curbE.Size = Vector3.new(curbThickness, curbHeight, 170)
-		curbE.Position = centerPos + Vector3.new(49, 0.3, 0)
-		curbE.Anchored = true
-		curbE.Material = Enum.Material.SmoothPlastic
-		curbE.Color = zone.Color
-		curbE.Parent = folder
-	else
-		local curbEN = Instance.new("Part")
-		curbEN.Size = Vector3.new(2, 0.6, 74)
-		curbEN.Position = centerPos + Vector3.new(49, 0.3, -48)
-		curbEN.Anchored = true
-		curbEN.Material = Enum.Material.SmoothPlastic
-		curbEN.Color = zone.Color
-		curbEN.Parent = folder
-
-		local curbES = curbEN:Clone()
-		curbES.Position = centerPos + Vector3.new(49, 0.3, 48)
-		curbES.Parent = folder
+	local exitAngle = nil
+	if zone.Id < #Config.Zones then
+		local exitDir = (ZONE_CENTERS[zone.Id + 1] - centerPos).Unit
+		exitAngle = math.atan2(exitDir.Z, exitDir.X)
 	end
 
-	-- Towering High-Definition Sci-Fi Gantry Billboard for this zone
+	buildScrapyardPerimeter(folder, centerPos, zone, enterAngle, exitAngle)
+
+	-- 3. Towering High-Definition Sci-Fi Gantry Billboard for this zone
 	ZoneService.constructZoneSign(folder, centerPos, zone)
 
-	-- Scrap Recycler Machine & Deposit Sell Pad on North perimeter
-	ZoneService.constructRecycler(folder, centerPos + Vector3.new(0, 0, -68), zone.Id)
+	-- 4. Scrap Recycler Machine & Deposit Sell Pad on North perimeter
+	ZoneService.constructRecycler(folder, centerPos + Vector3.new(0, 0, -36), zone.Id)
 
-	-- 8 Scrap Nodes per zone - Generously distributed with >20 studs clearance
+	-- 5. 8 Scrap Nodes per zone - Generously distributed radially across the oval compound
 	local offsets = {
-		Vector3.new(-24, 0, -28),
-		Vector3.new(24, 0, -28),
-		Vector3.new(-24, 0, -50),
-		Vector3.new(24, 0, -50),
-		Vector3.new(-24, 0, 28),
-		Vector3.new(24, 0, 28),
-		Vector3.new(-24, 0, 52),
-		Vector3.new(24, 0, 52),
+		Vector3.new(18, 0, -16),
+		Vector3.new(28, 0, -8),
+		Vector3.new(28, 0, 10),
+		Vector3.new(18, 0, 20),
+		Vector3.new(-18, 0, 20),
+		Vector3.new(-28, 0, 10),
+		Vector3.new(-28, 0, -8),
+		Vector3.new(-18, 0, -16),
 	}
 
 	for i, offset in ipairs(offsets) do
@@ -1528,10 +1636,10 @@ function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Ve
 		table.insert(activeNodes, pile)
 	end
 
-	-- Fast Travel Portal on this platform (Along South-West border with >22 studs clearance from nodes)
-	createPortalPad(folder, centerPos + Vector3.new(-38, 0.3, 68), zone.Id)
+	-- 6. Fast Travel Portal on this platform (along South-West perimeter)
+	createPortalPad(folder, centerPos + Vector3.new(-30, 0.3, 20), zone.Id)
 
-	-- Dedicated Zone Egg Pod along South-East perimeter
+	-- 7. Dedicated Zone Egg Pod along South-East perimeter
 	local zoneEggTypeMap = {
 		[2] = "JunkyardEgg",
 		[3] = "FoundryEgg",
@@ -1540,10 +1648,10 @@ function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Ve
 	}
 	local eggTypeForZone = zoneEggTypeMap[zone.Id]
 	if eggTypeForZone then
-		ZoneService.constructEggPod(folder, centerPos + Vector3.new(38, 0.4, 68), eggTypeForZone)
+		ZoneService.constructEggPod(folder, centerPos + Vector3.new(30, 0.4, 20), eggTypeForZone)
 	end
 
-	-- Thematic Environmental Sci-Fi Props for Zones 2 to 5
+	-- 8. Thematic Environmental Sci-Fi Props for Zones 2 to 5
 	if zone.Id == 2 then
 		ZoneService.buildZone2Props(folder, centerPos)
 	elseif zone.Id == 3 then
@@ -1554,135 +1662,183 @@ function ZoneService.constructZonePlatform(zone: Types.ZoneConfig, centerPos: Ve
 		ZoneService.buildZone5Props(folder, centerPos)
 	end
 
-	-- Floating Island Underside Rock Root & Anti-Gravity Thruster Units
+	-- 9. Floating Island Underside Rock Root & Anti-Gravity Thruster Units
 	EnvironmentService.constructIslandUnderside(folder, centerPos, zone.Id, zone.Color)
 	EnvironmentService.constructSurfaceDressing(folder, centerPos, zone)
 end
 
--- 5. Construct Seamless Connecting Bridges with Solid Safety Guardrails
-function ZoneService.constructBridge(zoneId: number)
-	local fromCenter = ZONE_CENTERS[zoneId - 1]
-	local toCenter = ZONE_CENTERS[zoneId]
-	local targetZone = Config.Zones[zoneId]
-	if not fromCenter or not toCenter or not targetZone then return end
+-- ============================================================================
+-- 5. CREATIVE SPLIT-PATH BRIDGES & FORCEFIELD GATES
+-- ============================================================================
 
-	local bridgeX = (fromCenter.X + 50 + toCenter.X - 50) / 2 -- Exactly 80, 240, 400, 560
-	local bridgeLength = (toCenter.X - 50) - (fromCenter.X + 50) -- Exactly 60 studs!
-	local bridgeWidth = 22
+-- Helper to create a single bridge deck segment with guardrails, neon trim, anti-jump walls, and underside girders
+local function buildBridgeSegment(
+	parent: Instance,
+	startPos: Vector3,
+	endPos: Vector3,
+	width: number,
+	accentColor: Color3,
+	zoneId: number,
+	mat: Enum.Material?,
+	color: Color3?
+)
+	local disp = endPos - startPos
+	local length = disp.Magnitude
+	if length < 0.5 then return end
 
-	local bridgeFolder = Workspace:FindFirstChild("Bridges") :: Folder
-	if not bridgeFolder then
-		bridgeFolder = Instance.new("Folder")
-		bridgeFolder.Name = "Bridges"
-		bridgeFolder.Parent = Workspace
-	end
+	local midPoint = (startPos + endPos) / 2
+	local bridgeCF = CFrame.lookAt(midPoint, endPos) * CFrame.Angles(0, math.rad(90), 0)
 
-	local oldBridge = bridgeFolder:FindFirstChild(string.format("Bridge_%d_to_%d", zoneId - 1, zoneId))
-	if oldBridge then oldBridge:Destroy() end
-	local oldGate = bridgeFolder:FindFirstChild("Gate_Zone" .. tostring(zoneId))
-	if oldGate then oldGate:Destroy() end
+	-- Walkable Deck
+	local deck = Instance.new("Part")
+	deck.Name = "BridgeDeck"
+	deck.Size = Vector3.new(length, 3, width)
+	deck.CFrame = bridgeCF * CFrame.new(0, -1.5, 0)
+	deck.Anchored = true
+	deck.Material = mat or Enum.Material.DiamondPlate
+	deck.Color = color or Color3.fromRGB(68, 74, 88)
+	deck.Parent = parent
 
-	-- Solid Bridge Floor
-	local bridge = Instance.new("Part")
-	bridge.Name = string.format("Bridge_%d_to_%d", zoneId - 1, zoneId)
-	bridge.Size = Vector3.new(bridgeLength, 4, bridgeWidth)
-	bridge.Position = Vector3.new(bridgeX, -2, 0)
-	bridge.Anchored = true
-	bridge.Material = Enum.Material.DiamondPlate
-	bridge.Color = Color3.fromRGB(68, 74, 88)
-	bridge.Parent = bridgeFolder
+	-- Left Guardrail
+	local railL = Instance.new("Part")
+	railL.Name = "GuardrailL"
+	railL.Size = Vector3.new(length, 3.5, 1.2)
+	railL.CFrame = bridgeCF * CFrame.new(0, 1.75, -(width / 2) + 0.6)
+	railL.Anchored = true
+	railL.Material = Enum.Material.Metal
+	railL.Color = Color3.fromRGB(28, 30, 38)
+	railL.Parent = parent
 
-	-- North Safety Guardrail (Prevents falling off!)
-	local railN = Instance.new("Part")
-	railN.Name = "GuardrailN"
-	railN.Size = Vector3.new(bridgeLength, 3.5, 1.5)
-	railN.Position = Vector3.new(bridgeX, 1.75, -(bridgeWidth / 2) + 0.75)
-	railN.Anchored = true
-	railN.Material = Enum.Material.Metal
-	railN.Color = Color3.fromRGB(28, 30, 38)
-	railN.Parent = bridgeFolder
+	local neonL = Instance.new("Part")
+	neonL.Size = Vector3.new(length, 0.4, 0.4)
+	neonL.CFrame = bridgeCF * CFrame.new(0, 3.5, -(width / 2) + 0.6)
+	neonL.Anchored = true
+	neonL.Material = Enum.Material.SmoothPlastic
+	neonL.Color = accentColor
+	neonL.Parent = parent
 
-	local neonStripN = Instance.new("Part")
-	neonStripN.Size = Vector3.new(bridgeLength, 0.4, 0.4)
-	neonStripN.Position = Vector3.new(bridgeX, 3.4, -(bridgeWidth / 2) + 0.75)
-	neonStripN.Anchored = true
-	neonStripN.Material = Enum.Material.SmoothPlastic
-	neonStripN.Color = targetZone.Color
-	neonStripN.Parent = bridgeFolder
+	-- Left Anti-Jump Wall
+	local antiJumpL = Instance.new("Part")
+	antiJumpL.Name = "AntiJumpL"
+	antiJumpL.Size = Vector3.new(length, 28, 0.6)
+	antiJumpL.CFrame = bridgeCF * CFrame.new(0, 14, -(width / 2) + 0.6)
+	antiJumpL.Anchored = true
+	antiJumpL.CanCollide = true
+	antiJumpL.Material = Enum.Material.Glass
+	antiJumpL.Color = Color3.fromRGB(180, 200, 220)
+	antiJumpL.Transparency = 0.88
+	antiJumpL.CastShadow = false
+	antiJumpL.Parent = parent
 
-	-- Anti-Jump Barrier Wall North (28 studs high - physically blocks hopping on rails or jumping around gate)
-	local antiJumpN = Instance.new("Part")
-	antiJumpN.Name = "AntiJumpWallN"
-	antiJumpN.Size = Vector3.new(bridgeLength, 28, 1)
-	antiJumpN.Position = Vector3.new(bridgeX, 14, -(bridgeWidth / 2) + 0.75)
-	antiJumpN.Anchored = true
-	antiJumpN.CanCollide = true
-	antiJumpN.Material = Enum.Material.Glass
-	antiJumpN.Color = Color3.fromRGB(180, 200, 220)
-	antiJumpN.Transparency = 0.88
-	antiJumpN.CastShadow = false
-	antiJumpN.Parent = bridgeFolder
+	-- Right Guardrail
+	local railR = Instance.new("Part")
+	railR.Name = "GuardrailR"
+	railR.Size = Vector3.new(length, 3.5, 1.2)
+	railR.CFrame = bridgeCF * CFrame.new(0, 1.75, (width / 2) - 0.6)
+	railR.Anchored = true
+	railR.Material = Enum.Material.Metal
+	railR.Color = Color3.fromRGB(28, 30, 38)
+	railR.Parent = parent
 
-	-- South Safety Guardrail (Prevents falling off!)
-	local railS = Instance.new("Part")
-	railS.Name = "GuardrailS"
-	railS.Size = Vector3.new(bridgeLength, 3.5, 1.5)
-	railS.Position = Vector3.new(bridgeX, 1.75, (bridgeWidth / 2) - 0.75)
-	railS.Anchored = true
-	railS.Material = Enum.Material.Metal
-	railS.Color = Color3.fromRGB(28, 30, 38)
-	railS.Parent = bridgeFolder
+	local neonR = Instance.new("Part")
+	neonR.Size = Vector3.new(length, 0.4, 0.4)
+	neonR.CFrame = bridgeCF * CFrame.new(0, 3.5, (width / 2) - 0.6)
+	neonR.Anchored = true
+	neonR.Material = Enum.Material.SmoothPlastic
+	neonR.Color = accentColor
+	neonR.Parent = parent
 
-	local neonStripS = Instance.new("Part")
-	neonStripS.Size = Vector3.new(bridgeLength, 0.4, 0.4)
-	neonStripS.Position = Vector3.new(bridgeX, 3.4, (bridgeWidth / 2) - 0.75)
-	neonStripS.Anchored = true
-	neonStripS.Material = Enum.Material.SmoothPlastic
-	neonStripS.Color = targetZone.Color
-	neonStripS.Parent = bridgeFolder
+	-- Right Anti-Jump Wall
+	local antiJumpR = Instance.new("Part")
+	antiJumpR.Name = "AntiJumpR"
+	antiJumpR.Size = Vector3.new(length, 28, 0.6)
+	antiJumpR.CFrame = bridgeCF * CFrame.new(0, 14, (width / 2) - 0.6)
+	antiJumpR.Anchored = true
+	antiJumpR.CanCollide = true
+	antiJumpR.Material = Enum.Material.Glass
+	antiJumpR.Color = Color3.fromRGB(180, 200, 220)
+	antiJumpR.Transparency = 0.88
+	antiJumpR.CastShadow = false
+	antiJumpR.Parent = parent
 
-	-- Anti-Jump Barrier Wall South (28 studs high - physically blocks hopping on rails or jumping around gate)
-	local antiJumpS = Instance.new("Part")
-	antiJumpS.Name = "AntiJumpWallS"
-	antiJumpS.Size = Vector3.new(bridgeLength, 28, 1)
-	antiJumpS.Position = Vector3.new(bridgeX, 14, (bridgeWidth / 2) - 0.75)
-	antiJumpS.Anchored = true
-	antiJumpS.CanCollide = true
-	antiJumpS.Material = Enum.Material.Glass
-	antiJumpS.Color = Color3.fromRGB(180, 200, 220)
-	antiJumpS.Transparency = 0.88
-	antiJumpS.CastShadow = false
-	antiJumpS.Parent = bridgeFolder
+	-- Underside Box Girders & Cross Trusses
+	EnvironmentService.constructBridgeUnderside(parent, bridgeCF, length, width, zoneId)
+end
 
-	-- Grand Archway Forcefield Gate in Bridge Center
+-- Helper to create a floating midway landmark platform
+local function buildMidwayIsland(parent: Instance, pos: Vector3, size: Vector3, color: Color3, zoneId: number): Part
+	local island = Instance.new("Part")
+	island.Name = "MidwayIsland_Zone" .. tostring(zoneId)
+	island.Shape = Enum.PartType.Cylinder
+	island.Size = Vector3.new(size.Y, size.X, size.X)
+	island.CFrame = CFrame.new(pos - Vector3.new(0, size.Y / 2, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	island.Anchored = true
+	island.Material = Enum.Material.DiamondPlate
+	island.Color = color
+	island.Parent = parent
+
+	-- Perimeter safety curb
+	local ring = Instance.new("Part")
+	ring.Name = "MidwayCurb"
+	ring.Shape = Enum.PartType.Cylinder
+	ring.Size = Vector3.new(0.8, size.X + 0.6, size.X + 0.6)
+	ring.CFrame = CFrame.new(pos + Vector3.new(0, 0.4, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	ring.Anchored = true
+	ring.Material = Enum.Material.SmoothPlastic
+	ring.Color = Config.Zones[zoneId] and Config.Zones[zoneId].Color or Color3.fromRGB(80, 140, 200)
+	ring.Parent = parent
+
+	return island
+end
+
+-- Helper to construct an authoritative Forcefield Gate with signage, prompt, and collision barriers
+local function buildZoneGate(
+	bridgeFolder: Instance,
+	gatePos: Vector3,
+	approachDir: Vector3,
+	bridgeWidth: number,
+	targetZone: Types.ZoneConfig
+): Model
 	local gateModel = Instance.new("Model")
-	gateModel.Name = "Gate_Zone" .. tostring(zoneId)
+	gateModel.Name = "Gate_Zone" .. tostring(targetZone.Id)
 
+	local gateCF = CFrame.lookAt(gatePos, gatePos + approachDir)
+
+	-- Left Column
 	local pL = Instance.new("Part")
+	pL.Name = "GatePillarL"
 	pL.Size = Vector3.new(3, 16, 3)
-	pL.Position = Vector3.new(bridgeX, 8, -(bridgeWidth / 2) + 1.5)
+	pL.CFrame = gateCF * CFrame.new(-bridgeWidth / 2 + 1.5, 8, 0)
 	pL.Anchored = true
 	pL.Color = Color3.fromRGB(25, 28, 38)
 	pL.Material = Enum.Material.Metal
 	pL.Parent = gateModel
 
-	local pR = pL:Clone()
-	pR.Position = Vector3.new(bridgeX, 8, (bridgeWidth / 2) - 1.5)
+	-- Right Column
+	local pR = Instance.new("Part")
+	pR.Name = "GatePillarR"
+	pR.Size = Vector3.new(3, 16, 3)
+	pR.CFrame = gateCF * CFrame.new(bridgeWidth / 2 - 1.5, 8, 0)
+	pR.Anchored = true
+	pR.Color = Color3.fromRGB(25, 28, 38)
+	pR.Material = Enum.Material.Metal
 	pR.Parent = gateModel
 
+	-- Top Beam
 	local top = Instance.new("Part")
-	top.Size = Vector3.new(3, 3, bridgeWidth)
-	top.Position = Vector3.new(bridgeX, 16, 0)
+	top.Name = "GateTop"
+	top.Size = Vector3.new(bridgeWidth + 1, 3, 3)
+	top.CFrame = gateCF * CFrame.new(0, 16, 0)
 	top.Anchored = true
 	top.Color = Color3.fromRGB(25, 28, 38)
 	top.Material = Enum.Material.Metal
 	top.Parent = gateModel
 
-	-- Overhead Highway Gateway Arch Sign
+	-- Overhead Signboard
 	local archSign = Instance.new("Part")
 	archSign.Name = "GatewaySign"
-	archSign.Size = Vector3.new(1.8, 3.2, 18)
-	archSign.Position = Vector3.new(bridgeX, 18.6, 0)
+	archSign.Size = Vector3.new(bridgeWidth - 4, 3.2, 1.8)
+	archSign.CFrame = gateCF * CFrame.new(0, 18.6, 0)
 	archSign.Anchored = true
 	archSign.Material = Enum.Material.SmoothPlastic
 	archSign.Color = Color3.fromRGB(16, 18, 26)
@@ -1690,16 +1846,16 @@ function ZoneService.constructBridge(zoneId: number)
 
 	local archTrim = Instance.new("Part")
 	archTrim.Name = "GatewayTrim"
-	archTrim.Size = Vector3.new(2.0, 0.4, 18.4)
-	archTrim.Position = Vector3.new(bridgeX, 20.3, 0)
+	archTrim.Size = Vector3.new(bridgeWidth - 3.6, 0.4, 2.0)
+	archTrim.CFrame = gateCF * CFrame.new(0, 20.3, 0)
 	archTrim.Anchored = true
 	archTrim.Material = Enum.Material.SmoothPlastic
 	archTrim.Color = targetZone.Color
 	archTrim.Parent = gateModel
 
-	-- Sign facing West (towards approaching players from previous zone)
+	-- Sign facing approaching players (Back face of the sign)
 	local asgui = Instance.new("SurfaceGui")
-	asgui.Face = Enum.NormalId.Left -- Facing -X towards approaching player
+	asgui.Face = Enum.NormalId.Back
 	asgui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	asgui.PixelsPerStud = 35
 	asgui.LightInfluence = 0.2
@@ -1730,10 +1886,11 @@ function ZoneService.constructBridge(zoneId: number)
 	asTStroke.Thickness = 1.5
 	asTStroke.Parent = asTitle
 
+	-- Main Forcefield barrier
 	local barrier = Instance.new("Part")
 	barrier.Name = "Forcefield"
-	barrier.Size = Vector3.new(2.5, 26, bridgeWidth + 2)
-	barrier.Position = Vector3.new(bridgeX, 13, 0)
+	barrier.Size = Vector3.new(bridgeWidth + 2, 26, 2.5)
+	barrier.CFrame = gateCF * CFrame.new(0, 13, 0)
 	barrier.Anchored = true
 	barrier.CanCollide = true
 	barrier.Transparency = 0.35
@@ -1741,11 +1898,11 @@ function ZoneService.constructBridge(zoneId: number)
 	barrier.Color = targetZone.Color
 	barrier.Parent = gateModel
 
-	-- Full-span Void Perimeter Barrier across the entire void gap (prevents jumping around in the void)
+	-- Wide Void Perimeter Forcefield
 	local perimeterBarrier = Instance.new("Part")
 	perimeterBarrier.Name = "PerimeterForcefield"
-	perimeterBarrier.Size = Vector3.new(3, 100, 600)
-	perimeterBarrier.Position = Vector3.new(bridgeX, 45, 0)
+	perimeterBarrier.Size = Vector3.new(500, 100, 3)
+	perimeterBarrier.CFrame = gateCF * CFrame.new(0, 45, 0)
 	perimeterBarrier.Anchored = true
 	perimeterBarrier.CanCollide = true
 	perimeterBarrier.Transparency = 0.92
@@ -1754,7 +1911,7 @@ function ZoneService.constructBridge(zoneId: number)
 	perimeterBarrier.CastShadow = false
 	perimeterBarrier.Parent = gateModel
 
-	-- Server-Authoritative Anti-Bypass Guard (Prevents physics clipping / noclip into locked zones)
+	-- Bounce handler
 	local bounceDebounce: { [Player]: number } = {}
 	local function handleBarrierTouch(hit: BasePart)
 		local char = hit.Parent
@@ -1777,7 +1934,8 @@ function ZoneService.constructBridge(zoneId: number)
 			if root then
 				root.AssemblyLinearVelocity = Vector3.zero
 				root.AssemblyAngularVelocity = Vector3.zero
-				root.CFrame = CFrame.new(bridgeX - 14, 3.5, math.clamp(root.Position.Z, -6, 6))
+				local bouncePos = gatePos - approachDir * 12 + Vector3.new(0, 3.5, 0)
+				root.CFrame = CFrame.new(bouncePos)
 				local notif = Remotes.getEvent("ShowNotification")
 				if notif then
 					notif:FireClient(player, "SECURITY LOCK", string.format("Zone %d is locked! Unlock it with Scrap to enter.", targetZone.Id), Color3.fromRGB(255, 75, 75))
@@ -1789,9 +1947,11 @@ function ZoneService.constructBridge(zoneId: number)
 	barrier.Touched:Connect(handleBarrierTouch)
 	perimeterBarrier.Touched:Connect(handleBarrierTouch)
 
+	-- Proximity Prompt Part
 	local promptPart = Instance.new("Part")
+	promptPart.Name = "UnlockPromptPart"
 	promptPart.Size = Vector3.new(4, 4, 4)
-	promptPart.Position = Vector3.new(bridgeX - 4, 3, 0)
+	promptPart.Position = gatePos - approachDir * 4 + Vector3.new(0, 3, 0)
 	promptPart.Anchored = true
 	promptPart.Transparency = 1
 	promptPart.CanCollide = false
@@ -1823,8 +1983,186 @@ function ZoneService.constructBridge(zoneId: number)
 		Prompt = prompt,
 	}
 
-	-- Heavy Bridge Undercarriage Box Girders, Cross Trusses & Magnetic Stabilizer
-	EnvironmentService.constructBridgeUnderside(bridgeFolder, fromCenter, toCenter, bridgeX, bridgeLength, bridgeWidth, targetZone.Id)
+	return gateModel
+end
+
+-- 5. Construct Seamless Connecting Bridges with Creative Split Paths and Midway Landmarks
+function ZoneService.constructBridge(zoneId: number)
+	local fromCenter = ZONE_CENTERS[zoneId - 1]
+	local toCenter = ZONE_CENTERS[zoneId]
+	local targetZone = Config.Zones[zoneId]
+	if not fromCenter or not toCenter or not targetZone then return end
+
+	local bridgeFolder = Workspace:FindFirstChild("Bridges") :: Folder
+	if not bridgeFolder then
+		bridgeFolder = Instance.new("Folder")
+		bridgeFolder.Name = "Bridges"
+		bridgeFolder.Parent = Workspace
+	end
+
+	-- Clear old bridge & gate for this zone transition
+	local oldBridge = bridgeFolder:FindFirstChild(string.format("Bridge_%d_to_%d", zoneId - 1, zoneId))
+	if oldBridge then oldBridge:Destroy() end
+	local oldGate = bridgeFolder:FindFirstChild("Gate_Zone" .. tostring(zoneId))
+	if oldGate then oldGate:Destroy() end
+
+	local bridgeContainer = Instance.new("Model")
+	bridgeContainer.Name = string.format("Bridge_%d_to_%d", zoneId - 1, zoneId)
+	bridgeContainer.Parent = bridgeFolder
+
+	local mainDir = (toCenter - fromCenter).Unit
+	local lateralNorm = Vector3.new(-mainDir.Z, 0, mainDir.X).Unit
+
+	local startPos = fromCenter + mainDir * 44
+	local endPos = toCenter - mainDir * 44
+	local midPoint = (startPos + endPos) / 2
+
+	if zoneId == 2 then
+		-- Zone 1 -> Zone 2: Rusty Outpost to Automotive Graveyard
+		-- Midway Scrap Barge Island
+		buildMidwayIsland(bridgeContainer, midPoint, Vector3.new(24, 4, 24), Color3.fromRGB(55, 48, 42), 2)
+
+		-- Midway Beacon Tower & Clutter
+		local beacon = Instance.new("Part")
+		beacon.Size = Vector3.new(2.4, 14, 2.4)
+		beacon.Position = midPoint + Vector3.new(0, 7, 0)
+		beacon.Anchored = true
+		beacon.Material = Enum.Material.Metal
+		beacon.Color = Color3.fromRGB(38, 40, 48)
+		beacon.Parent = bridgeContainer
+
+		local beaconLight = Instance.new("Part")
+		beaconLight.Size = Vector3.new(2.8, 1.8, 2.8)
+		beaconLight.Position = midPoint + Vector3.new(0, 14, 0)
+		beaconLight.Anchored = true
+		beaconLight.Material = Enum.Material.Neon
+		beaconLight.Color = Color3.fromRGB(255, 170, 30)
+		beaconLight.Parent = bridgeContainer
+
+		-- Route A (Left Fork): High Gantry Catwalk (elevated Y = +4)
+		local forkA_Mid = (startPos + midPoint) / 2 + lateralNorm * 18 + Vector3.new(0, 4, 0)
+		buildBridgeSegment(bridgeContainer, startPos, forkA_Mid, 12, targetZone.Color, 2, Enum.Material.DiamondPlate, Color3.fromRGB(60, 65, 75))
+		buildBridgeSegment(bridgeContainer, forkA_Mid, midPoint, 12, targetZone.Color, 2, Enum.Material.DiamondPlate, Color3.fromRGB(60, 65, 75))
+
+		-- Route B (Right Fork): Low Corroded Scrap Barge Causeway (sunken Y = -1.2)
+		local forkB_Mid = (startPos + midPoint) / 2 - lateralNorm * 18 + Vector3.new(0, -1.2, 0)
+		buildBridgeSegment(bridgeContainer, startPos, forkB_Mid, 14, targetZone.Color, 2, Enum.Material.CorrodedMetal, Color3.fromRGB(115, 65, 40))
+		buildBridgeSegment(bridgeContainer, forkB_Mid, midPoint, 14, targetZone.Color, 2, Enum.Material.CorrodedMetal, Color3.fromRGB(115, 65, 40))
+
+		-- Main Approach Span from Midway to Zone 2
+		buildBridgeSegment(bridgeContainer, midPoint, endPos, 18, targetZone.Color, 2, Enum.Material.DiamondPlate, Color3.fromRGB(70, 75, 85))
+
+		-- Gate positioned on final approach span
+		local gatePos = endPos - mainDir * 14
+		buildZoneGate(bridgeFolder, gatePos, mainDir, 18, targetZone)
+
+	elseif zoneId == 3 then
+		-- Zone 2 -> Zone 3: Automotive Graveyard to Industrial Foundry
+		-- Midway Cooling Station Island
+		buildMidwayIsland(bridgeContainer, midPoint, Vector3.new(24, 4, 24), Color3.fromRGB(48, 42, 40), 3)
+
+		-- Industrial steam radiator vent
+		local vent = Instance.new("Part")
+		vent.Size = Vector3.new(6, 8, 6)
+		vent.Position = midPoint + Vector3.new(0, 4, 0)
+		vent.Anchored = true
+		vent.Material = Enum.Material.Metal
+		vent.Color = Color3.fromRGB(35, 38, 44)
+		vent.Parent = bridgeContainer
+
+		local ventGlow = Instance.new("Part")
+		ventGlow.Size = Vector3.new(6.2, 1.2, 6.2)
+		ventGlow.Position = midPoint + Vector3.new(0, 8.2, 0)
+		ventGlow.Anchored = true
+		ventGlow.Material = Enum.Material.Neon
+		ventGlow.Color = Color3.fromRGB(255, 100, 20)
+		ventGlow.Parent = bridgeContainer
+
+		-- Route A (Left Fork): Heavy Overhead Conveyor Truss Walkway
+		local forkA_Mid = (startPos + midPoint) / 2 + lateralNorm * 16 + Vector3.new(0, 3.5, 0)
+		buildBridgeSegment(bridgeContainer, startPos, forkA_Mid, 12, targetZone.Color, 3, Enum.Material.DiamondPlate, Color3.fromRGB(160, 75, 30))
+		buildBridgeSegment(bridgeContainer, forkA_Mid, midPoint, 12, targetZone.Color, 3, Enum.Material.DiamondPlate, Color3.fromRGB(160, 75, 30))
+
+		-- Route B (Right Fork): Molten Slag Conduit Walkway
+		local forkB_Mid = (startPos + midPoint) / 2 - lateralNorm * 16
+		buildBridgeSegment(bridgeContainer, startPos, forkB_Mid, 14, targetZone.Color, 3, Enum.Material.Metal, Color3.fromRGB(55, 50, 50))
+		buildBridgeSegment(bridgeContainer, forkB_Mid, midPoint, 14, targetZone.Color, 3, Enum.Material.Metal, Color3.fromRGB(55, 50, 50))
+
+		-- Main Approach Span to Zone 3
+		buildBridgeSegment(bridgeContainer, midPoint, endPos, 18, targetZone.Color, 3, Enum.Material.DiamondPlate, Color3.fromRGB(65, 60, 62))
+
+		local gatePos = endPos - mainDir * 14
+		buildZoneGate(bridgeFolder, gatePos, mainDir, 18, targetZone)
+
+	elseif zoneId == 4 then
+		-- Zone 3 -> Zone 4: Industrial Foundry to Cybernetic Wasteland
+		-- Midway Quantum Relay Core Island
+		buildMidwayIsland(bridgeContainer, midPoint, Vector3.new(24, 4, 24), Color3.fromRGB(28, 32, 44), 4)
+
+		-- Quantum Core Spire
+		local spire = Instance.new("Part")
+		spire.Size = Vector3.new(3, 12, 3)
+		spire.Position = midPoint + Vector3.new(0, 6, 0)
+		spire.Anchored = true
+		spire.Material = Enum.Material.Metal
+		spire.Color = Color3.fromRGB(35, 42, 58)
+		spire.Parent = bridgeContainer
+
+		local spireOrb = Instance.new("Part")
+		spireOrb.Shape = Enum.PartType.Ball
+		spireOrb.Size = Vector3.new(5, 5, 5)
+		spireOrb.Position = midPoint + Vector3.new(0, 13, 0)
+		spireOrb.Anchored = true
+		spireOrb.Material = Enum.Material.Neon
+		spireOrb.Color = Color3.fromRGB(40, 220, 200)
+		spireOrb.Parent = bridgeContainer
+
+		-- Route A (Left Fork): High-Voltage Energy Grid Walkway
+		local forkA_Mid = (startPos + midPoint) / 2 + lateralNorm * 15 + Vector3.new(0, 3, 0)
+		buildBridgeSegment(bridgeContainer, startPos, forkA_Mid, 12, targetZone.Color, 4, Enum.Material.SmoothPlastic, Color3.fromRGB(24, 34, 48))
+		buildBridgeSegment(bridgeContainer, forkA_Mid, midPoint, 12, targetZone.Color, 4, Enum.Material.SmoothPlastic, Color3.fromRGB(24, 34, 48))
+
+		-- Route B (Right Fork): Heavy Fiber-Optic Duct Span
+		local forkB_Mid = (startPos + midPoint) / 2 - lateralNorm * 15
+		buildBridgeSegment(bridgeContainer, startPos, forkB_Mid, 14, targetZone.Color, 4, Enum.Material.Metal, Color3.fromRGB(38, 44, 56))
+		buildBridgeSegment(bridgeContainer, forkB_Mid, midPoint, 14, targetZone.Color, 4, Enum.Material.Metal, Color3.fromRGB(38, 44, 56))
+
+		-- Main Approach Span to Zone 4
+		buildBridgeSegment(bridgeContainer, midPoint, endPos, 18, targetZone.Color, 4, Enum.Material.DiamondPlate, Color3.fromRGB(45, 55, 70))
+
+		local gatePos = endPos - mainDir * 14
+		buildZoneGate(bridgeFolder, gatePos, mainDir, 18, targetZone)
+
+	elseif zoneId == 5 then
+		-- Zone 4 -> Zone 5: Cybernetic Wasteland to Orbital Crashsite
+		-- Midway Fractured Starship Wing Island
+		buildMidwayIsland(bridgeContainer, midPoint, Vector3.new(26, 4, 26), Color3.fromRGB(38, 32, 50), 5)
+
+		-- Broken Titanium Hull Fin
+		local hullFin = Instance.new("Part")
+		hullFin.Size = Vector3.new(18, 12, 2.5)
+		hullFin.CFrame = CFrame.new(midPoint + Vector3.new(0, 7, 0)) * CFrame.Angles(math.rad(15), math.rad(25), math.rad(-10))
+		hullFin.Anchored = true
+		hullFin.Material = Enum.Material.Metal
+		hullFin.Color = Color3.fromRGB(50, 42, 65)
+		hullFin.Parent = bridgeContainer
+
+		-- Route A (Left Fork): Dorsal Hull Armor Ridge Walk
+		local forkA_Mid = (startPos + midPoint) / 2 + lateralNorm * 15 + Vector3.new(0, 4, 0)
+		buildBridgeSegment(bridgeContainer, startPos, forkA_Mid, 12, targetZone.Color, 5, Enum.Material.Metal, Color3.fromRGB(48, 40, 62))
+		buildBridgeSegment(bridgeContainer, forkA_Mid, midPoint, 12, targetZone.Color, 5, Enum.Material.Metal, Color3.fromRGB(48, 40, 62))
+
+		-- Route B (Right Fork): Lower Maintenance Truss Walkway
+		local forkB_Mid = (startPos + midPoint) / 2 - lateralNorm * 15 + Vector3.new(0, -1.2, 0)
+		buildBridgeSegment(bridgeContainer, startPos, forkB_Mid, 14, targetZone.Color, 5, Enum.Material.DiamondPlate, Color3.fromRGB(40, 35, 52))
+		buildBridgeSegment(bridgeContainer, forkB_Mid, midPoint, 14, targetZone.Color, 5, Enum.Material.DiamondPlate, Color3.fromRGB(40, 35, 52))
+
+		-- Main Approach Span to Zone 5
+		buildBridgeSegment(bridgeContainer, midPoint, endPos, 18, targetZone.Color, 5, Enum.Material.DiamondPlate, Color3.fromRGB(50, 44, 68))
+
+		local gatePos = endPos - mainDir * 14
+		buildZoneGate(bridgeFolder, gatePos, mainDir, 18, targetZone)
+	end
 end
 
 -- 6. Void Fall Protection (Catch falling players and safely teleport them)
@@ -1836,11 +2174,11 @@ function ZoneService.setupVoidProtection()
 		rescueFolder.Parent = Workspace
 	end
 
-	-- Massive trigger plate covering the entire game area at Y = -16
+	-- Massive trigger plate covering the entire non-linear game area at Y = -16
 	local net = Instance.new("Part")
 	net.Name = "VoidRescueTrigger"
-	net.Size = Vector3.new(2400, 2, 800)
-	net.Position = Vector3.new(350, -16, 0)
+	net.Size = Vector3.new(3000, 2, 3000)
+	net.Position = Vector3.new(100, -16, 50)
 	net.Anchored = true
 	net.CanCollide = false
 	net.Transparency = 1
@@ -1981,7 +2319,7 @@ end
 function ZoneService.setupZonePatrol()
 	task.spawn(function()
 		while true do
-			task.wait(0.25)
+			task.wait(0.3)
 			for _, player in ipairs(Players:GetPlayers()) do
 				local char = player.Character
 				if char and char.Parent then
@@ -1990,29 +2328,34 @@ function ZoneService.setupZonePatrol()
 						local data = DataService.get(player)
 						local maxZone = data and (data.MaxZoneReached or 1) or 1
 						if maxZone < #Config.Zones then
-							local nextZoneId = maxZone + 1
-							local fromCenter = ZONE_CENTERS[nextZoneId - 1]
-							local toCenter = ZONE_CENTERS[nextZoneId]
-							if fromCenter and toCenter then
-								local gateX = (fromCenter.X + 50 + toCenter.X - 50) / 2
-								-- If player's X coordinate is at or beyond the locked gate threshold
-								if root.Position.X >= (gateX - 0.5) then
-									root.AssemblyLinearVelocity = Vector3.zero
-									root.AssemblyAngularVelocity = Vector3.zero
-									root.CFrame = CFrame.new(gateX - 14, 3.5, math.clamp(root.Position.Z, -6, 6))
+							local playerPos2D = Vector3.new(root.Position.X, 0, root.Position.Z)
+							-- Check if player is trespassing inside any locked zone compound (radius < 50)
+							for lockedZoneId = maxZone + 1, #Config.Zones do
+								local lockedCenter = ZONE_CENTERS[lockedZoneId]
+								if lockedCenter then
+									local lockedPos2D = Vector3.new(lockedCenter.X, 0, lockedCenter.Z)
+									if (playerPos2D - lockedPos2D).Magnitude < 50 then
+										-- Trespassing! Safely bounce back to the player's highest unlocked zone center
+										local safeZoneId = math.clamp(maxZone, 1, #Config.Zones)
+										local safeCenter = ZONE_CENTERS[safeZoneId] or Vector3.new(0, 0, 0)
+										root.AssemblyLinearVelocity = Vector3.zero
+										root.AssemblyAngularVelocity = Vector3.zero
+										root.CFrame = CFrame.new(safeCenter + Vector3.new(0, 3.5, 0))
 
-									local now = os.clock()
-									if not patrolDebounces[player] or (now - patrolDebounces[player]) >= 1.0 then
-										patrolDebounces[player] = now
-										local notif = Remotes.getEvent("ShowNotification")
-										if notif then
-											notif:FireClient(
-												player,
-												"SECURITY LOCK",
-												string.format("Zone %d is locked! Unlock it with Scrap to enter.", nextZoneId),
-												Color3.fromRGB(255, 75, 75)
-											)
+										local now = os.clock()
+										if not patrolDebounces[player] or (now - patrolDebounces[player]) >= 1.0 then
+											patrolDebounces[player] = now
+											local notif = Remotes.getEvent("ShowNotification")
+											if notif then
+												notif:FireClient(
+													player,
+													"SECURITY LOCK",
+													string.format("Zone %d is locked! Unlock it with Scrap to enter.", lockedZoneId),
+													Color3.fromRGB(255, 75, 75)
+												)
+											end
 										end
+										break
 									end
 								end
 							end

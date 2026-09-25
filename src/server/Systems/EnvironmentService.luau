@@ -21,10 +21,10 @@ local EnvironmentService = {}
 
 local ZONE_CENTERS = {
 	[1] = Vector3.new(0, 0, 0),
-	[2] = Vector3.new(160, 0, 0),
-	[3] = Vector3.new(320, 0, 0),
-	[4] = Vector3.new(480, 0, 0),
-	[5] = Vector3.new(640, 0, 0),
+	[2] = Vector3.new(150, 0, -90),
+	[3] = Vector3.new(240, 0, 40),
+	[4] = Vector3.new(150, 0, 180),
+	[5] = Vector3.new(-20, 0, 200),
 }
 
 -- 1. Setup Celestial Cosmic Skybox, Fog, and Eye-Friendly Atmospheric Lighting (No Sun Glare)
@@ -101,10 +101,10 @@ function EnvironmentService.constructIslandUnderside(parent: Instance, centerPos
 	local rockColor = Color3.fromRGB(28, 30, 36)
 	local darkSteel = Color3.fromRGB(36, 40, 48)
 
-	-- Tier 1: Sub-surface Collar (Inset from platform rim)
+	-- Tier 1: Sub-surface Collar (Inset from oval platform rim)
 	local t1 = Instance.new("Part")
 	t1.Name = "RootTier1"
-	t1.Size = Vector3.new(94, 6, 164)
+	t1.Size = Vector3.new(94, 6, 82)
 	t1.Position = centerPos - Vector3.new(0, 5, 0)
 	t1.Anchored = true
 	t1.CanCollide = false
@@ -112,16 +112,18 @@ function EnvironmentService.constructIslandUnderside(parent: Instance, centerPos
 	t1.Color = rockColor
 	t1.Parent = undersideModel
 
-	-- Tier 2: 8 Angled Faceted Rock Boulders along the perimeter
+	-- Tier 2: 10 Angled Faceted Rock Boulders along the oval perimeter
 	local facetOffsets = {
-		{ Pos = Vector3.new(-38, -9, -65), Size = Vector3.new(24, 10, 32), Rot = Vector3.new(8, 12, -6) },
-		{ Pos = Vector3.new(38, -9, -65),  Size = Vector3.new(24, 10, 32), Rot = Vector3.new(8, -12, 6) },
-		{ Pos = Vector3.new(-38, -9, 65),  Size = Vector3.new(24, 10, 32), Rot = Vector3.new(-8, 12, -6) },
-		{ Pos = Vector3.new(38, -9, 65),   Size = Vector3.new(24, 10, 32), Rot = Vector3.new(-8, -12, 6) },
-		{ Pos = Vector3.new(-42, -9, 0),   Size = Vector3.new(18, 12, 45), Rot = Vector3.new(0, 5, -8) },
-		{ Pos = Vector3.new(42, -9, 0),    Size = Vector3.new(18, 12, 45), Rot = Vector3.new(0, -5, 8) },
-		{ Pos = Vector3.new(0, -9, -74),   Size = Vector3.new(38, 10, 20), Rot = Vector3.new(8, 0, 0) },
-		{ Pos = Vector3.new(0, -9, 74),    Size = Vector3.new(38, 10, 20), Rot = Vector3.new(-8, 0, 0) },
+		{ Pos = Vector3.new(-38, -9, -30), Size = Vector3.new(24, 10, 24), Rot = Vector3.new(8, 12, -6) },
+		{ Pos = Vector3.new(38, -9, -30),  Size = Vector3.new(24, 10, 24), Rot = Vector3.new(8, -12, 6) },
+		{ Pos = Vector3.new(-38, -9, 30),  Size = Vector3.new(24, 10, 24), Rot = Vector3.new(-8, 12, -6) },
+		{ Pos = Vector3.new(38, -9, 30),   Size = Vector3.new(24, 10, 24), Rot = Vector3.new(-8, -12, 6) },
+		{ Pos = Vector3.new(-45, -9, 0),   Size = Vector3.new(20, 12, 32), Rot = Vector3.new(0, 5, -8) },
+		{ Pos = Vector3.new(45, -9, 0),    Size = Vector3.new(20, 12, 32), Rot = Vector3.new(0, -5, 8) },
+		{ Pos = Vector3.new(0, -9, -38),   Size = Vector3.new(34, 10, 20), Rot = Vector3.new(8, 0, 0) },
+		{ Pos = Vector3.new(0, -9, 38),    Size = Vector3.new(34, 10, 20), Rot = Vector3.new(-8, 0, 0) },
+		{ Pos = Vector3.new(-22, -9, -34), Size = Vector3.new(22, 10, 22), Rot = Vector3.new(6, 18, -4) },
+		{ Pos = Vector3.new(22, -9, 34),   Size = Vector3.new(22, 10, 22), Rot = Vector3.new(-6, -18, 4) },
 	}
 
 	for i, f in ipairs(facetOffsets) do
@@ -139,7 +141,7 @@ function EnvironmentService.constructIslandUnderside(parent: Instance, centerPos
 	-- Tier 3: Mid Keel Asteroid Body
 	local t3 = Instance.new("Part")
 	t3.Name = "RootTier3"
-	t3.Size = Vector3.new(68, 12, 118)
+	t3.Size = Vector3.new(68, 12, 60)
 	t3.Position = centerPos - Vector3.new(0, 14, 0)
 	t3.Anchored = true
 	t3.CanCollide = false
@@ -150,7 +152,7 @@ function EnvironmentService.constructIslandUnderside(parent: Instance, centerPos
 	-- Tier 4: Lower Spire Keel
 	local t4 = Instance.new("Part")
 	t4.Name = "RootTier4"
-	t4.Size = Vector3.new(42, 14, 72)
+	t4.Size = Vector3.new(44, 14, 40)
 	t4.Position = centerPos - Vector3.new(0, 25, 0)
 	t4.Anchored = true
 	t4.CanCollide = false
@@ -161,7 +163,7 @@ function EnvironmentService.constructIslandUnderside(parent: Instance, centerPos
 	-- Tier 5: Bottom Stalactite Tip
 	local t5 = Instance.new("Part")
 	t5.Name = "RootTier5"
-	t5.Size = Vector3.new(18, 14, 30)
+	t5.Size = Vector3.new(20, 14, 18)
 	t5.Position = centerPos - Vector3.new(0, 36, 0)
 	t5.Anchored = true
 	t5.CanCollide = false
@@ -264,10 +266,10 @@ function EnvironmentService.constructIslandUnderside(parent: Instance, centerPos
 
 	-- 4 Auxiliary Corner Stabilization Thrusters
 	local cornerCoords = {
-		Vector3.new(-36, -9, -60),
-		Vector3.new(36, -9, -60),
-		Vector3.new(-36, -9, 60),
-		Vector3.new(36, -9, 60),
+		Vector3.new(-34, -9, -28),
+		Vector3.new(34, -9, -28),
+		Vector3.new(-34, -9, 28),
+		Vector3.new(34, -9, 28),
 	}
 
 	for cIdx, cPos in ipairs(cornerCoords) do
@@ -311,7 +313,25 @@ function EnvironmentService.constructIslandUnderside(parent: Instance, centerPos
 end
 
 -- 3. Construct Bridge Undercarriage (Longitudinal Box Girders, Cross Trusses & Magnetic Stabilizers)
-function EnvironmentService.constructBridgeUnderside(parent: Instance, fromCenter: Vector3, toCenter: Vector3, bridgeX: number, bridgeLength: number, bridgeWidth: number, targetZoneId: number)
+function EnvironmentService.constructBridgeUnderside(parent: Instance, arg2: any, arg3: any, arg4: any, arg5: any, arg6: any, arg7: any)
+	local bridgeCF: CFrame
+	local bridgeLength: number
+	local bridgeWidth: number
+	local targetZoneId: number
+
+	if typeof(arg2) == "CFrame" then
+		bridgeCF = arg2
+		bridgeLength = arg3 or 40
+		bridgeWidth = arg4 or 16
+		targetZoneId = arg5 or 2
+	else
+		local bridgeX = arg4 or 0
+		bridgeLength = arg5 or 40
+		bridgeWidth = arg6 or 16
+		targetZoneId = arg7 or 2
+		bridgeCF = CFrame.new(bridgeX, -2, 0)
+	end
+
 	local bridgeModel = Instance.new("Model")
 	bridgeModel.Name = "BridgeUnderside_Zone" .. tostring(targetZoneId)
 
@@ -319,11 +339,11 @@ function EnvironmentService.constructBridgeUnderside(parent: Instance, fromCente
 	local steelColor = Color3.fromRGB(38, 42, 50)
 	local accentColor = Config.Zones[targetZoneId] and Config.Zones[targetZoneId].Color or Color3.fromRGB(80, 140, 200)
 
-	-- Dual Heavy Longitudinal Box Girders (North & South undersides)
+	-- Dual Heavy Longitudinal Box Girders
 	local beamN = Instance.new("Part")
 	beamN.Name = "GirderN"
 	beamN.Size = Vector3.new(bridgeLength, 3, 2)
-	beamN.Position = Vector3.new(bridgeX, -2.5, -9.5)
+	beamN.CFrame = bridgeCF * CFrame.new(0, -0.5, -(bridgeWidth / 2) + 1.2)
 	beamN.Anchored = true
 	beamN.CanCollide = false
 	beamN.Material = steelMat
@@ -332,17 +352,18 @@ function EnvironmentService.constructBridgeUnderside(parent: Instance, fromCente
 
 	local beamS = beamN:Clone()
 	beamS.Name = "GirderS"
-	beamS.Position = Vector3.new(bridgeX, -2.5, 9.5)
+	beamS.CFrame = bridgeCF * CFrame.new(0, -0.5, (bridgeWidth / 2) - 1.2)
 	beamS.Parent = bridgeModel
 
-	-- 5 Cross Trusses spaced along the bridge length
-	local trussStep = bridgeLength / 6
-	for i = 1, 5 do
-		local trussX = (bridgeX - (bridgeLength / 2)) + (i * trussStep)
+	-- Cross Trusses spaced along the bridge length
+	local trussCount = math.max(2, math.floor(bridgeLength / 12))
+	local trussStep = bridgeLength / (trussCount + 1)
+	for i = 1, trussCount do
+		local trussOffset = -(bridgeLength / 2) + (i * trussStep)
 		local crossTruss = Instance.new("Part")
 		crossTruss.Name = "CrossTruss_" .. tostring(i)
-		crossTruss.Size = Vector3.new(2, 2.2, bridgeWidth - 4)
-		crossTruss.Position = Vector3.new(trussX, -2.5, 0)
+		crossTruss.Size = Vector3.new(2, 2.2, math.max(4, bridgeWidth - 2.5))
+		crossTruss.CFrame = bridgeCF * CFrame.new(trussOffset, -0.5, 0)
 		crossTruss.Anchored = true
 		crossTruss.CanCollide = false
 		crossTruss.Material = steelMat
@@ -350,31 +371,12 @@ function EnvironmentService.constructBridgeUnderside(parent: Instance, fromCente
 		crossTruss.Parent = bridgeModel
 	end
 
-	-- Angled Structural Rock Abutment Brackets
-	local bracketW = Instance.new("Part")
-	bracketW.Size = Vector3.new(8, 12, bridgeWidth + 2)
-	bracketW.CFrame = CFrame.new(bridgeX - (bridgeLength / 2) + 3, -7, 0) * CFrame.Angles(0, 0, math.rad(-22))
-	bracketW.Anchored = true
-	bracketW.CanCollide = false
-	bracketW.Material = Enum.Material.Slate
-	bracketW.Color = Color3.fromRGB(25, 27, 34)
-	bracketW.Parent = bridgeModel
-
-	local bracketE = Instance.new("Part")
-	bracketE.Size = Vector3.new(8, 12, bridgeWidth + 2)
-	bracketE.CFrame = CFrame.new(bridgeX + (bridgeLength / 2) - 3, -7, 0) * CFrame.Angles(0, 0, math.rad(22))
-	bracketE.Anchored = true
-	bracketE.CanCollide = false
-	bracketE.Material = Enum.Material.Slate
-	bracketE.Color = Color3.fromRGB(25, 27, 34)
-	bracketE.Parent = bridgeModel
-
 	-- Mid-Span Magnetic Stabilizer Module
 	local magPod = Instance.new("Part")
 	magPod.Name = "MidSpanMagStabilizer"
 	magPod.Shape = Enum.PartType.Cylinder
-	magPod.Size = Vector3.new(4, 9, 9)
-	magPod.CFrame = CFrame.new(bridgeX, -4.5, 0) * CFrame.Angles(0, 0, math.rad(90))
+	magPod.Size = Vector3.new(3.5, 7.5, 7.5)
+	magPod.CFrame = bridgeCF * CFrame.new(0, -2.5, 0) * CFrame.Angles(0, 0, math.rad(90))
 	magPod.Anchored = true
 	magPod.CanCollide = false
 	magPod.Material = Enum.Material.Metal
@@ -383,7 +385,7 @@ function EnvironmentService.constructBridgeUnderside(parent: Instance, fromCente
 
 	local magCore = Instance.new("Part")
 	magCore.Shape = Enum.PartType.Cylinder
-	magCore.Size = Vector3.new(1.2, 9.8, 9.8)
+	magCore.Size = Vector3.new(1.0, 8.2, 8.2)
 	magCore.CFrame = magPod.CFrame
 	magCore.Anchored = true
 	magCore.CanCollide = false
@@ -391,11 +393,10 @@ function EnvironmentService.constructBridgeUnderside(parent: Instance, fromCente
 	magCore.Color = accentColor
 	magCore.Parent = bridgeModel
 
-	-- Soft downward anti-grav beam
 	local magLight = Instance.new("PointLight")
 	magLight.Color = accentColor
-	magLight.Brightness = 0.5
-	magLight.Range = 16
+	magLight.Brightness = 0.4
+	magLight.Range = 14
 	magLight.Parent = magCore
 
 	bridgeModel.Parent = parent
@@ -407,46 +408,33 @@ function EnvironmentService.constructSurfaceDressing(parent: Instance, centerPos
 	local dressFolder = Instance.new("Folder")
 	dressFolder.Name = "SurfaceDressing"
 
-	-- Main East-West Spine Catwalk (12 studs wide, 0.08 studs above platform to prevent z-fighting)
-	local spineWalk = Instance.new("Part")
-	spineWalk.Name = "CatwalkSpine"
-	spineWalk.Size = Vector3.new(96, 0.08, 12)
-	spineWalk.Position = centerPos + Vector3.new(0, 0.04, 0)
-	spineWalk.Anchored = true
-	spineWalk.CanCollide = true
-	spineWalk.Material = Enum.Material.DiamondPlate
-	spineWalk.Color = Color3.fromRGB(52, 56, 66)
-	spineWalk.Parent = dressFolder
+	-- Main Central Junkyard Spine Catwalks (Intersecting cross catwalk)
+	local spineWalkEW = Instance.new("Part")
+	spineWalkEW.Name = "CatwalkSpineEW"
+	spineWalkEW.Size = Vector3.new(72, 0.08, 10)
+	spineWalkEW.Position = centerPos + Vector3.new(0, 0.04, 0)
+	spineWalkEW.Anchored = true
+	spineWalkEW.CanCollide = true
+	spineWalkEW.Material = Enum.Material.DiamondPlate
+	spineWalkEW.Color = Color3.fromRGB(52, 56, 66)
+	spineWalkEW.Parent = dressFolder
 
-	-- North Branch Path leading toward Scrap Recycler
-	local northBranch = Instance.new("Part")
-	northBranch.Name = "CatwalkRecyclerBranch"
-	northBranch.Size = Vector3.new(10, 0.08, 62)
-	northBranch.Position = centerPos + Vector3.new(0, 0.04, -36)
-	northBranch.Anchored = true
-	northBranch.CanCollide = true
-	northBranch.Material = Enum.Material.DiamondPlate
-	northBranch.Color = Color3.fromRGB(48, 52, 60)
-	northBranch.Parent = dressFolder
-
-	-- South Branch Path leading toward Portal Pad & Egg Pod
-	local southBranch = Instance.new("Part")
-	southBranch.Name = "CatwalkPortalBranch"
-	southBranch.Size = Vector3.new(10, 0.08, 62)
-	southBranch.Position = centerPos + Vector3.new(0, 0.04, 36)
-	southBranch.Anchored = true
-	southBranch.CanCollide = true
-	southBranch.Material = Enum.Material.DiamondPlate
-	southBranch.Color = Color3.fromRGB(48, 52, 60)
-	southBranch.Parent = dressFolder
+	local spineWalkNS = Instance.new("Part")
+	spineWalkNS.Name = "CatwalkSpineNS"
+	spineWalkNS.Size = Vector3.new(10, 0.08, 64)
+	spineWalkNS.Position = centerPos + Vector3.new(0, 0.04, 0)
+	spineWalkNS.Anchored = true
+	spineWalkNS.CanCollide = true
+	spineWalkNS.Material = Enum.Material.DiamondPlate
+	spineWalkNS.Color = Color3.fromRGB(48, 52, 60)
+	spineWalkNS.Parent = dressFolder
 
 	-- Hazard Warning Border Bevels on Catwalk Edges
 	local hazardColor = Color3.fromRGB(235, 175, 25)
-	local darkStripColor = Color3.fromRGB(30, 32, 38)
 
 	local borderN = Instance.new("Part")
-	borderN.Size = Vector3.new(96, 0.12, 0.8)
-	borderN.Position = centerPos + Vector3.new(0, 0.06, -6)
+	borderN.Size = Vector3.new(72, 0.12, 0.8)
+	borderN.Position = centerPos + Vector3.new(0, 0.06, -5)
 	borderN.Anchored = true
 	borderN.CanCollide = false
 	borderN.Material = Enum.Material.SmoothPlastic
@@ -454,15 +442,15 @@ function EnvironmentService.constructSurfaceDressing(parent: Instance, centerPos
 	borderN.Parent = dressFolder
 
 	local borderS = borderN:Clone()
-	borderS.Position = centerPos + Vector3.new(0, 0.06, 6)
+	borderS.Position = centerPos + Vector3.new(0, 0.06, 5)
 	borderS.Parent = dressFolder
 
-	-- 4 Heavy Industrial Corner Floodlight Towers
+	-- 4 Heavy Industrial Perimeter Floodlight Towers
 	local floodCoords = {
-		Vector3.new(-45, 0, -78),
-		Vector3.new(45, 0, -78),
-		Vector3.new(-45, 0, 78),
-		Vector3.new(45, 0, 78),
+		Vector3.new(-38, 0, -30),
+		Vector3.new(38, 0, -30),
+		Vector3.new(-38, 0, 30),
+		Vector3.new(38, 0, 30),
 	}
 
 	for fIdx, fPos in ipairs(floodCoords) do
@@ -511,8 +499,8 @@ function EnvironmentService.constructSurfaceDressing(parent: Instance, centerPos
 
 		-- Soft Halogen Pool of Light
 		local light = Instance.new("PointLight")
-		light.Brightness = 1.15
-		light.Range = 46
+		light.Brightness = 1.05
+		light.Range = 44
 		light.Color = Color3.fromRGB(250, 240, 225)
 		light.Shadows = false
 		light.Parent = bulb
@@ -520,10 +508,10 @@ function EnvironmentService.constructSurfaceDressing(parent: Instance, centerPos
 		tower.Parent = dressFolder
 	end
 
-	-- Edge Prop Clusters (Neatly placed along the empty side corners away from nodes)
+	-- Edge Prop Clusters (Industrial Cargo Container, Stacked Barrels, Steam Vent)
 	local propClusters = {
-		Vector3.new(-42, 0, -60),
-		Vector3.new(42, 0, 60),
+		Vector3.new(-34, 0, -26),
+		Vector3.new(34, 0, 26),
 	}
 
 	for pIdx, pPos in ipairs(propClusters) do
@@ -539,7 +527,7 @@ function EnvironmentService.constructSurfaceDressing(parent: Instance, centerPos
 
 		-- Stacked Salvage Barrels
 		for bIdx = 1, 3 do
-			local bOffset = Vector3.new((bIdx == 1 and 4) or (bIdx == 2 and 4) or 4, 1.5, (bIdx == 1 and -2) or (bIdx == 2 and 2) or 0)
+			local bOffset = Vector3.new(4, 1.5, (bIdx - 2) * 2)
 			local barrel = Instance.new("Part")
 			barrel.Shape = Enum.PartType.Cylinder
 			barrel.Size = Vector3.new(3, 2.2, 2.2)
@@ -553,7 +541,7 @@ function EnvironmentService.constructSurfaceDressing(parent: Instance, centerPos
 		-- Steam Exhaust Vent
 		local vent = Instance.new("Part")
 		vent.Size = Vector3.new(2, 2, 2)
-		vent.Position = centerPos + pPos + Vector3.new(-5, 1, 0)
+		vent.Position = centerPos + pPos + Vector3.new(-4.5, 1, 0)
 		vent.Anchored = true
 		vent.Material = Enum.Material.DiamondPlate
 		vent.Color = Color3.fromRGB(40, 44, 52)
@@ -591,24 +579,26 @@ function EnvironmentService.constructBackgroundVistas()
 	-- A. Floating Asteroid Belt (20 distant rocky asteroid chunks drifting in the void)
 	local asteroidCoords = {
 		-- North void background
-		{ Pos = Vector3.new(-120, 40, -320), Size = Vector3.new(45, 30, 50), Rot = Vector3.new(15, 25, -10) },
-		{ Pos = Vector3.new(0, 70, -360),    Size = Vector3.new(65, 45, 70), Rot = Vector3.new(-10, 45, 15) },
-		{ Pos = Vector3.new(140, 25, -310),  Size = Vector3.new(38, 28, 42), Rot = Vector3.new(20, -15, 5) },
-		{ Pos = Vector3.new(280, 85, -380),  Size = Vector3.new(55, 40, 60), Rot = Vector3.new(-15, 30, -25) },
-		{ Pos = Vector3.new(420, 35, -330),  Size = Vector3.new(42, 32, 48), Rot = Vector3.new(10, -35, 12) },
-		{ Pos = Vector3.new(560, 65, -370),  Size = Vector3.new(70, 50, 75), Rot = Vector3.new(-25, 10, 20) },
-		{ Pos = Vector3.new(720, 30, -340),  Size = Vector3.new(50, 35, 55), Rot = Vector3.new(18, 50, -8) },
+		{ Pos = Vector3.new(-100, 40, -280), Size = Vector3.new(45, 30, 50), Rot = Vector3.new(15, 25, -10) },
+		{ Pos = Vector3.new(40, 70, -320),   Size = Vector3.new(65, 45, 70), Rot = Vector3.new(-10, 45, 15) },
+		{ Pos = Vector3.new(180, 25, -270),  Size = Vector3.new(38, 28, 42), Rot = Vector3.new(20, -15, 5) },
+		{ Pos = Vector3.new(320, 85, -240),  Size = Vector3.new(55, 40, 60), Rot = Vector3.new(-15, 30, -25) },
+		-- East void background
+		{ Pos = Vector3.new(420, 35, -50),   Size = Vector3.new(42, 32, 48), Rot = Vector3.new(10, -35, 12) },
+		{ Pos = Vector3.new(450, 65, 80),    Size = Vector3.new(70, 50, 75), Rot = Vector3.new(-25, 10, 20) },
+		{ Pos = Vector3.new(380, 30, 220),   Size = Vector3.new(50, 35, 55), Rot = Vector3.new(18, 50, -8) },
 		-- South void background
-		{ Pos = Vector3.new(-100, 50, 330),  Size = Vector3.new(40, 30, 45), Rot = Vector3.new(-12, 20, 15) },
-		{ Pos = Vector3.new(60, 80, 370),    Size = Vector3.new(60, 42, 65), Rot = Vector3.new(15, -40, -10) },
-		{ Pos = Vector3.new(220, 30, 320),   Size = Vector3.new(48, 34, 52), Rot = Vector3.new(-18, 15, 22) },
-		{ Pos = Vector3.new(380, 90, 390),   Size = Vector3.new(68, 48, 72), Rot = Vector3.new(25, -25, -15) },
-		{ Pos = Vector3.new(520, 45, 340),   Size = Vector3.new(52, 36, 56), Rot = Vector3.new(-10, 35, 18) },
-		{ Pos = Vector3.new(680, 75, 380),   Size = Vector3.new(62, 44, 68), Rot = Vector3.new(20, -15, -20) },
-		{ Pos = Vector3.new(820, 20, 330),   Size = Vector3.new(44, 30, 50), Rot = Vector3.new(-15, 45, 10) },
+		{ Pos = Vector3.new(240, 50, 340),   Size = Vector3.new(40, 30, 45), Rot = Vector3.new(-12, 20, 15) },
+		{ Pos = Vector3.new(80, 80, 370),    Size = Vector3.new(60, 42, 65), Rot = Vector3.new(15, -40, -10) },
+		{ Pos = Vector3.new(-80, 30, 360),   Size = Vector3.new(48, 34, 52), Rot = Vector3.new(-18, 15, 22) },
+		{ Pos = Vector3.new(-200, 90, 280),  Size = Vector3.new(68, 48, 72), Rot = Vector3.new(25, -25, -15) },
+		-- West void background
+		{ Pos = Vector3.new(-260, 45, 140),  Size = Vector3.new(52, 36, 56), Rot = Vector3.new(-10, 35, 18) },
+		{ Pos = Vector3.new(-250, 75, -20),  Size = Vector3.new(62, 44, 68), Rot = Vector3.new(20, -15, -20) },
+		{ Pos = Vector3.new(-220, 20, -160), Size = Vector3.new(44, 30, 50), Rot = Vector3.new(-15, 45, 10) },
 		-- Low abyss background
-		{ Pos = Vector3.new(100, -70, -260), Size = Vector3.new(75, 45, 80), Rot = Vector3.new(5, 15, -5) },
-		{ Pos = Vector3.new(500, -80, 280),  Size = Vector3.new(85, 50, 90), Rot = Vector3.new(-5, -20, 10) },
+		{ Pos = Vector3.new(100, -70, 40),   Size = Vector3.new(75, 45, 80), Rot = Vector3.new(5, 15, -5) },
+		{ Pos = Vector3.new(-40, -80, 120),  Size = Vector3.new(85, 50, 90), Rot = Vector3.new(-5, -20, 10) },
 	}
 
 	for aIdx, a in ipairs(asteroidCoords) do
@@ -630,7 +620,7 @@ function EnvironmentService.constructBackgroundVistas()
 
 	local craneMast = Instance.new("Part")
 	craneMast.Size = Vector3.new(8, 90, 8)
-	craneMast.Position = Vector3.new(-75, 42, -260)
+	craneMast.Position = Vector3.new(-65, 42, -220)
 	craneMast.Anchored = true
 	craneMast.CanCollide = false
 	craneMast.CastShadow = false
@@ -640,7 +630,7 @@ function EnvironmentService.constructBackgroundVistas()
 
 	local craneArm = Instance.new("Part")
 	craneArm.Size = Vector3.new(70, 6, 6)
-	craneArm.Position = Vector3.new(-45, 84, -260)
+	craneArm.Position = Vector3.new(-35, 84, -220)
 	craneArm.Anchored = true
 	craneArm.CanCollide = false
 	craneArm.CastShadow = false
@@ -651,7 +641,7 @@ function EnvironmentService.constructBackgroundVistas()
 	-- Dangling salvage cable
 	local cable = Instance.new("Part")
 	cable.Size = Vector3.new(0.6, 45, 0.6)
-	cable.Position = Vector3.new(-25, 60, -260)
+	cable.Position = Vector3.new(-15, 60, -220)
 	cable.Anchored = true
 	cable.CanCollide = false
 	cable.CastShadow = false
@@ -662,7 +652,7 @@ function EnvironmentService.constructBackgroundVistas()
 	-- Blinking red aircraft beacon light on crane peak
 	local beacon = Instance.new("Part")
 	beacon.Size = Vector3.new(1.5, 1.5, 1.5)
-	beacon.Position = Vector3.new(-75, 88, -260)
+	beacon.Position = Vector3.new(-65, 88, -220)
 	beacon.Anchored = true
 	beacon.CanCollide = false
 	beacon.CastShadow = false
@@ -672,14 +662,14 @@ function EnvironmentService.constructBackgroundVistas()
 
 	craneModel.Parent = vistasFolder
 
-	-- C. Zone 3 Vista: Molten Lava Fall Cascading off the North Platform into the Abyss
+	-- C. Zone 3 Vista: Molten Lava Fall Cascading off into the Abyss
 	local lavaFallModel = Instance.new("Model")
 	lavaFallModel.Name = "Vista_LavaFall"
 
 	local lavaStream = Instance.new("Part")
 	lavaStream.Name = "LavaStream"
 	lavaStream.Size = Vector3.new(16, 75, 1.5)
-	lavaStream.Position = Vector3.new(320, -35, -86)
+	lavaStream.Position = Vector3.new(370, -35, 40)
 	lavaStream.Anchored = true
 	lavaStream.CanCollide = false
 	lavaStream.CastShadow = false
@@ -705,11 +695,11 @@ function EnvironmentService.constructBackgroundVistas()
 
 	-- Background Blast Furnace Smokestacks
 	for s = 1, 2 do
-		local sX = (s == 1 and 305) or 335
+		local sX = (s == 1 and 350) or 380
 		local stack = Instance.new("Part")
 		stack.Shape = Enum.PartType.Cylinder
 		stack.Size = Vector3.new(65, 9, 9)
-		stack.CFrame = CFrame.new(sX, 25, -280) * CFrame.Angles(0, 0, math.rad(90))
+		stack.CFrame = CFrame.new(sX, 25, -20) * CFrame.Angles(0, 0, math.rad(90))
 		stack.Anchored = true
 		stack.CanCollide = false
 		stack.CastShadow = false
@@ -739,7 +729,7 @@ function EnvironmentService.constructBackgroundVistas()
 	local ringCore = Instance.new("Part")
 	ringCore.Shape = Enum.PartType.Cylinder
 	ringCore.Size = Vector3.new(2.5, 50, 50)
-	ringCore.CFrame = CFrame.new(480, 65, -280) * CFrame.Angles(math.rad(30), math.rad(25), 0)
+	ringCore.CFrame = CFrame.new(250, 65, 310) * CFrame.Angles(math.rad(30), math.rad(25), 0)
 	ringCore.Anchored = true
 	ringCore.CanCollide = false
 	ringCore.CastShadow = false
@@ -768,7 +758,7 @@ function EnvironmentService.constructBackgroundVistas()
 	-- Main Supercarrier Bow Hull (Tilted broken command deck)
 	local shipBow = Instance.new("Part")
 	shipBow.Size = Vector3.new(75, 35, 110)
-	shipBow.CFrame = CFrame.new(670, 48, -310) * CFrame.Angles(math.rad(-18), math.rad(35), math.rad(15))
+	shipBow.CFrame = CFrame.new(-160, 48, 320) * CFrame.Angles(math.rad(-18), math.rad(35), math.rad(15))
 	shipBow.Anchored = true
 	shipBow.CanCollide = false
 	shipBow.CastShadow = false
@@ -793,7 +783,7 @@ function EnvironmentService.constructBackgroundVistas()
 	vortex.Name = "SingularityVortex"
 	vortex.Shape = Enum.PartType.Ball
 	vortex.Size = Vector3.new(50, 50, 50)
-	vortex.Position = Vector3.new(800, 60, 0)
+	vortex.Position = Vector3.new(-80, 70, 450)
 	vortex.Anchored = true
 	vortex.CanCollide = false
 	vortex.CastShadow = false

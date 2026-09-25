@@ -25,13 +25,13 @@ local function safeFireAllClients(remote: RemoteEvent, ...)
 	end
 end
 
--- Zone center coordinates on the X-axis (platforms are 100 x 170)
+-- Zone center coordinates in the scrap archipelago
 local ZONE_CENTERS: { [number]: Vector3 } = {
 	[1] = Vector3.new(0, 1.0, 0),
-	[2] = Vector3.new(160, 1.0, 0),
-	[3] = Vector3.new(320, 1.0, 0),
-	[4] = Vector3.new(480, 1.0, 0),
-	[5] = Vector3.new(640, 1.0, 0),
+	[2] = Vector3.new(150, 1.0, -90),
+	[3] = Vector3.new(240, 1.0, 40),
+	[4] = Vector3.new(150, 1.0, 180),
+	[5] = Vector3.new(-20, 1.0, 200),
 }
 
 local rng = Random.new()
@@ -88,11 +88,11 @@ end
 
 -- Guaranteed open and unobstructed fallback coordinates per zone
 local GUARANTEED_ZONE_LANDINGS: { [number]: { Pos: Vector3, Sector: string } } = {
-	[1] = { Pos = Vector3.new(0, 1.0, 36), Sector = "Southern Courtyard" },
-	[2] = { Pos = Vector3.new(160, 1.0, 0), Sector = "Central Courtyard" },
-	[3] = { Pos = Vector3.new(320, 1.0, 0), Sector = "Central Courtyard" },
-	[4] = { Pos = Vector3.new(480, 1.0, 0), Sector = "Central Courtyard" },
-	[5] = { Pos = Vector3.new(640, 1.0, 0), Sector = "Central Courtyard" },
+	[1] = { Pos = Vector3.new(0, 1.0, 16), Sector = "Central Yard" },
+	[2] = { Pos = Vector3.new(150, 1.0, -90), Sector = "Crusher Bay" },
+	[3] = { Pos = Vector3.new(240, 1.0, 40), Sector = "Smelting Core" },
+	[4] = { Pos = Vector3.new(150, 1.0, 180), Sector = "Quantum Concourse" },
+	[5] = { Pos = Vector3.new(-20, 1.0, 200), Sector = "Impact Basin" },
 }
 
 -- Fair zone rotation that avoids consecutive repeats unless explicitly requested
@@ -120,13 +120,14 @@ local function pickLandingPosition(targetZoneId: number?): (Vector3, string, num
 	local zoneCenter = ZONE_CENTERS[zoneId] or Vector3.new(0, 1.0, 0)
 	local zone = Config.Zones[zoneId] or Config.Zones[1]
 	local interactables = getInteractables()
-	local minClearance = 18 -- Minimum distance in studs from any interactable or node
+	local minClearance = 16 -- Minimum distance in studs from any interactable or node
 
-	-- Attempt 40 candidate coordinates across the platform
+	-- Attempt 40 candidate coordinates across the circular/oval platform
 	for _ = 1, 40 do
-		-- Platform size is 100 (X) x 170 (Z). Keep safe bounds inside [-32, 32] on X and [-55, 55] on Z
-		local candX = zoneCenter.X + rng:NextNumber(-32, 32)
-		local candZ = rng:NextNumber(-55, 55)
+		local angle = rng:NextNumber(0, math.pi * 2)
+		local dist = rng:NextNumber(6, 32)
+		local candX = zoneCenter.X + math.cos(angle) * dist
+		local candZ = zoneCenter.Z + math.sin(angle) * dist
 		local candidate = Vector3.new(candX, 1.0, candZ)
 
 		local safe = true
@@ -139,7 +140,8 @@ local function pickLandingPosition(targetZoneId: number?): (Vector3, string, num
 		end
 
 		if safe then
-			local sector = candZ > 20 and "Southern Courtyard" or (candZ < -20 and "Northern Perimeter" or "Central Plaza")
+			local dZ = candZ - zoneCenter.Z
+			local sector = dZ > 10 and "Southern Perimeter" or (dZ < -10 and "Northern Perimeter" or "Central Yard")
 			local locationName = string.format("%s of %s", sector, zone.Name)
 			return candidate, locationName, zoneId
 		end
@@ -447,7 +449,7 @@ function EventService.triggerDropPod(forcedPos: Vector3?, targetZoneId: number?,
 		locationName = "Custom Coords"
 		zoneId = 1
 		for zId, center in pairs(ZONE_CENTERS) do
-			if math.abs(forcedPos.X - center.X) <= 50 then
+			if (Vector3.new(forcedPos.X, 0, forcedPos.Z) - Vector3.new(center.X, 0, center.Z)).Magnitude <= 55 then
 				zoneId = zId
 				local zConf = Config.Zones[zId]
 				if zConf then
