@@ -12,7 +12,7 @@
 
 When picking up tasks on this repository, follow this standard operational loop:
 
-1. **Read This Document First**: Understand the system architecture, file structure, and hard constraints before modifying code.
+1. **Read This Document or Activate Skill**: Understand the system architecture, file structure, and hard constraints before modifying code. A dedicated Agent Skill is available at [`SKILL.md`](SKILL.md) and [`.agents/skills/scrap-odyssey/SKILL.md`](.agents/skills/scrap-odyssey/SKILL.md).
 2. **Edit Source Files Locally**: All production game code resides inside `src/`.
 3. **Deploy to Roblox Studio**: Always synchronize code changes to the running Roblox Studio session:
    ```powershell
