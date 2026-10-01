@@ -37,43 +37,115 @@ function ZoneService.setupLighting()
 	EnvironmentService.setupAtmosphereAndSky()
 end
 
--- Helper to create a Fast-Travel Portal Pad on any platform (Stepped 3-tier cylinder design: 100% zero Z-fighting)
+-- Helper to create a Fast-Travel Portal Pad on any platform (Quantum Displacement Platform)
 local function createPortalPad(parent: Instance, position: Vector3, zoneId: number)
 	local terminalModel = Instance.new("Model")
 	terminalModel.Name = "FastTravelTerminal_Zone" .. tostring(zoneId)
 
-	-- Foundation Ring Base
+	-- 1. Heavy Foundation Platform & Power Conduits
 	local foundation = Instance.new("Model")
 	foundation.Name = "Foundation"
 	foundation.Parent = terminalModel
 
-	-- Tier 1: Outer Heavy Foundation Base Ring (Bottom at Y=0, Top at Y=0.45)
+	-- Outer Heavy Octagonal/Circular Stepped Base Ring
 	local baseRing = Instance.new("Part")
 	baseRing.Name = "BaseRing"
 	baseRing.Shape = Enum.PartType.Cylinder
-	baseRing.Size = Vector3.new(0.45, 8.6, 8.6)
+	baseRing.Size = Vector3.new(0.45, 9.2, 9.2)
 	baseRing.Position = Vector3.new(position.X, 0.225, position.Z)
 	baseRing.Orientation = Vector3.new(0, 0, 90)
 	baseRing.Anchored = true
 	baseRing.CanCollide = true
 	baseRing.Material = Enum.Material.DiamondPlate
-	baseRing.Color = Color3.fromRGB(30, 32, 40)
+	baseRing.Color = Color3.fromRGB(26, 28, 36)
 	baseRing.Parent = foundation
 
-	-- Tier 2: Mid Beveled Steel Collar Frame (Bottom at Y=0.05, Top at Y=0.55)
+	-- Mid Beveled Steel Collar Frame
 	local padRim = Instance.new("Part")
 	padRim.Name = "CollarRim"
 	padRim.Shape = Enum.PartType.Cylinder
-	padRim.Size = Vector3.new(0.50, 7.8, 7.8)
+	padRim.Size = Vector3.new(0.50, 8.2, 8.2)
 	padRim.Position = Vector3.new(position.X, 0.30, position.Z)
 	padRim.Orientation = Vector3.new(0, 0, 90)
 	padRim.Anchored = true
 	padRim.CanCollide = true
 	padRim.Material = Enum.Material.Metal
-	padRim.Color = Color3.fromRGB(55, 58, 70)
+	padRim.Color = Color3.fromRGB(48, 52, 64)
 	padRim.Parent = foundation
 
-	-- Tier 3: Inner Elevated Active Purple Warp Pad
+	-- Recessed Power Conduit Ring (Glow Inlay)
+	local conduitRing = Instance.new("Part")
+	conduitRing.Name = "PowerConduitRing"
+	conduitRing.Shape = Enum.PartType.Cylinder
+	conduitRing.Size = Vector3.new(0.52, 7.4, 7.4)
+	conduitRing.Position = Vector3.new(position.X, 0.32, position.Z)
+	conduitRing.Orientation = Vector3.new(0, 0, 90)
+	conduitRing.Anchored = true
+	conduitRing.CanCollide = false
+	conduitRing.Material = Enum.Material.Neon
+	conduitRing.Color = Color3.fromRGB(140, 70, 220)
+	conduitRing.Parent = foundation
+
+	-- 2. Four Quantum Focus Pylons angled around the platform perimeter
+	local pylonsGroup = Instance.new("Model")
+	pylonsGroup.Name = "FocusPylons"
+	pylonsGroup.Parent = terminalModel
+
+	local pylonAngles = { 45, 135, 225, 315 }
+	for pIdx, angleDeg in ipairs(pylonAngles) do
+		local rad = math.rad(angleDeg)
+		local px = position.X + math.cos(rad) * 4.2
+		local pz = position.Z + math.sin(rad) * 4.2
+
+		local pylon = Instance.new("Model")
+		pylon.Name = "Pylon_" .. tostring(pIdx)
+		pylon.Parent = pylonsGroup
+
+		-- Pylon Base Mount
+		local pBase = Instance.new("Part")
+		pBase.Name = "Mount"
+		pBase.Size = Vector3.new(1.2, 0.8, 1.2)
+		pBase.Position = Vector3.new(px, 0.6, pz)
+		pBase.CFrame = CFrame.new(pBase.Position, Vector3.new(position.X, 0.6, position.Z))
+		pBase.Anchored = true
+		pBase.Material = Enum.Material.Metal
+		pBase.Color = Color3.fromRGB(35, 38, 48)
+		pBase.Parent = pylon
+
+		-- Angled Pylon Body leaning towards center
+		local pBody = Instance.new("Part")
+		pBody.Name = "EmitterBody"
+		pBody.Size = Vector3.new(0.8, 2.2, 0.8)
+		local pLook = CFrame.new(Vector3.new(px, 1.5, pz), Vector3.new(position.X, 2.2, position.Z))
+		pBody.CFrame = pLook * CFrame.Angles(math.rad(15), 0, 0)
+		pBody.Anchored = true
+		pBody.Material = Enum.Material.DiamondPlate
+		pBody.Color = Color3.fromRGB(42, 45, 56)
+		pBody.Parent = pylon
+
+		-- Copper Magnetic Coils
+		local pCoil = Instance.new("Part")
+		pCoil.Name = "MagneticCoil"
+		pCoil.Size = Vector3.new(0.95, 0.8, 0.95)
+		pCoil.CFrame = pBody.CFrame * CFrame.new(0, -0.2, 0)
+		pCoil.Anchored = true
+		pCoil.Material = Enum.Material.Foil
+		pCoil.Color = Color3.fromRGB(205, 120, 50)
+		pCoil.Parent = pylon
+
+		-- Glowing Focus Crystal Tip
+		local pCrystal = Instance.new("Part")
+		pCrystal.Name = "FocusCrystal"
+		pCrystal.Shape = Enum.PartType.Ball
+		pCrystal.Size = Vector3.new(0.7, 0.7, 0.7)
+		pCrystal.CFrame = pBody.CFrame * CFrame.new(0, 1.2, 0)
+		pCrystal.Anchored = true
+		pCrystal.Material = Enum.Material.Neon
+		pCrystal.Color = Color3.fromRGB(195, 115, 255)
+		pCrystal.Parent = pylon
+	end
+
+	-- 3. Inner Elevated Active Warp Pad & Swirling Vortex Field
 	local warpPadGroup = Instance.new("Model")
 	warpPadGroup.Name = "WarpPlatform"
 	warpPadGroup.Parent = terminalModel
@@ -87,20 +159,47 @@ local function createPortalPad(parent: Instance, position: Vector3, zoneId: numb
 	pad.Anchored = true
 	pad.CanCollide = true
 	pad.Material = Enum.Material.SmoothPlastic
-	pad.Color = Color3.fromRGB(160, 85, 235)
+	pad.Color = Color3.fromRGB(150, 75, 230)
 	pad.Parent = warpPadGroup
 
+	-- Translucent Vortex Energy Disc atop the pad
+	local energyDisc = Instance.new("Part")
+	energyDisc.Name = "VortexEnergyDisc"
+	energyDisc.Shape = Enum.PartType.Cylinder
+	energyDisc.Size = Vector3.new(0.08, 6.2, 6.2)
+	energyDisc.Position = Vector3.new(position.X, 0.45, position.Z)
+	energyDisc.Orientation = Vector3.new(0, 0, 90)
+	energyDisc.Anchored = true
+	energyDisc.CanCollide = false
+	energyDisc.Material = Enum.Material.Neon
+	energyDisc.Color = Color3.fromRGB(190, 120, 255)
+	energyDisc.Transparency = 0.4
+	energyDisc.Parent = warpPadGroup
+
+	-- Subtle Quantum Warp Particle Spark Emitter
+	local warpSparks = Instance.new("ParticleEmitter")
+	warpSparks.Name = "WarpSparks"
+	warpSparks.Color = ColorSequence.new(Color3.fromRGB(210, 140, 255))
+	warpSparks.Size = NumberSequence.new(0.15, 0.35)
+	warpSparks.Transparency = NumberSequence.new(0.2, 1.0)
+	warpSparks.Rate = 16
+	warpSparks.Lifetime = NumberRange.new(1.0, 1.8)
+	warpSparks.Speed = NumberRange.new(2.5, 4.5)
+	warpSparks.SpreadAngle = Vector2.new(15, 15)
+	warpSparks.Acceleration = Vector3.new(0, 2, 0)
+	warpSparks.Parent = pad
+
 	local portalLight = Instance.new("PointLight")
-	portalLight.Color = Color3.fromRGB(180, 100, 255)
-	portalLight.Brightness = 0.8
-	portalLight.Range = 10
+	portalLight.Color = Color3.fromRGB(190, 110, 255)
+	portalLight.Brightness = 1.2
+	portalLight.Range = 14
 	portalLight.Parent = pad
 
 	local bb = Instance.new("BillboardGui")
-	bb.Size = UDim2.new(0, 160, 0, 45)
-	bb.StudsOffset = Vector3.new(0, 4, 0)
+	bb.Size = UDim2.new(0, 180, 0, 50)
+	bb.StudsOffset = Vector3.new(0, 4.8, 0)
 	bb.AlwaysOnTop = false
-	bb.MaxDistance = 32
+	bb.MaxDistance = 36
 	bb.Parent = pad
 
 	local lbl = Instance.new("TextLabel")
@@ -108,15 +207,15 @@ local function createPortalPad(parent: Instance, position: Vector3, zoneId: numb
 	lbl.BackgroundTransparency = 1
 	lbl.Font = Enum.Font.GothamBlack
 	lbl.TextSize = 13
-	lbl.TextColor3 = Color3.fromRGB(220, 170, 255)
-	lbl.TextStrokeTransparency = 0.2
+	lbl.TextColor3 = Color3.fromRGB(230, 185, 255)
+	lbl.TextStrokeTransparency = 0.15
 	lbl.TextStrokeColor3 = Color3.new(0, 0, 0)
-	lbl.Text = "FAST TRAVEL TERMINAL\n[Press E or Step to Navigate]"
+	lbl.Text = "QUANTUM DISPLACEMENT PAD\n[Press E or Step to Warp]"
 	lbl.Parent = bb
 
 	local prompt = Instance.new("ProximityPrompt")
-	prompt.ObjectText = "Fast Travel"
-	prompt.ActionText = "Open Map"
+	prompt.ObjectText = "Quantum Pad"
+	prompt.ActionText = "Displace"
 	prompt.HoldDuration = 0.1
 	prompt.MaxActivationDistance = 12
 	prompt.RequiresLineOfSight = false
@@ -151,46 +250,116 @@ local function createPortalPad(parent: Instance, position: Vector3, zoneId: numb
 	return terminalModel
 end
 
--- 2. Helper to build an Industrial Scrap Recycler with furnace core, smokestacks, and green deposit pad
+-- 2. Helper to build an Industrial Scrap Recycler with furnace core, smokestacks, shredder maw, and conveyor deposit pad
 function ZoneService.constructRecycler(parent: Instance, basePos: Vector3, zoneId: number): Model
 	local recyclerModel = Instance.new("Model")
 	recyclerModel.Name = "ScrapRecycler_Zone" .. tostring(zoneId)
 
-	-- 1. Main Furnace Chamber
+	-- 1. Main Smelting Furnace Structure
 	local furnaceBody = Instance.new("Model")
 	furnaceBody.Name = "FurnaceBody"
 	furnaceBody.Parent = recyclerModel
 
+	-- Heavy Reinforced Blast Furnace Hull
 	local baseUnit = Instance.new("Part")
 	baseUnit.Name = "BaseUnit"
-	baseUnit.Size = Vector3.new(12, 8, 12)
-	baseUnit.Position = basePos + Vector3.new(0, 4, 0)
+	baseUnit.Size = Vector3.new(13, 8.5, 13)
+	baseUnit.Position = basePos + Vector3.new(0, 4.25, 0)
 	baseUnit.Anchored = true
 	baseUnit.Material = Enum.Material.DiamondPlate
-	baseUnit.Color = Color3.fromRGB(35, 38, 48)
+	baseUnit.Color = Color3.fromRGB(30, 32, 40)
 	baseUnit.Parent = furnaceBody
 
+	-- Corner Armor Buttresses (4 reinforced structural pillars)
+	local cornerOffsets = {
+		Vector3.new(-6.2, 4.25, -6.2),
+		Vector3.new(6.2, 4.25, -6.2),
+		Vector3.new(-6.2, 4.25, 6.2),
+		Vector3.new(6.2, 4.25, 6.2),
+	}
+	for bIdx, cOff in ipairs(cornerOffsets) do
+		local buttress = Instance.new("Part")
+		buttress.Name = "Buttress_" .. tostring(bIdx)
+		buttress.Size = Vector3.new(1.8, 9.0, 1.8)
+		buttress.Position = basePos + cOff
+		buttress.Anchored = true
+		buttress.Material = Enum.Material.Metal
+		buttress.Color = Color3.fromRGB(45, 48, 58)
+		buttress.Parent = furnaceBody
+	end
+
+	-- Molten Inspection Viewport (Glowing Smelting Core)
 	local furnaceWindow = Instance.new("Part")
 	furnaceWindow.Name = "FurnaceCore"
-	furnaceWindow.Size = Vector3.new(5, 3.5, 0.4)
-	furnaceWindow.Position = basePos + Vector3.new(0, 3.2, 6.2)
+	furnaceWindow.Size = Vector3.new(6, 4.0, 0.5)
+	furnaceWindow.Position = basePos + Vector3.new(0, 3.6, 6.6)
 	furnaceWindow.Anchored = true
-	furnaceWindow.Material = Enum.Material.SmoothPlastic
-	furnaceWindow.Color = Color3.fromRGB(225, 115, 30)
+	furnaceWindow.Material = Enum.Material.Neon
+	furnaceWindow.Color = Color3.fromRGB(255, 120, 25)
 	furnaceWindow.Parent = furnaceBody
 
+	-- Heavy protective quartz viewport grille
+	local windowGrille = Instance.new("Part")
+	windowGrille.Name = "ViewportGrille"
+	windowGrille.Size = Vector3.new(6.4, 4.4, 0.4)
+	windowGrille.Position = basePos + Vector3.new(0, 3.6, 6.8)
+	windowGrille.Anchored = true
+	windowGrille.Material = Enum.Material.CorrodedMetal
+	windowGrille.Color = Color3.fromRGB(35, 25, 20)
+	windowGrille.Transparency = 0.35
+	windowGrille.Parent = furnaceBody
+
 	local fLight = Instance.new("PointLight")
-	fLight.Color = Color3.fromRGB(255, 130, 30)
-	fLight.Brightness = 0.5
-	fLight.Range = 8
+	fLight.Color = Color3.fromRGB(255, 135, 35)
+	fLight.Brightness = 1.4
+	fLight.Range = 16
 	fLight.Parent = furnaceWindow
 
-	-- Recycler Billboard
+	-- Molten Slag Core Particle Sparks
+	local fireSparks = Instance.new("ParticleEmitter")
+	fireSparks.Name = "CoreSparks"
+	fireSparks.Color = ColorSequence.new(Color3.fromRGB(255, 160, 40))
+	fireSparks.Size = NumberSequence.new(0.15, 0.35)
+	fireSparks.Rate = 10
+	fireSparks.Speed = NumberRange.new(2, 5)
+	fireSparks.Lifetime = NumberRange.new(0.4, 0.8)
+	fireSparks.SpreadAngle = Vector2.new(30, 30)
+	fireSparks.Parent = furnaceWindow
+
+	-- Side Radiator Heat Exchanger Vents
+	for _, xSide in ipairs({ -6.7, 6.7 }) do
+		for vIdx = 1, 3 do
+			local vent = Instance.new("Part")
+			vent.Name = "HeatVent"
+			vent.Size = Vector3.new(0.4, 0.8, 8.0)
+			vent.Position = basePos + Vector3.new(xSide, 2.5 + (vIdx * 1.4), 0)
+			vent.Anchored = true
+			vent.Material = Enum.Material.Metal
+			vent.Color = Color3.fromRGB(22, 24, 30)
+			vent.Parent = furnaceBody
+		end
+	end
+
+	-- High-Pressure Pressurized Coolant Manifold Conduits (Industrial Orange & Cyan)
+	for _, sideData in ipairs({ { X = -6.7, Col = Color3.fromRGB(240, 110, 30) }, { X = 6.7, Col = Color3.fromRGB(35, 175, 230) } }) do
+		local pipe = Instance.new("Part")
+		pipe.Name = "CoolantPipe"
+		pipe.Shape = Enum.PartType.Cylinder
+		pipe.Size = Vector3.new(7.0, 0.7, 0.7)
+		pipe.Position = basePos + Vector3.new(sideData.X, 7.2, 0)
+		pipe.Orientation = Vector3.new(90, 0, 0)
+		pipe.Anchored = true
+		pipe.Material = Enum.Material.Metal
+		pipe.Color = sideData.Col
+		pipe.Parent = furnaceBody
+	end
+
+	-- Recycler Billboard Gantry
 	local rbb = Instance.new("BillboardGui")
-	rbb.Size = UDim2.new(0, 260, 0, 60)
-	rbb.StudsOffset = Vector3.new(0, 7.5, 0)
+	rbb.Size = UDim2.new(0, 280, 0, 65)
+	rbb.StudsOffset = Vector3.new(0, 9.5, 0)
 	rbb.AlwaysOnTop = false
-	rbb.MaxDistance = 45
+	rbb.MaxDistance = 50
 	rbb.Parent = baseUnit
 
 	local rTitle = Instance.new("TextLabel")
@@ -198,69 +367,139 @@ function ZoneService.constructRecycler(parent: Instance, basePos: Vector3, zoneI
 	rTitle.BackgroundTransparency = 1
 	rTitle.Font = Enum.Font.GothamBlack
 	rTitle.TextSize = 20
-	rTitle.TextColor3 = Color3.fromRGB(255, 200, 50)
-	rTitle.TextStrokeTransparency = 0.2
+	rTitle.TextColor3 = Color3.fromRGB(255, 205, 50)
+	rTitle.TextStrokeTransparency = 0.15
 	rTitle.TextStrokeColor3 = Color3.new(0, 0, 0)
 	rTitle.Text = string.format("SCRAP RECYCLER %s\n[DEPOSIT & SELL CARGO]", zoneId > 1 and ("(ZONE " .. tostring(zoneId) .. ") ") or "")
 	rTitle.Parent = rbb
 
-	-- 2. Exhaust & Ventilation System
+	-- 2. Industrial Exhaust & Ventilation System
 	local exhaustSystem = Instance.new("Model")
 	exhaustSystem.Name = "ExhaustSystem"
 	exhaustSystem.Parent = recyclerModel
 
-	local funnel = Instance.new("Part")
-	funnel.Name = "Funnel"
-	funnel.Shape = Enum.PartType.Cylinder
-	funnel.Size = Vector3.new(3, 8.5, 8.5)
-	funnel.Position = basePos + Vector3.new(0, 9.5, 0)
-	funnel.Orientation = Vector3.new(0, 0, 90)
-	funnel.Anchored = true
-	funnel.Material = Enum.Material.Metal
-	funnel.Color = Color3.fromRGB(55, 60, 70)
-	funnel.Parent = exhaustSystem
+	-- Central Heavy Extraction Turbine Housing
+	local turbineHousing = Instance.new("Part")
+	turbineHousing.Name = "TurbineHousing"
+	turbineHousing.Shape = Enum.PartType.Cylinder
+	turbineHousing.Size = Vector3.new(2.4, 7.5, 7.5)
+	turbineHousing.Position = basePos + Vector3.new(0, 9.6, 0)
+	turbineHousing.Orientation = Vector3.new(0, 0, 90)
+	turbineHousing.Anchored = true
+	turbineHousing.Material = Enum.Material.DiamondPlate
+	turbineHousing.Color = Color3.fromRGB(42, 45, 55)
+	turbineHousing.Parent = exhaustSystem
 
 	local steam = Instance.new("ParticleEmitter")
 	steam.Name = "Steam"
-	steam.Color = ColorSequence.new(Color3.fromRGB(200, 200, 210))
-	steam.Size = NumberSequence.new(1.5, 4.0)
-	steam.Transparency = NumberSequence.new(0.3, 1.0)
-	steam.Rate = 12
-	steam.Lifetime = NumberRange.new(2, 3.5)
-	steam.Speed = NumberRange.new(4, 7)
-	steam.SpreadAngle = Vector2.new(20, 20)
-	steam.Acceleration = Vector3.new(0, 3, 0)
-	steam.Parent = funnel
+	steam.Color = ColorSequence.new(Color3.fromRGB(215, 215, 225))
+	steam.Size = NumberSequence.new(1.8, 5.5)
+	steam.Transparency = NumberSequence.new(0.25, 1.0)
+	steam.Rate = 18
+	steam.Lifetime = NumberRange.new(2.5, 4.0)
+	steam.Speed = NumberRange.new(5, 9)
+	steam.SpreadAngle = Vector2.new(22, 22)
+	steam.Acceleration = Vector3.new(0, 4, 0)
+	steam.Parent = turbineHousing
 
-	-- Smokestacks
-	local stackCoords = { basePos + Vector3.new(-5.2, 8, 0), basePos + Vector3.new(5.2, 8, 0) }
+	-- Dual Heavy Flared Smokestacks with Guy-Wire Reinforcement Collars
+	local stackCoords = { basePos + Vector3.new(-5.4, 9.5, -2), basePos + Vector3.new(5.4, 9.5, -2) }
 	for idx, sPos in ipairs(stackCoords) do
 		local stack = Instance.new("Part")
 		stack.Name = idx == 1 and "Smokestack_Left" or "Smokestack_Right"
 		stack.Shape = Enum.PartType.Cylinder
-		stack.Size = Vector3.new(10, 1.8, 1.8)
+		stack.Size = Vector3.new(11, 2.2, 2.2)
 		stack.Position = sPos
 		stack.Orientation = Vector3.new(0, 0, 90)
 		stack.Anchored = true
 		stack.Material = Enum.Material.Metal
-		stack.Color = Color3.fromRGB(25, 27, 34)
+		stack.Color = Color3.fromRGB(30, 32, 40)
 		stack.Parent = exhaustSystem
+
+		-- Stack Reinforcement Rings
+		local collar = Instance.new("Part")
+		collar.Name = "StackCollar"
+		collar.Shape = Enum.PartType.Cylinder
+		collar.Size = Vector3.new(1.2, 2.6, 2.6)
+		collar.Position = sPos + Vector3.new(0, 4.5, 0)
+		collar.Orientation = Vector3.new(0, 0, 90)
+		collar.Anchored = true
+		collar.Material = Enum.Material.DiamondPlate
+		collar.Color = Color3.fromRGB(215, 140, 30)
+		collar.Parent = exhaustSystem
+
+		local stackSmoke = Instance.new("ParticleEmitter")
+		stackSmoke.Name = "StackSmoke"
+		stackSmoke.Color = ColorSequence.new(Color3.fromRGB(160, 160, 175))
+		stackSmoke.Size = NumberSequence.new(1.2, 3.8)
+		stackSmoke.Transparency = NumberSequence.new(0.4, 1.0)
+		stackSmoke.Rate = 12
+		stackSmoke.Lifetime = NumberRange.new(2, 3.5)
+		stackSmoke.Speed = NumberRange.new(4, 7)
+		stackSmoke.SpreadAngle = Vector2.new(15, 15)
+		stackSmoke.Acceleration = Vector3.new(0, 3, 0)
+		stackSmoke.Parent = collar
 	end
 
-	-- 3. Deposit Cargo Platform
+	-- 3. Heavy-Duty Conveyor Feeder Chute & Cargo Deposit Area
 	local depositArea = Instance.new("Model")
 	depositArea.Name = "DepositArea"
 	depositArea.Parent = recyclerModel
 
+	-- Chute Steel Side Rampart Rails (Left & Right)
+	for _, xRail in ipairs({ -7.2, 7.2 }) do
+		local rail = Instance.new("Part")
+		rail.Name = "ChuteGuardrail"
+		rail.Size = Vector3.new(1.0, 2.2, 11)
+		rail.Position = basePos + Vector3.new(xRail, 1.1, 7.5)
+		rail.Anchored = true
+		rail.Material = Enum.Material.Metal
+		rail.Color = Color3.fromRGB(45, 48, 58)
+		rail.Parent = depositArea
+
+		local hazardStrip = Instance.new("Part")
+		hazardStrip.Name = "HazardTrim"
+		hazardStrip.Size = Vector3.new(1.05, 0.4, 11)
+		hazardStrip.Position = rail.Position + Vector3.new(0, 1.0, 0)
+		hazardStrip.Anchored = true
+		hazardStrip.Material = Enum.Material.SmoothPlastic
+		hazardStrip.Color = Color3.fromRGB(245, 175, 20)
+		hazardStrip.Parent = depositArea
+	end
+
+	-- High-Traction Conveyor Bed Base
+	local conveyorBed = Instance.new("Part")
+	conveyorBed.Name = "ConveyorBed"
+	conveyorBed.Size = Vector3.new(13.4, 0.4, 11)
+	conveyorBed.Position = basePos + Vector3.new(0, 0.2, 7.5)
+	conveyorBed.Anchored = true
+	conveyorBed.CanCollide = true
+	conveyorBed.Material = Enum.Material.DiamondPlate
+	conveyorBed.Color = Color3.fromRGB(24, 26, 32)
+	conveyorBed.Parent = depositArea
+
+	-- Interactive Sell Cargo Deposit Pad (Preserves exact name RecyclerDepositPad)
 	local depositPad = Instance.new("Part")
 	depositPad.Name = "RecyclerDepositPad"
-	depositPad.Size = Vector3.new(14, 0.4, 10)
-	depositPad.Position = basePos + Vector3.new(0, 0.2, 7)
+	depositPad.Size = Vector3.new(12.0, 0.45, 8.5)
+	depositPad.Position = basePos + Vector3.new(0, 0.25, 7.5)
 	depositPad.Anchored = true
 	depositPad.CanCollide = true
-	depositPad.Material = Enum.Material.SmoothPlastic
-	depositPad.Color = Color3.fromRGB(45, 165, 95)
+	depositPad.Material = Enum.Material.Metal
+	depositPad.Color = Color3.fromRGB(38, 145, 85)
 	depositPad.Parent = depositArea
+
+	-- Holographic Scanner Beam Arch over deposit entrance
+	local scanBeam = Instance.new("Part")
+	scanBeam.Name = "ScanningCurtain"
+	scanBeam.Size = Vector3.new(12.5, 0.08, 0.2)
+	scanBeam.Position = basePos + Vector3.new(0, 2.6, 12.5)
+	scanBeam.Anchored = true
+	scanBeam.CanCollide = false
+	scanBeam.Material = Enum.Material.Neon
+	scanBeam.Color = Color3.fromRGB(60, 240, 130)
+	scanBeam.Transparency = 0.3
+	scanBeam.Parent = depositArea
 
 	local depositPrompt = Instance.new("ProximityPrompt")
 	depositPrompt.Name = "RecyclePrompt"
@@ -325,66 +564,154 @@ function ZoneService.constructToolArmoryKiosk(parent: Instance, pos: Vector3): M
 
 	local deck = Instance.new("Part")
 	deck.Name = "Deck"
-	deck.Size = Vector3.new(12, 0.4, 14)
+	deck.Size = Vector3.new(13, 0.4, 15)
 	deck.Position = pos + Vector3.new(2, 0.2, 0)
 	deck.Anchored = true
 	deck.Material = Enum.Material.DiamondPlate
-	deck.Color = Color3.fromRGB(30, 32, 40)
+	deck.Color = Color3.fromRGB(28, 30, 38)
 	deck.Parent = foundation
 
-	-- 2. Heavy Steel Workstation
+	-- Deck Hazard Perimeter Trim
+	local deckTrim = Instance.new("Part")
+	deckTrim.Name = "PerimeterTrim"
+	deckTrim.Size = Vector3.new(0.4, 0.45, 15.2)
+	deckTrim.Position = pos + Vector3.new(8.5, 0.22, 0)
+	deckTrim.Anchored = true
+	deckTrim.Material = Enum.Material.SmoothPlastic
+	deckTrim.Color = Color3.fromRGB(240, 165, 20)
+	deckTrim.Parent = foundation
+
+	-- 2. Heavy Industrial Workstation & Tool Bench
 	local workstation = Instance.new("Model")
 	workstation.Name = "Workstation"
 	workstation.Parent = model
 
 	local bench = Instance.new("Part")
 	bench.Name = "Workbench"
-	bench.Size = Vector3.new(4, 3.2, 9)
+	bench.Size = Vector3.new(4.2, 3.2, 9.6)
 	bench.Position = pos + Vector3.new(-1.8, 1.8, 0)
 	bench.Anchored = true
 	bench.Material = Enum.Material.Metal
-	bench.Color = Color3.fromRGB(45, 50, 62)
+	bench.Color = Color3.fromRGB(42, 46, 56)
 	bench.Parent = workstation
 
+	-- Tool Bench Storage Drawers / Tool Cabinet Units
+	for dIdx, dz in ipairs({ -3.0, 0, 3.0 }) do
+		local drawer = Instance.new("Part")
+		drawer.Name = "DrawerUnit_" .. tostring(dIdx)
+		drawer.Size = Vector3.new(0.3, 2.4, 2.4)
+		drawer.Position = pos + Vector3.new(0.35, 1.6, dz)
+		drawer.Anchored = true
+		drawer.Material = Enum.Material.DiamondPlate
+		drawer.Color = Color3.fromRGB(30, 32, 40)
+		drawer.Parent = workstation
+	end
+
+	-- Heavy Industrial Steel Vise clamped to bench
+	local vise = Instance.new("Part")
+	vise.Name = "BenchVise"
+	vise.Size = Vector3.new(1.2, 1.4, 1.4)
+	vise.Position = pos + Vector3.new(-0.2, 3.8, 3.8)
+	vise.Anchored = true
+	vise.Material = Enum.Material.Metal
+	vise.Color = Color3.fromRGB(65, 70, 85)
+	vise.Parent = workstation
+
+	-- Heavy Forged Anvil with Heat-Treated Temper
 	local anvil = Instance.new("Part")
 	anvil.Name = "Anvil"
-	anvil.Size = Vector3.new(1.6, 1.8, 2.8)
-	anvil.Position = pos + Vector3.new(-1.8, 3.8, -2.2)
+	anvil.Size = Vector3.new(1.8, 1.8, 3.0)
+	anvil.Position = pos + Vector3.new(-1.8, 3.8, -2.4)
 	anvil.Anchored = true
 	anvil.Material = Enum.Material.CorrodedMetal
-	anvil.Color = Color3.fromRGB(210, 120, 35)
+	anvil.Color = Color3.fromRGB(205, 115, 35)
 	anvil.Parent = workstation
 
-	-- 3. Floating Holographic Preview Tools on Table
+	-- Back Pegboard Wall for Hanging Tools
+	local pegboard = Instance.new("Part")
+	pegboard.Name = "ToolPegboard"
+	pegboard.Size = Vector3.new(0.4, 5.0, 9.4)
+	pegboard.Position = pos + Vector3.new(-3.8, 5.5, 0)
+	pegboard.Anchored = true
+	pegboard.Material = Enum.Material.DiamondPlate
+	pegboard.Color = Color3.fromRGB(25, 27, 34)
+	pegboard.Parent = workstation
+
+	-- Hanging Salvage Tools on Pegboard (Plasma Torch, Spanners, Power Cells)
+	local hangingSpanner = Instance.new("Part")
+	hangingSpanner.Name = "HangingSpanner"
+	hangingSpanner.Size = Vector3.new(0.2, 1.8, 0.4)
+	hangingSpanner.Position = pos + Vector3.new(-3.5, 6.0, -2.2)
+	hangingSpanner.Orientation = Vector3.new(0, 0, 15)
+	hangingSpanner.Anchored = true
+	hangingSpanner.Material = Enum.Material.Metal
+	hangingSpanner.Color = Color3.fromRGB(180, 185, 195)
+	hangingSpanner.Parent = workstation
+
+	local hangingPowerCell = Instance.new("Part")
+	hangingPowerCell.Name = "HangingPowerCell"
+	hangingPowerCell.Size = Vector3.new(0.3, 1.4, 0.6)
+	hangingPowerCell.Position = pos + Vector3.new(-3.5, 6.2, 2.2)
+	hangingPowerCell.Anchored = true
+	hangingPowerCell.Material = Enum.Material.Neon
+	hangingPowerCell.Color = Color3.fromRGB(45, 215, 115)
+	hangingPowerCell.Parent = workstation
+
+	-- 3. High-Tech 3D Holographic Weapon Projector Table
 	local hologram = Instance.new("Model")
 	hologram.Name = "HologramDisplay"
 	hologram.Parent = model
 
+	-- Emitter Projector Base on Bench
+	local emitterBase = Instance.new("Part")
+	emitterBase.Name = "EmitterBase"
+	emitterBase.Shape = Enum.PartType.Cylinder
+	emitterBase.Size = Vector3.new(0.25, 2.0, 2.0)
+	emitterBase.Position = pos + Vector3.new(-1.8, 3.5, 0.6)
+	emitterBase.Orientation = Vector3.new(0, 0, 90)
+	emitterBase.Anchored = true
+	emitterBase.Material = Enum.Material.Neon
+	emitterBase.Color = Color3.fromRGB(255, 170, 40)
+	emitterBase.Parent = hologram
+
+	-- Holographic Wrench Wireframe Head
 	local holoWrench = Instance.new("Part")
 	holoWrench.Name = "HoloTool"
-	holoWrench.Size = Vector3.new(0.6, 2.4, 0.6)
-	holoWrench.Position = pos + Vector3.new(-1.8, 4.2, 1.8)
+	holoWrench.Size = Vector3.new(0.6, 2.6, 0.6)
+	holoWrench.Position = pos + Vector3.new(-1.8, 4.8, 0.6)
 	holoWrench.Orientation = Vector3.new(25, 45, 15)
 	holoWrench.Anchored = true
 	holoWrench.CanCollide = false
-	holoWrench.Material = Enum.Material.SmoothPlastic
-	holoWrench.Color = Color3.fromRGB(255, 170, 40)
+	holoWrench.Material = Enum.Material.Neon
+	holoWrench.Color = Color3.fromRGB(255, 180, 45)
+	holoWrench.Transparency = 0.25
 	holoWrench.Parent = hologram
 
 	local holoLight = Instance.new("PointLight")
-	holoLight.Color = Color3.fromRGB(255, 170, 40)
-	holoLight.Brightness = 0.5
-	holoLight.Range = 10
+	holoLight.Color = Color3.fromRGB(255, 175, 45)
+	holoLight.Brightness = 1.0
+	holoLight.Range = 12
 	holoLight.Parent = holoWrench
 
+	-- Holographic Scan Particles
+	local holoParticles = Instance.new("ParticleEmitter")
+	holoParticles.Name = "HoloScan"
+	holoParticles.Color = ColorSequence.new(Color3.fromRGB(255, 200, 70))
+	holoParticles.Size = NumberSequence.new(0.08, 0.2)
+	holoParticles.Rate = 12
+	holoParticles.Speed = NumberRange.new(0.5, 1.5)
+	holoParticles.Lifetime = NumberRange.new(0.6, 1.2)
+	holoParticles.SpreadAngle = Vector2.new(180, 180)
+	holoParticles.Parent = holoWrench
+
 	CollectionService:AddTag(holoWrench, "FloatingDecor")
-	holoWrench:SetAttribute("BasePos", pos + Vector3.new(-1.8, 4.2, 1.8))
+	holoWrench:SetAttribute("BasePos", pos + Vector3.new(-1.8, 4.8, 0.6))
 	holoWrench:SetAttribute("SpinSpeed", 40)
-	holoWrench:SetAttribute("BobSpeed", 1.5)
-	holoWrench:SetAttribute("BobAmp", 0.2)
+	holoWrench:SetAttribute("BobSpeed", 1.8)
+	holoWrench:SetAttribute("BobAmp", 0.25)
 	holoWrench:SetAttribute("TiltAngle", 15)
 
-	-- 4. Overhead Canopy Structure
+	-- 4. Overhead Industrial Truss Canopy Structure
 	local canopy = Instance.new("Model")
 	canopy.Name = "CanopyStructure"
 	canopy.Parent = model
@@ -393,34 +720,68 @@ function ZoneService.constructToolArmoryKiosk(parent: Instance, pos: Vector3): M
 	pillars.Name = "SupportColumns"
 	pillars.Parent = canopy
 
-	for idx, cz in ipairs({ -6, 6 }) do
+	for idx, cz in ipairs({ -6.4, 6.4 }) do
 		local col = Instance.new("Part")
 		col.Name = idx == 1 and "Column_Left" or "Column_Right"
-		col.Size = Vector3.new(1.2, 9, 1.2)
-		col.Position = pos + Vector3.new(-4.5, 4.7, cz)
+		col.Size = Vector3.new(1.4, 10, 1.4)
+		col.Position = pos + Vector3.new(-4.8, 5.2, cz)
 		col.Anchored = true
 		col.Material = Enum.Material.Metal
 		col.Color = Color3.fromRGB(35, 38, 48)
 		col.Parent = pillars
+
+		-- Diagonal Truss Bracing
+		local brace = Instance.new("Part")
+		brace.Name = "TrussBrace"
+		brace.Size = Vector3.new(0.8, 4.5, 0.8)
+		brace.Position = pos + Vector3.new(-3.0, 9.0, cz)
+		brace.Orientation = Vector3.new(0, 0, -35)
+		brace.Anchored = true
+		brace.Material = Enum.Material.Metal
+		brace.Color = Color3.fromRGB(45, 48, 58)
+		brace.Parent = pillars
 	end
 
 	local roof = Instance.new("Part")
 	roof.Name = "CanopyRoof"
-	roof.Size = Vector3.new(10, 0.8, 15)
-	roof.Position = pos + Vector3.new(-1, 9.2, 0)
+	roof.Size = Vector3.new(11, 0.8, 16)
+	roof.Position = pos + Vector3.new(-1, 10.2, 0)
+	roof.Orientation = Vector3.new(0, 0, 4) -- slight realistic drainage pitch
 	roof.Anchored = true
-	roof.Material = Enum.Material.Metal
-	roof.Color = Color3.fromRGB(25, 28, 36)
+	roof.Material = Enum.Material.CorrodedMetal
+	roof.Color = Color3.fromRGB(30, 32, 40)
 	roof.Parent = canopy
 
 	local roofTrim = Instance.new("Part")
 	roofTrim.Name = "CanopyTrim"
-	roofTrim.Size = Vector3.new(0.6, 0.4, 15.4)
-	roofTrim.Position = pos + Vector3.new(4, 9.2, 0)
+	roofTrim.Size = Vector3.new(0.6, 0.5, 16.4)
+	roofTrim.Position = pos + Vector3.new(4.5, 9.9, 0)
 	roofTrim.Anchored = true
 	roofTrim.Material = Enum.Material.SmoothPlastic
-	roofTrim.Color = Color3.fromRGB(255, 140, 30)
+	roofTrim.Color = Color3.fromRGB(245, 155, 25)
 	roofTrim.Parent = canopy
+
+	-- Overhead Hanging Cage Worklights (Warm Industrial Halogen Illumination)
+	for lIdx, lz in ipairs({ -3.5, 3.5 }) do
+		local lampCage = Instance.new("Part")
+		lampCage.Name = "WorkLamp_" .. tostring(lIdx)
+		lampCage.Shape = Enum.PartType.Cylinder
+		lampCage.Size = Vector3.new(1.0, 1.2, 1.2)
+		lampCage.Position = pos + Vector3.new(-1.0, 9.4, lz)
+		lampCage.Orientation = Vector3.new(0, 0, 90)
+		lampCage.Anchored = true
+		lampCage.Material = Enum.Material.Neon
+		lampCage.Color = Color3.fromRGB(255, 230, 180)
+		lampCage.Parent = canopy
+
+		local lampLight = Instance.new("SpotLight")
+		lampLight.Face = Enum.NormalId.Bottom
+		lampLight.Color = Color3.fromRGB(255, 225, 175)
+		lampLight.Brightness = 2.0
+		lampLight.Range = 14
+		lampLight.Angle = 75
+		lampLight.Parent = lampCage
+	end
 
 	-- 5. Illuminated Overhead Armory Signage
 	local signage = Instance.new("Model")
@@ -429,18 +790,18 @@ function ZoneService.constructToolArmoryKiosk(parent: Instance, pos: Vector3): M
 
 	local sign = Instance.new("Part")
 	sign.Name = "ArmorySign"
-	sign.Size = Vector3.new(0.6, 2.4, 12)
-	sign.Position = pos + Vector3.new(4, 10.6, 0)
+	sign.Size = Vector3.new(0.6, 2.6, 13)
+	sign.Position = pos + Vector3.new(4.5, 11.5, 0)
 	sign.Anchored = true
 	sign.Material = Enum.Material.SmoothPlastic
-	sign.Color = Color3.fromRGB(16, 18, 26)
+	sign.Color = Color3.fromRGB(18, 20, 28)
 	sign.Parent = signage
 
 	local sGui = Instance.new("SurfaceGui")
 	sGui.Face = Enum.NormalId.Right -- +X face points East towards Central Spawn
 	sGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	sGui.PixelsPerStud = 40
-	sGui.LightInfluence = 0.2
+	sGui.LightInfluence = 0.15
 	sGui.Parent = sign
 
 	local sBox = Instance.new("Frame")
@@ -460,8 +821,8 @@ function ZoneService.constructToolArmoryKiosk(parent: Instance, pos: Vector3): M
 	sTitle.BackgroundTransparency = 1
 	sTitle.Font = Enum.Font.GothamBlack
 	sTitle.TextSize = 20
-	sTitle.TextColor3 = Color3.fromRGB(255, 180, 50)
-	sTitle.Text = "TOOL ARMORY & FORGE"
+	sTitle.TextColor3 = Color3.fromRGB(255, 185, 50)
+	sTitle.Text = "SCRAPPER FORGE // ARMORY"
 	sTitle.Parent = sBox
 
 	local sSub = Instance.new("TextLabel")
@@ -470,11 +831,11 @@ function ZoneService.constructToolArmoryKiosk(parent: Instance, pos: Vector3): M
 	sSub.BackgroundTransparency = 1
 	sSub.Font = Enum.Font.GothamBold
 	sSub.TextSize = 13
-	sSub.TextColor3 = Color3.fromRGB(200, 215, 235)
+	sSub.TextColor3 = Color3.fromRGB(200, 220, 245)
 	sSub.Text = "[ UPGRADE TOOLS // MULTIPLY HIT DAMAGE ]"
 	sSub.Parent = sBox
 
-	-- Interaction Proximity Prompt
+	-- Interaction Proximity Prompt (Preserves exact name and connection on bench)
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "ArmoryPrompt"
 	prompt.ObjectText = "Tool Armory"
@@ -503,26 +864,28 @@ function ZoneService.constructEggPod(parentFolder: Instance, pos: Vector3, eggTy
 	podModel:SetAttribute("EggType", eggType)
 	CollectionService:AddTag(podModel, "EggPod")
 
-	-- 1. Heavy Industrial Pedestal Base
+	-- 1. Heavy Industrial Pedestal Base with Magnetic Stabilizers
 	local pedestalBase = Instance.new("Model")
 	pedestalBase.Name = "PedestalBase"
 	pedestalBase.Parent = podModel
 
+	-- Octagonal Base Footing
 	local pedestal = Instance.new("Part")
 	pedestal.Name = "Pedestal"
 	pedestal.Shape = Enum.PartType.Cylinder
-	pedestal.Size = Vector3.new(2.4, 4.2, 4.2)
+	pedestal.Size = Vector3.new(2.4, 5.0, 5.0)
 	pedestal.Position = pos + Vector3.new(0, 1.2, 0)
 	pedestal.Orientation = Vector3.new(0, 0, 90)
 	pedestal.Anchored = true
 	pedestal.Material = Enum.Material.DiamondPlate
-	pedestal.Color = Color3.fromRGB(28, 30, 38)
+	pedestal.Color = Color3.fromRGB(26, 28, 36)
 	pedestal.Parent = pedestalBase
 
+	-- Upper Beveled Collar Ring
 	local glowRing = Instance.new("Part")
 	glowRing.Name = "GlowRing"
 	glowRing.Shape = Enum.PartType.Cylinder
-	glowRing.Size = Vector3.new(0.3, 4.4, 4.4)
+	glowRing.Size = Vector3.new(0.35, 5.2, 5.2)
 	glowRing.Position = pos + Vector3.new(0, 2.3, 0)
 	glowRing.Orientation = Vector3.new(0, 0, 90)
 	glowRing.Anchored = true
@@ -530,49 +893,146 @@ function ZoneService.constructEggPod(parentFolder: Instance, pos: Vector3, eggTy
 	glowRing.Color = eggConf.Color
 	glowRing.Parent = pedestalBase
 
-	-- 2. Transparent Glass Containment Capsule
+	-- 4 Magnetic Stabilizer Coils around Pedestal Base
+	for cIdx, cDeg in ipairs({ 0, 90, 180, 270 }) do
+		local rad = math.rad(cDeg)
+		local cx = pos.X + math.cos(rad) * 2.5
+		local cz = pos.Z + math.sin(rad) * 2.5
+
+		local coil = Instance.new("Part")
+		coil.Name = "StabilizerCoil_" .. tostring(cIdx)
+		coil.Shape = Enum.PartType.Cylinder
+		coil.Size = Vector3.new(1.4, 0.8, 0.8)
+		coil.Position = Vector3.new(cx, pos.Y + 0.8, cz)
+		coil.Orientation = Vector3.new(0, 0, 90)
+		coil.Anchored = true
+		coil.Material = Enum.Material.Metal
+		coil.Color = Color3.fromRGB(45, 48, 58)
+		coil.Parent = pedestalBase
+
+		local coilCap = Instance.new("Part")
+		coilCap.Name = "CoilCap"
+		coilCap.Shape = Enum.PartType.Ball
+		coilCap.Size = Vector3.new(0.65, 0.65, 0.65)
+		coilCap.Position = Vector3.new(cx, pos.Y + 1.6, cz)
+		coilCap.Anchored = true
+		coilCap.Material = Enum.Material.Neon
+		coilCap.Color = eggConf.Color
+		coilCap.Parent = pedestalBase
+	end
+
+	-- Slanted Diagnostic Status Screen on Pedestal Front
+	local diagScreen = Instance.new("Part")
+	diagScreen.Name = "DiagnosticTerminal"
+	diagScreen.Size = Vector3.new(1.8, 0.8, 0.15)
+	diagScreen.Position = pos + Vector3.new(0, 1.4, 2.5)
+	diagScreen.Orientation = Vector3.new(-25, 0, 0)
+	diagScreen.Anchored = true
+	diagScreen.Material = Enum.Material.Neon
+	diagScreen.Color = Color3.fromRGB(15, 25, 35)
+	diagScreen.Parent = pedestalBase
+
+	-- 2. Cryogenic Glass Containment Capsule with Pressure Rings
 	local chamber = Instance.new("Model")
 	chamber.Name = "ContainmentChamber"
 	chamber.Parent = podModel
 
+	-- Lower Containment Collar
+	local lowerCollar = Instance.new("Part")
+	lowerCollar.Name = "LowerCollar"
+	lowerCollar.Shape = Enum.PartType.Cylinder
+	lowerCollar.Size = Vector3.new(0.4, 4.4, 4.4)
+	lowerCollar.Position = pos + Vector3.new(0, 2.6, 0)
+	lowerCollar.Orientation = Vector3.new(0, 0, 90)
+	lowerCollar.Anchored = true
+	lowerCollar.Material = Enum.Material.Metal
+	lowerCollar.Color = Color3.fromRGB(35, 38, 48)
+	lowerCollar.Parent = chamber
+
+	-- Transparent Curved Glass Cylinder (Preserves exact name Capsule for Prompt)
 	local capsule = Instance.new("Part")
 	capsule.Name = "Capsule"
 	capsule.Shape = Enum.PartType.Cylinder
-	capsule.Size = Vector3.new(4.2, 3.6, 3.6)
-	capsule.Position = pos + Vector3.new(0, 4.3, 0)
+	capsule.Size = Vector3.new(4.5, 4.0, 4.0)
+	capsule.Position = pos + Vector3.new(0, 4.6, 0)
 	capsule.Orientation = Vector3.new(0, 0, 90)
 	capsule.Anchored = true
 	capsule.Material = Enum.Material.Glass
 	capsule.Color = eggConf.Color
-	capsule.Transparency = 0.55
+	capsule.Transparency = 0.52
 	capsule.CanCollide = false
 	capsule.Parent = chamber
 
-	-- Floating 3D Display Egg (Neon energy core inside glass capsule)
+	-- Upper Magnetic Cap Ring
+	local upperCollar = Instance.new("Part")
+	upperCollar.Name = "UpperCollar"
+	upperCollar.Shape = Enum.PartType.Cylinder
+	upperCollar.Size = Vector3.new(0.6, 4.4, 4.4)
+	upperCollar.Position = pos + Vector3.new(0, 6.9, 0)
+	upperCollar.Orientation = Vector3.new(0, 0, 90)
+	upperCollar.Anchored = true
+	upperCollar.Material = Enum.Material.DiamondPlate
+	upperCollar.Color = Color3.fromRGB(35, 38, 48)
+	upperCollar.Parent = chamber
+
+	-- Cryogenic Mist Particle Emitter inside chamber
+	local mist = Instance.new("ParticleEmitter")
+	mist.Name = "CryoMist"
+	mist.Color = ColorSequence.new(Color3.fromRGB(220, 235, 255))
+	mist.Size = NumberSequence.new(0.6, 1.8)
+	mist.Transparency = NumberSequence.new(0.5, 1.0)
+	mist.Rate = 8
+	mist.Lifetime = NumberRange.new(1.5, 2.5)
+	mist.Speed = NumberRange.new(0.5, 1.5)
+	mist.SpreadAngle = Vector2.new(180, 180)
+	mist.Parent = capsule
+
+	-- 3. Floating 3D Core with Rotating Plasma Orbit Rings
 	local egg = Instance.new("Part")
 	egg.Name = "DisplayEgg"
 	egg.Shape = Enum.PartType.Ball
 	egg.Size = Vector3.new(2.0, 2.8, 2.0)
-	egg.Position = pos + Vector3.new(0, 4.3, 0)
+	egg.Position = pos + Vector3.new(0, 4.6, 0)
 	egg.Anchored = true
 	egg.CanCollide = false
 	egg.Material = Enum.Material.Neon
 	egg.Color = eggConf.Color
 	egg.Parent = chamber
 
+	-- Surrounding Orbital Plasma Ring
+	local orbitRing = Instance.new("Part")
+	orbitRing.Name = "OrbitRing"
+	orbitRing.Shape = Enum.PartType.Cylinder
+	orbitRing.Size = Vector3.new(0.12, 3.2, 3.2)
+	orbitRing.Position = pos + Vector3.new(0, 4.6, 0)
+	orbitRing.Orientation = Vector3.new(45, 0, 90)
+	orbitRing.Anchored = true
+	orbitRing.CanCollide = false
+	orbitRing.Material = Enum.Material.Neon
+	orbitRing.Color = eggConf.Color
+	orbitRing.Transparency = 0.3
+	orbitRing.Parent = chamber
+
 	local light = Instance.new("PointLight")
-	light.Range = 14
-	light.Brightness = 1.8
+	light.Range = 16
+	light.Brightness = 2.0
 	light.Color = eggConf.Color
 	light.Parent = egg
 
-	-- Gentle floating and spinning animation (Client-rendered for zero server replication overhead)
-	local baseEggY = pos.Y + 4.3
+	-- Floating and spinning animation
+	local baseEggY = pos.Y + 4.6
 	CollectionService:AddTag(egg, "FloatingDecor")
 	egg:SetAttribute("BasePos", Vector3.new(pos.X, baseEggY, pos.Z))
 	egg:SetAttribute("SpinSpeed", 30)
 	egg:SetAttribute("BobSpeed", 2.0)
 	egg:SetAttribute("BobAmp", 0.25)
+
+	CollectionService:AddTag(orbitRing, "FloatingDecor")
+	orbitRing:SetAttribute("BasePos", Vector3.new(pos.X, baseEggY, pos.Z))
+	orbitRing:SetAttribute("SpinSpeed", -50)
+	orbitRing:SetAttribute("BobSpeed", 2.0)
+	orbitRing:SetAttribute("BobAmp", 0.25)
+	orbitRing:SetAttribute("TiltAngle", 45)
 
 	-- Format comma helper
 	local formattedCost = tostring(math.floor(eggConf.Cost))
@@ -582,7 +1042,7 @@ function ZoneService.constructEggPod(parentFolder: Instance, pos: Vector3, eggTy
 		if k == 0 then break end
 	end
 
-	-- ProximityPrompt for Hatching
+	-- ProximityPrompt for Hatching (Attached to capsule)
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "HatchPrompt"
 	prompt.ObjectText = eggConf.Name
@@ -677,7 +1137,7 @@ local function buildScrapyardGround(folder: Instance, centerPos: Vector3, zone: 
 	return platform
 end
 
--- Helper to build the Stereotypical Junkyard Corrugated Perimeter Fence with Barricades
+-- Helper to build the Modular Industrial Corrugated Perimeter Fence with Barricades & Bulkhead Lighting
 local function buildScrapyardPerimeter(folder: Instance, centerPos: Vector3, zone: Types.ZoneConfig, entranceAngle: number?, exitAngle: number?)
 	local fenceModel = Instance.new("Model")
 	fenceModel.Name = "JunkyardFence_Zone" .. tostring(zone.Id)
@@ -711,51 +1171,112 @@ local function buildScrapyardPerimeter(folder: Instance, centerPos: Vector3, zon
 			local tangent = Vector3.new(-math.sin(angle), 0, math.cos(angle)).Unit
 			local lookAngle = math.atan2(tangent.Z, tangent.X)
 
-			-- Corrugated Sheet Metal Wall Section
 			local segLength = (math.pi * 2 / segments) * radius * 1.05
-			local wallHeight = 7.5 + ((i % 3) * 0.4)
-			local wallTilt = (i % 2 == 0 and 2.5 or -2.5)
-
-			local panelCF = CFrame.new(segPos + Vector3.new(0, wallHeight / 2, 0))
-				* CFrame.Angles(0, -lookAngle, 0)
-				* CFrame.Angles(0, 0, math.rad(wallTilt))
+			local wallHeight = 7.8 + ((i % 3) * 0.4)
+			local wallTilt = (i % 2 == 0 and 2.0 or -2.0)
 
 			local segmentModel = Instance.new("Model")
 			segmentModel.Name = string.format("Segment_%02d", i)
 			segmentModel.Parent = fenceModel
 
+			local panelCF = CFrame.new(segPos + Vector3.new(0, wallHeight / 2, 0))
+				* CFrame.Angles(0, -lookAngle, 0)
+				* CFrame.Angles(0, 0, math.rad(wallTilt))
+
+			-- 1. Base Concrete & Steel Foundation Curb
+			local curb = Instance.new("Part")
+			curb.Name = "BaseCurb"
+			curb.Size = Vector3.new(segLength, 0.8, 1.8)
+			curb.CFrame = CFrame.new(segPos + Vector3.new(0, 0.4, 0)) * CFrame.Angles(0, -lookAngle, 0)
+			curb.Anchored = true
+			curb.Material = Enum.Material.DiamondPlate
+			curb.Color = Color3.fromRGB(28, 30, 36)
+			curb.Parent = segmentModel
+
+			-- 2. Heavy Corrugated Industrial Steel Panel (Preserves exact name FencePanel)
 			local wall = Instance.new("Part")
 			wall.Name = "FencePanel"
-			wall.Size = Vector3.new(segLength, wallHeight, 1.2)
+			wall.Size = Vector3.new(segLength * 0.96, wallHeight - 1.2, 0.8)
 			wall.CFrame = panelCF
 			wall.Anchored = true
 			wall.CanCollide = true
 			wall.Material = (i % 2 == 0 and Enum.Material.CorrodedMetal or Enum.Material.Metal)
-			wall.Color = (i % 3 == 0 and zone.Color or (i % 2 == 0 and Color3.fromRGB(130, 70, 40) or Color3.fromRGB(65, 70, 80)))
+			wall.Color = (i % 3 == 0 and zone.Color or (i % 2 == 0 and Color3.fromRGB(120, 65, 38) or Color3.fromRGB(55, 60, 72)))
 			wall.Parent = segmentModel
 
-			-- Steel Post
+			-- Secondary Overlapping Scrap Plate (Adds realistic industrial surface relief)
+			local subPlate = Instance.new("Part")
+			subPlate.Name = "ArmorPlate"
+			subPlate.Size = Vector3.new(segLength * 0.45, wallHeight * 0.6, 0.95)
+			subPlate.CFrame = panelCF * CFrame.new(segLength * 0.2, 0, 0.1)
+			subPlate.Anchored = true
+			subPlate.CanCollide = false
+			subPlate.Material = Enum.Material.DiamondPlate
+			subPlate.Color = Color3.fromRGB(42, 45, 54)
+			subPlate.Parent = segmentModel
+
+			-- 3. Heavy Vertical Steel I-Beam Posts (Preserves exact name FencePost)
 			local post = Instance.new("Part")
 			post.Name = "FencePost"
-			post.Size = Vector3.new(1.4, wallHeight + 1.5, 1.4)
-			post.Position = segPos + Vector3.new(0, (wallHeight + 1.5) / 2, 0)
+			post.Size = Vector3.new(1.6, wallHeight + 1.8, 1.6)
+			post.Position = segPos + Vector3.new(0, (wallHeight + 1.8) / 2, 0)
 			post.Anchored = true
 			post.Material = Enum.Material.Metal
-			post.Color = Color3.fromRGB(32, 35, 42)
+			post.Color = Color3.fromRGB(30, 32, 40)
 			post.Parent = segmentModel
 
-			-- Top Barbed Wire Bracket
+			-- 4. Top Channel Bar with Alternating Yellow/Black Hazard Stripes
+			local topChannel = Instance.new("Part")
+			topChannel.Name = "TopChannel"
+			topChannel.Size = Vector3.new(segLength * 0.98, 0.6, 1.2)
+			topChannel.CFrame = panelCF * CFrame.new(0, (wallHeight - 1.2) / 2 + 0.3, 0)
+			topChannel.Anchored = true
+			topChannel.Material = Enum.Material.SmoothPlastic
+			topChannel.Color = (i % 2 == 0 and Color3.fromRGB(240, 160, 20) or Color3.fromRGB(25, 27, 34))
+			topChannel.Parent = segmentModel
+
+			-- 5. Top Barbed Wire Bracket (Preserves exact name TopBracket)
 			local bracket = Instance.new("Part")
 			bracket.Name = "TopBracket"
-			bracket.Size = Vector3.new(0.6, 1.6, 0.6)
-			bracket.CFrame = CFrame.new(post.Position + Vector3.new(0, (wallHeight + 1.5) / 2, 0)) * CFrame.Angles(0, -lookAngle, math.rad(30))
+			bracket.Size = Vector3.new(0.6, 1.8, 0.6)
+			bracket.CFrame = CFrame.new(post.Position + Vector3.new(0, (wallHeight + 1.8) / 2, 0)) * CFrame.Angles(0, -lookAngle, math.rad(30))
 			bracket.Anchored = true
 			bracket.CanCollide = false
 			bracket.Material = Enum.Material.Metal
 			bracket.Color = Color3.fromRGB(45, 48, 55)
 			bracket.Parent = segmentModel
 
-			-- Stereotypical Junkyard Barricade Clutter (Tucked snugly against fence perimeter, clear of pathways)
+			-- 6. Bulkhead Warning Cage Light atop alternate posts
+			if i % 2 == 0 then
+				local bLamp = Instance.new("Part")
+				bLamp.Name = "BulkheadLight"
+				bLamp.Shape = Enum.PartType.Ball
+				bLamp.Size = Vector3.new(0.8, 0.8, 0.8)
+				bLamp.Position = post.Position + Vector3.new(0, (wallHeight + 1.8) / 2 + 0.5, 0)
+				bLamp.Anchored = true
+				bLamp.Material = Enum.Material.Neon
+				bLamp.Color = Color3.fromRGB(255, 120, 30)
+				bLamp.Parent = segmentModel
+
+				local bLight = Instance.new("PointLight")
+				bLight.Color = Color3.fromRGB(255, 130, 30)
+				bLight.Brightness = 0.6
+				bLight.Range = 10
+				bLight.Parent = bLamp
+			end
+
+			-- 7. Exterior Structural Diagonal Kickstand Brace
+			local outDir = (segPos - centerPos).Unit
+			local brace = Instance.new("Part")
+			brace.Name = "KickstandBrace"
+			brace.Size = Vector3.new(0.6, 5.5, 0.6)
+			brace.CFrame = CFrame.new(segPos + outDir * 1.5 + Vector3.new(0, 2.5, 0), segPos + Vector3.new(0, wallHeight * 0.7, 0))
+			brace.Anchored = true
+			brace.Material = Enum.Material.Metal
+			brace.Color = Color3.fromRGB(38, 42, 50)
+			brace.Parent = segmentModel
+
+			-- Stereotypical Junkyard Barricade Clutter (Tucked snugly against fence perimeter)
 			if i % 6 == 1 then
 				local barricade = Instance.new("Model")
 				barricade.Name = "CarCubeBarricade"
@@ -792,7 +1313,7 @@ local function buildScrapyardPerimeter(folder: Instance, centerPos: Vector3, zon
 		end
 	end
 
-	-- Dedicated Centered Gateway Framing Posts (22-stud wide opening, 2 studs outside the 18-stud bridge pier)
+	-- Dedicated Centered Gateway Framing Posts
 	local function createGatewayFrame(gAngle: number, prefix: string)
 		local gDir = Vector3.new(math.cos(gAngle), 0, math.sin(gAngle)).Unit
 		local gTangent = Vector3.new(-gDir.Z, 0, gDir.X).Unit
@@ -804,31 +1325,46 @@ local function buildScrapyardPerimeter(folder: Instance, centerPos: Vector3, zon
 
 		local postL = Instance.new("Part")
 		postL.Name = "GatewayPost_Left"
-		postL.Size = Vector3.new(2.4, 11, 2.4)
-		postL.Position = gPos + gTangent * 11 + Vector3.new(0, 5.5, 0)
+		postL.Size = Vector3.new(2.4, 12, 2.4)
+		postL.Position = gPos + gTangent * 11 + Vector3.new(0, 6.0, 0)
 		postL.Anchored = true
-		postL.Material = Enum.Material.Metal
+		postL.Material = Enum.Material.DiamondPlate
 		postL.Color = Color3.fromRGB(35, 38, 48)
 		postL.Parent = frameModel
 
 		local stripeL = Instance.new("Part")
 		stripeL.Name = "HazardStripe_Left"
-		stripeL.Size = Vector3.new(2.6, 1.2, 2.6)
-		stripeL.Position = postL.Position + Vector3.new(0, 2.5, 0)
+		stripeL.Size = Vector3.new(2.6, 1.4, 2.6)
+		stripeL.Position = postL.Position + Vector3.new(0, 3.0, 0)
 		stripeL.Anchored = true
 		stripeL.Material = Enum.Material.SmoothPlastic
-		stripeL.Color = Color3.fromRGB(255, 170, 0)
+		stripeL.Color = Color3.fromRGB(245, 165, 20)
 		stripeL.Parent = frameModel
+
+		local beaconL = Instance.new("Part")
+		beaconL.Name = "ClearanceBeacon_Left"
+		beaconL.Shape = Enum.PartType.Ball
+		beaconL.Size = Vector3.new(1.0, 1.0, 1.0)
+		beaconL.Position = postL.Position + Vector3.new(0, 6.5, 0)
+		beaconL.Anchored = true
+		beaconL.Material = Enum.Material.Neon
+		beaconL.Color = Color3.fromRGB(45, 220, 110)
+		beaconL.Parent = frameModel
 
 		local postR = postL:Clone()
 		postR.Name = "GatewayPost_Right"
-		postR.Position = gPos - gTangent * 11 + Vector3.new(0, 5.5, 0)
+		postR.Position = gPos - gTangent * 11 + Vector3.new(0, 6.0, 0)
 		postR.Parent = frameModel
 
 		local stripeR = stripeL:Clone()
 		stripeR.Name = "HazardStripe_Right"
-		stripeR.Position = postR.Position + Vector3.new(0, 2.5, 0)
+		stripeR.Position = postR.Position + Vector3.new(0, 3.0, 0)
 		stripeR.Parent = frameModel
+
+		local beaconR = beaconL:Clone()
+		beaconR.Name = "ClearanceBeacon_Right"
+		beaconR.Position = postR.Position + Vector3.new(0, 6.5, 0)
+		beaconR.Parent = frameModel
 	end
 
 	if entranceAngle then
@@ -1010,60 +1546,121 @@ function ZoneService.createScrapPile(zone: Types.ZoneConfig, position: Vector3, 
 	root.Transparency = 1
 	root.Parent = model
 
+	-- 1. Main Irregular Scrap Mound Foundation (Preserves exact name Base)
 	local base = Instance.new("Part")
 	base.Name = "Base"
-	base.Size = Vector3.new(6.0, 2.8, 6.0)
-	base.Position = position + Vector3.new(0, 1.4, 0)
+	base.Size = Vector3.new(6.4, 2.6, 6.4)
+	base.Position = position + Vector3.new(0, 1.3, 0)
 	base.Anchored = true
 	base.Color = zone.Color
 	base.Material = Enum.Material.CorrodedMetal
 	base.Parent = model
 
+	-- Angular Steel Scrap Armor Slabs layered over base
+	local plate1 = Instance.new("Part")
+	plate1.Name = "ScrapPlate_1"
+	plate1.Size = Vector3.new(4.2, 0.6, 3.8)
+	plate1.Position = position + Vector3.new(1.2, 2.2, 0.8)
+	plate1.Orientation = Vector3.new(15, 30, -10)
+	plate1.Anchored = true
+	plate1.Material = Enum.Material.DiamondPlate
+	plate1.Color = Color3.fromRGB(55, 60, 72)
+	plate1.Parent = model
+
+	local plate2 = Instance.new("Part")
+	plate2.Name = "ScrapPlate_2"
+	plate2.Size = Vector3.new(3.6, 0.5, 4.0)
+	plate2.Position = position + Vector3.new(-1.4, 1.9, -1.0)
+	plate2.Orientation = Vector3.new(-20, 45, 15)
+	plate2.Anchored = true
+	plate2.Material = Enum.Material.Metal
+	plate2.Color = Color3.fromRGB(42, 45, 54)
+	plate2.Parent = model
+
+	-- 2. Exposed Industrial V8 Engine Block
+	local engine = Instance.new("Part")
+	engine.Name = "EngineBlock"
+	engine.Size = Vector3.new(2.4, 1.8, 2.0)
+	engine.Position = position + Vector3.new(-0.8, 2.0, 1.2)
+	engine.Orientation = Vector3.new(10, 25, 0)
+	engine.Anchored = true
+	engine.Material = Enum.Material.Metal
+	engine.Color = Color3.fromRGB(38, 40, 48)
+	engine.Parent = model
+
+	-- 3. Curved Industrial Exhaust Pipe (Preserves exact name Pipe)
 	local pipe = Instance.new("Part")
 	pipe.Name = "Pipe"
 	pipe.Shape = Enum.PartType.Cylinder
-	pipe.Size = Vector3.new(5.5, 1.2, 1.2)
-	pipe.Position = position + Vector3.new(0.5, 2.6, 0.5)
+	pipe.Size = Vector3.new(5.8, 1.2, 1.2)
+	pipe.Position = position + Vector3.new(0.6, 2.8, 0.4)
 	pipe.Orientation = Vector3.new(15, 45, 65)
 	pipe.Anchored = true
-	pipe.Color = Color3.fromRGB(80, 75, 70)
+	pipe.Color = Color3.fromRGB(75, 78, 88)
 	pipe.Material = Enum.Material.Metal
 	pipe.Parent = model
 
+	-- 4. Battered Salvage Oil Drum (Preserves exact name SalvageBarrel)
 	local barrel = Instance.new("Part")
 	barrel.Name = "SalvageBarrel"
 	barrel.Shape = Enum.PartType.Cylinder
-	barrel.Size = Vector3.new(2.4, 1.5, 1.5)
-	barrel.Position = position + Vector3.new(-1.6, 1.2, 1.4)
-	barrel.Orientation = Vector3.new(20, 10, 80)
+	barrel.Size = Vector3.new(2.6, 1.6, 1.6)
+	barrel.Position = position + Vector3.new(-1.8, 1.3, 1.4)
+	barrel.Orientation = Vector3.new(20, 15, 75)
 	barrel.Anchored = true
-	barrel.Color = Color3.fromRGB(130, 45, 40)
-	barrel.Material = Enum.Material.Metal
+	barrel.Color = Color3.fromRGB(140, 45, 38)
+	barrel.Material = Enum.Material.CorrodedMetal
 	barrel.Parent = model
 
+	-- 5. Twisted Structural Steel I-Beam (Preserves exact name SteelGirder)
 	local girder = Instance.new("Part")
 	girder.Name = "SteelGirder"
-	girder.Size = Vector3.new(1.0, 5.0, 1.0)
-	girder.Position = position + Vector3.new(1.4, 2.5, -1.2)
+	girder.Size = Vector3.new(1.2, 5.5, 1.2)
+	girder.Position = position + Vector3.new(1.5, 2.8, -1.3)
 	girder.Orientation = Vector3.new(35, 25, -20)
 	girder.Anchored = true
-	girder.Color = Color3.fromRGB(55, 60, 70)
+	girder.Color = Color3.fromRGB(50, 54, 65)
 	girder.Material = Enum.Material.DiamondPlate
 	girder.Parent = model
 
+	-- 6. Exposed High-Voltage Copper Wiring Bundle
+	local copperCoil = Instance.new("Part")
+	copperCoil.Name = "CopperCoil"
+	copperCoil.Shape = Enum.PartType.Cylinder
+	copperCoil.Size = Vector3.new(1.6, 1.2, 1.2)
+	copperCoil.Position = position + Vector3.new(1.2, 1.0, 1.8)
+	copperCoil.Orientation = Vector3.new(0, 0, 90)
+	copperCoil.Anchored = true
+	copperCoil.Material = Enum.Material.Foil
+	copperCoil.Color = Color3.fromRGB(225, 125, 40)
+	copperCoil.Parent = model
+
+	-- 7. Energized Scrap Core (Preserves exact name Core)
 	local core = Instance.new("Part")
 	core.Name = "Core"
 	core.Size = Vector3.new(1.8, 1.8, 1.8)
 	core.Position = position + Vector3.new(0, 3.4, 0)
 	core.Anchored = true
 	core.Color = zone.Color
-	core.Material = Enum.Material.SmoothPlastic
+	core.Material = Enum.Material.Neon
 	core.Parent = model
 
+	-- Electric Arc Crackle Particles
+	local sparks = Instance.new("ParticleEmitter")
+	sparks.Name = "CoreElectricArcs"
+	sparks.Color = ColorSequence.new(zone.Color)
+	sparks.Size = NumberSequence.new(0.12, 0.3)
+	sparks.Rate = 8
+	sparks.Speed = NumberRange.new(1.5, 3.5)
+	sparks.Lifetime = NumberRange.new(0.3, 0.6)
+	sparks.SpreadAngle = Vector2.new(180, 180)
+	sparks.Parent = core
+
+	-- Dense Halo (Preserves exact name DenseHalo)
 	local halo = Instance.new("Part")
 	halo.Name = "DenseHalo"
 	halo.Shape = Enum.PartType.Cylinder
-	halo.Size = Vector3.new(0.4, 4.0, 4.0)
+	halo.Size = Vector3.new(0.4, 4.2, 4.2)
 	halo.Position = core.Position
 	halo.Orientation = Vector3.new(0, 0, 90)
 	halo.Anchored = true
@@ -1177,113 +1774,411 @@ local function createPropPart(parent: Instance, name: string, size: Vector3, cf:
 	return p
 end
 
--- Zone 1: Rusty Outpost Props (Industrial Salvage Crane, Cargo Shipping Containers, Fuel Silo, Rusted Drums)
+-- Zone 1: Rusty Outpost Props (High-Fidelity Lattice Yard Crane, Coolant Silo with Steam Vents, Oil Drum Pallets)
 function ZoneService.buildZone1Props(folder: Instance, center: Vector3)
 	local props = Instance.new("Model")
 	props.Name = "ThematicProps_Zone1"
 	props.Parent = folder
 
-	-- 1. Heavy Industrial Salvage Crane
+	-- 1. Heavy Industrial Lattice Salvage Yard Crane
 	local crane = Instance.new("Model")
 	crane.Name = "SalvageCrane"
 	crane.Parent = props
 
-	local craneMastGroup = Instance.new("Model")
-	craneMastGroup.Name = "MastAndBase"
-	craneMastGroup.Parent = crane
-
 	local cranePos = center + Vector3.new(-38, 0, -38)
-	createPropPart(craneMastGroup, "CraneBase", Vector3.new(8, 2, 8), CFrame.new(cranePos + Vector3.new(0, 1, 0)), Color3.fromRGB(40, 42, 48), Enum.Material.Concrete)
-	createPropPart(craneMastGroup, "CraneMast", Vector3.new(3.5, 26, 3.5), CFrame.new(cranePos + Vector3.new(0, 14, 0)), Color3.fromRGB(215, 145, 30), Enum.Material.Metal)
 
-	local craneBoomGroup = Instance.new("Model")
-	craneBoomGroup.Name = "BoomAssembly"
-	craneBoomGroup.Parent = crane
+	-- Submodel: Foundation
+	local foundation = Instance.new("Model")
+	foundation.Name = "Foundation"
+	foundation.Parent = crane
 
-	createPropPart(craneBoomGroup, "CraneBoom", Vector3.new(3, 3, 24), CFrame.new(cranePos + Vector3.new(0, 26, 6)), Color3.fromRGB(215, 145, 30), Enum.Material.Metal)
-	createPropPart(craneBoomGroup, "CraneCounterweight", Vector3.new(5, 4, 6), CFrame.new(cranePos + Vector3.new(0, 26, -9)), Color3.fromRGB(55, 55, 60), Enum.Material.Concrete)
-	createPropPart(craneBoomGroup, "CraneCable", Vector3.new(0.3, 10, 0.3), CFrame.new(cranePos + Vector3.new(0, 19, 14)), Color3.fromRGB(30, 30, 35), Enum.Material.Metal)
-	createPropPart(craneBoomGroup, "CraneMagnet", Vector3.new(1.8, 6, 6), CFrame.new(cranePos + Vector3.new(0, 14, 14)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(65, 65, 75), Enum.Material.Metal, Enum.PartType.Cylinder)
+	createPropPart(foundation, "ConcretePad", Vector3.new(10, 1.8, 10), CFrame.new(cranePos + Vector3.new(0, 0.9, 0)), Color3.fromRGB(48, 50, 56), Enum.Material.Concrete)
+	local cornerOffsets = {
+		Vector3.new(-4.2, 1.8, -4.2),
+		Vector3.new(4.2, 1.8, -4.2),
+		Vector3.new(-4.2, 1.8, 4.2),
+		Vector3.new(4.2, 1.8, 4.2),
+	}
+	for i, cOff in ipairs(cornerOffsets) do
+		createPropPart(foundation, "AnchorShoe_" .. i, Vector3.new(2.2, 0.6, 2.2), CFrame.new(cranePos + cOff), Color3.fromRGB(35, 38, 45), Enum.Material.DiamondPlate)
+	end
 
-	-- 2. Rusted Coolant Silo
+	-- Submodel: Turntable
+	local turntable = Instance.new("Model")
+	turntable.Name = "Turntable"
+	turntable.Parent = crane
+
+	createPropPart(turntable, "SlewingGearRing", Vector3.new(1.2, 7.8, 7.8), CFrame.new(cranePos + Vector3.new(0, 2.4, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(30, 32, 38), Enum.Material.Metal, Enum.PartType.Cylinder)
+	createPropPart(turntable, "SlewingMotor", Vector3.new(3.2, 2.4, 2.8), CFrame.new(cranePos + Vector3.new(-2.2, 3.8, -2.2)), Color3.fromRGB(200, 130, 25), Enum.Material.CorrodedMetal)
+
+	-- Submodel: MastAssembly (Open-Lattice 4-Chord Mast)
+	local mastAssembly = Instance.new("Model")
+	mastAssembly.Name = "MastAssembly"
+	mastAssembly.Parent = crane
+
+	local mastHeight = 28
+	local chordOffsets = {
+		Vector3.new(-2.2, 0, -2.2),
+		Vector3.new(2.2, 0, -2.2),
+		Vector3.new(-2.2, 0, 2.2),
+		Vector3.new(2.2, 0, 2.2),
+	}
+	for i, chOff in ipairs(chordOffsets) do
+		createPropPart(mastAssembly, "MastChord_" .. i, Vector3.new(0.8, mastHeight, 0.8), CFrame.new(cranePos + chOff + Vector3.new(0, 3 + (mastHeight / 2), 0)), Color3.fromRGB(215, 140, 28), Enum.Material.DiamondPlate)
+	end
+
+	-- Mast Horizontal Battens & Cross Lacing
+	local battenModel = Instance.new("Model")
+	battenModel.Name = "LatticeBracing"
+	battenModel.Parent = mastAssembly
+
+	for b = 1, 6 do
+		local bY = 5 + (b * 4)
+		createPropPart(battenModel, "BattenRing_" .. b, Vector3.new(5.2, 0.5, 5.2), CFrame.new(cranePos + Vector3.new(0, bY, 0)), Color3.fromRGB(180, 115, 20), Enum.Material.Metal)
+	end
+
+	-- Climbing Service Ladder up the back spine
+	local ladderModel = Instance.new("Model")
+	ladderModel.Name = "ServiceLadder"
+	ladderModel.Parent = mastAssembly
+
+	createPropPart(ladderModel, "LadderRailL", Vector3.new(0.3, mastHeight - 4, 0.3), CFrame.new(cranePos + Vector3.new(-0.8, 4 + (mastHeight / 2), -2.6)), Color3.fromRGB(40, 42, 48), Enum.Material.Metal)
+	createPropPart(ladderModel, "LadderRailR", Vector3.new(0.3, mastHeight - 4, 0.3), CFrame.new(cranePos + Vector3.new(0.8, 4 + (mastHeight / 2), -2.6)), Color3.fromRGB(40, 42, 48), Enum.Material.Metal)
+	for rung = 1, 12 do
+		createPropPart(ladderModel, "Rung_" .. rung, Vector3.new(1.6, 0.25, 0.25), CFrame.new(cranePos + Vector3.new(0, 6 + (rung * 1.8), -2.6)), Color3.fromRGB(200, 190, 180), Enum.Material.Metal)
+	end
+
+	-- Masthead Landing Platform
+	createPropPart(mastAssembly, "MastPlatform", Vector3.new(6.8, 0.6, 6.8), CFrame.new(cranePos + Vector3.new(0, 3 + mastHeight, 0)), Color3.fromRGB(45, 48, 55), Enum.Material.DiamondPlate)
+
+	-- Submodel: OperatorCabin
+	local cabin = Instance.new("Model")
+	cabin.Name = "OperatorCabin"
+	cabin.Parent = crane
+
+	local cabPos = cranePos + Vector3.new(3.8, 3 + mastHeight - 2, 2.5)
+	createPropPart(cabin, "CabBody", Vector3.new(4.2, 5.0, 4.8), CFrame.new(cabPos), Color3.fromRGB(38, 42, 50), Enum.Material.Metal)
+	createPropPart(cabin, "CabRoof", Vector3.new(4.6, 0.4, 5.2), CFrame.new(cabPos + Vector3.new(0, 2.6, 0)), Color3.fromRGB(200, 130, 25), Enum.Material.Metal)
+	createPropPart(cabin, "CabWindshield", Vector3.new(3.6, 2.8, 0.4), CFrame.new(cabPos + Vector3.new(0, 0.4, 2.45)) * CFrame.Angles(math.rad(-15), 0, 0), Color3.fromRGB(80, 190, 230), Enum.Material.Glass)
+	
+	local cabDash = createPropPart(cabin, "CabConsole", Vector3.new(2.8, 0.8, 1.2), CFrame.new(cabPos + Vector3.new(0, -0.6, 1.4)), Color3.fromRGB(25, 28, 34), Enum.Material.Metal)
+	local cabLight = Instance.new("PointLight")
+	cabLight.Color = Color3.fromRGB(255, 175, 50)
+	cabLight.Brightness = 0.4
+	cabLight.Range = 6
+	cabLight.Parent = cabDash
+
+	-- Halogen Work Spotlight under cabin
+	local spotMount = createPropPart(cabin, "WorkSpotlight", Vector3.new(1.4, 1.4, 1.8), CFrame.new(cabPos + Vector3.new(0, -2.8, 1.2)) * CFrame.Angles(math.rad(-35), 0, 0), Color3.fromRGB(245, 240, 220), Enum.Material.Neon)
+	local spotLamp = Instance.new("SpotLight")
+	spotLamp.Color = Color3.fromRGB(255, 245, 220)
+	spotLamp.Brightness = 0.6
+	spotLamp.Range = 35
+	spotLamp.Angle = 45
+	spotLamp.Parent = spotMount
+
+	-- Submodel: BoomAndCounterweight
+	local boomAssembly = Instance.new("Model")
+	boomAssembly.Name = "BoomAssembly"
+	boomAssembly.Parent = crane
+
+	local boomApexY = 3 + mastHeight + 4
+	-- A-Frame Apex Tower
+	createPropPart(boomAssembly, "ApexTowerL", Vector3.new(0.6, 7.5, 0.6), CFrame.new(cranePos + Vector3.new(-1.8, boomApexY, 0)) * CFrame.Angles(0, 0, math.rad(-12)), Color3.fromRGB(215, 140, 28), Enum.Material.Metal)
+	createPropPart(boomAssembly, "ApexTowerR", Vector3.new(0.6, 7.5, 0.6), CFrame.new(cranePos + Vector3.new(1.8, boomApexY, 0)) * CFrame.Angles(0, 0, math.rad(12)), Color3.fromRGB(215, 140, 28), Enum.Material.Metal)
+
+	-- Main Jib Boom (Reaching 28 studs forward into the scrap yard)
+	local jibLen = 28
+	local jibCenterZ = jibLen / 2
+	createPropPart(boomAssembly, "JibChordTop", Vector3.new(2.4, 0.8, jibLen), CFrame.new(cranePos + Vector3.new(0, 3 + mastHeight + 1.8, jibCenterZ)), Color3.fromRGB(215, 140, 28), Enum.Material.Metal)
+	createPropPart(boomAssembly, "JibChordBottom", Vector3.new(3.0, 1.0, jibLen), CFrame.new(cranePos + Vector3.new(0, 3 + mastHeight, jibCenterZ)), Color3.fromRGB(195, 125, 22), Enum.Material.DiamondPlate)
+
+	-- Rear Counterweight Arm & Ballast Blocks
+	local cjLen = 12
+	createPropPart(boomAssembly, "CounterJibDeck", Vector3.new(3.2, 1.2, cjLen), CFrame.new(cranePos + Vector3.new(0, 3 + mastHeight + 0.5, -cjLen / 2)), Color3.fromRGB(180, 115, 20), Enum.Material.Metal)
+	local ballastModel = Instance.new("Model")
+	ballastModel.Name = "Counterweights"
+	ballastModel.Parent = boomAssembly
+	for bi = 1, 3 do
+		createPropPart(ballastModel, "BallastBlock_" .. bi, Vector3.new(4.8, 3.2, 2.4), CFrame.new(cranePos + Vector3.new(0, 3 + mastHeight + 2.2, -cjLen + 1.8 + ((bi - 1) * 2.6))), Color3.fromRGB(52, 54, 60), Enum.Material.Concrete)
+	end
+
+	-- High-Tensile Steel Tension Stay Cables
+	createPropPart(boomAssembly, "StayCable_JibTip", Vector3.new(0.3, 19, 0.3), CFrame.new(cranePos + Vector3.new(0, boomApexY + 1, jibCenterZ * 0.9)) * CFrame.Angles(math.rad(48), 0, 0), Color3.fromRGB(70, 75, 85), Enum.Material.Metal, Enum.PartType.Cylinder)
+	createPropPart(boomAssembly, "StayCable_CounterJib", Vector3.new(0.3, 14, 0.3), CFrame.new(cranePos + Vector3.new(0, boomApexY + 1, -cjLen * 0.5)) * CFrame.Angles(math.rad(-42), 0, 0), Color3.fromRGB(70, 75, 85), Enum.Material.Metal, Enum.PartType.Cylinder)
+
+	-- Submodel: HoistAndGrappleClaw
+	local hoistClaw = Instance.new("Model")
+	hoistClaw.Name = "HoistAndClaw"
+	hoistClaw.Parent = crane
+
+	local trolleyPos = cranePos + Vector3.new(0, 3 + mastHeight - 0.6, 18)
+	local trolley = createPropPart(hoistClaw, "TrolleyCarriage", Vector3.new(3.4, 0.9, 3.4), CFrame.new(trolleyPos), Color3.fromRGB(36, 40, 48), Enum.Material.Metal)
+
+	local trolleyStrobe = Instance.new("PointLight")
+	trolleyStrobe.Color = Color3.fromRGB(255, 185, 30)
+	trolleyStrobe.Brightness = 0.5
+	trolleyStrobe.Range = 10
+	trolleyStrobe.Parent = trolley
+
+	-- Dual Braided Steel Cables
+	local cableDrop = 14
+	createPropPart(hoistClaw, "CableLeft", Vector3.new(0.2, cableDrop, 0.2), CFrame.new(trolleyPos + Vector3.new(-0.8, -cableDrop / 2, 0)), Color3.fromRGB(30, 32, 36), Enum.Material.Metal, Enum.PartType.Cylinder)
+	createPropPart(hoistClaw, "CableRight", Vector3.new(0.2, cableDrop, 0.2), CFrame.new(trolleyPos + Vector3.new(0.8, -cableDrop / 2, 0)), Color3.fromRGB(30, 32, 36), Enum.Material.Metal, Enum.PartType.Cylinder)
+
+	-- Heavy 4-Jaw Hydraulic Scrap Grapple Claw
+	local clawCenter = trolleyPos + Vector3.new(0, -cableDrop, 0)
+	local clawHub = createPropPart(hoistClaw, "ClawHub", Vector3.new(1.4, 3.8, 3.8), CFrame.new(clawCenter) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(42, 45, 54), Enum.Material.Metal, Enum.PartType.Cylinder)
+
+	local clawArms = Instance.new("Model")
+	clawArms.Name = "ClawJaws"
+	clawArms.Parent = hoistClaw
+
+	local clawDirs = {
+		{ Ang = 0, Off = Vector3.new(0, -1.2, 1.8) },
+		{ Ang = 90, Off = Vector3.new(1.8, -1.2, 0) },
+		{ Ang = 180, Off = Vector3.new(0, -1.2, -1.8) },
+		{ Ang = 270, Off = Vector3.new(-1.8, -1.2, 0) },
+	}
+	for i, cData in ipairs(clawDirs) do
+		local jaw = createPropPart(clawArms, "ClawJaw_" .. i, Vector3.new(0.9, 3.6, 1.2), CFrame.new(clawCenter + cData.Off) * CFrame.Angles(math.rad(30), math.rad(cData.Ang), 0), Color3.fromRGB(215, 145, 30), Enum.Material.Metal)
+		-- Chrome hydraulic cylinder
+		createPropPart(clawArms, "HydraulicRam_" .. i, Vector3.new(2.4, 0.5, 0.5), CFrame.new(clawCenter + (cData.Off * 0.6) + Vector3.new(0, 0.6, 0)) * CFrame.Angles(0, math.rad(cData.Ang), math.rad(45)), Color3.fromRGB(195, 205, 215), Enum.Material.Metal, Enum.PartType.Cylinder)
+		-- Claw tooth tip
+		createPropPart(clawArms, "JawTip_" .. i, Vector3.new(0.8, 1.0, 1.0), jaw.CFrame * CFrame.new(0, -1.8, 0.4), Color3.fromRGB(245, 175, 20), Enum.Material.SmoothPlastic)
+	end
+
+	-- 2. Heavy Rusted Cryo-Coolant Silo
 	local silo = Instance.new("Model")
 	silo.Name = "CoolantSilo"
 	silo.Parent = props
 
 	local siloPos = center + Vector3.new(0, 0, 48)
-	createPropPart(silo, "SiloBody", Vector3.new(18, 7.5, 7.5), CFrame.new(siloPos + Vector3.new(0, 9, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(150, 85, 50), Enum.Material.CorrodedMetal, Enum.PartType.Cylinder)
-	createPropPart(silo, "SiloDome", Vector3.new(7.5, 5, 7.5), CFrame.new(siloPos + Vector3.new(0, 19, 0)), Color3.fromRGB(130, 75, 45), Enum.Material.Metal, Enum.PartType.Ball)
-	createPropPart(silo, "SiloCatwalk", Vector3.new(1, 9, 9), CFrame.new(siloPos + Vector3.new(0, 11, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(50, 50, 55), Enum.Material.Metal, Enum.PartType.Cylinder)
 
-	-- 3. Rusted Oil Drum Clusters
+	-- Submodel: Foundation
+	local sFoundation = Instance.new("Model")
+	sFoundation.Name = "Foundation"
+	sFoundation.Parent = silo
+
+	createPropPart(sFoundation, "ConcretePlinth", Vector3.new(1.4, 11, 11), CFrame.new(siloPos + Vector3.new(0, 0.7, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(48, 50, 56), Enum.Material.Concrete, Enum.PartType.Cylinder)
+
+	-- Submodel: SiloVessel
+	local sVessel = Instance.new("Model")
+	sVessel.Name = "SiloVessel"
+	sVessel.Parent = silo
+
+	createPropPart(sVessel, "SiloTankBody", Vector3.new(20, 8.2, 8.2), CFrame.new(siloPos + Vector3.new(0, 11.4, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(145, 82, 48), Enum.Material.CorrodedMetal, Enum.PartType.Cylinder)
+	createPropPart(sVessel, "DomeCap", Vector3.new(8.2, 5.0, 8.2), CFrame.new(siloPos + Vector3.new(0, 21.6, 0)), Color3.fromRGB(125, 70, 40), Enum.Material.Metal, Enum.PartType.Ball)
+	
+	-- Circumferential Steel Stiffener Rings
+	for r = 1, 3 do
+		local rY = 4 + (r * 4.5)
+		createPropPart(sVessel, "StiffenerRing_" .. r, Vector3.new(0.8, 8.8, 8.8), CFrame.new(siloPos + Vector3.new(0, rY, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(42, 45, 52), Enum.Material.Metal, Enum.PartType.Cylinder)
+	end
+
+	-- Submodel: ServiceAccess
+	local sAccess = Instance.new("Model")
+	sAccess.Name = "ServiceAccess"
+	sAccess.Parent = silo
+
+	createPropPart(sAccess, "CatwalkRing", Vector3.new(0.8, 10.6, 10.6), CFrame.new(siloPos + Vector3.new(0, 14.0, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(38, 42, 50), Enum.Material.DiamondPlate, Enum.PartType.Cylinder)
+	createPropPart(sAccess, "SafetyRailing", Vector3.new(0.6, 11.4, 11.4), CFrame.new(siloPos + Vector3.new(0, 16.5, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(195, 130, 25), Enum.Material.Metal, Enum.PartType.Cylinder)
+
+	-- Submodel: ReliefManifold
+	local sManifold = Instance.new("Model")
+	sManifold.Name = "ReliefManifold"
+	sManifold.Parent = silo
+
+	local ventElbow = createPropPart(sManifold, "VentPipeElbow", Vector3.new(1.0, 5.0, 1.0), CFrame.new(siloPos + Vector3.new(4.5, 17, 0)), Color3.fromRGB(50, 52, 60), Enum.Material.Metal)
+	local ventNozzle = createPropPart(sManifold, "VentNozzle", Vector3.new(1.4, 1.4, 1.4), CFrame.new(siloPos + Vector3.new(5.0, 19.5, 0)), Color3.fromRGB(35, 38, 45), Enum.Material.Metal)
+	
+	-- Cryo Steam Vent Particles
+	local steamEmitter = Instance.new("ParticleEmitter")
+	steamEmitter.Name = "CryoMistEmitter"
+	steamEmitter.Texture = "rbxassetid://243098098"
+	steamEmitter.Color = ColorSequence.new(Color3.fromRGB(220, 240, 255), Color3.fromRGB(180, 215, 245))
+	steamEmitter.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.8),
+		NumberSequenceKeypoint.new(0.5, 2.5),
+		NumberSequenceKeypoint.new(1, 4.2),
+	})
+	steamEmitter.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.4),
+		NumberSequenceKeypoint.new(0.6, 0.7),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	steamEmitter.Lifetime = NumberRange.new(1.5, 2.5)
+	steamEmitter.Rate = 12
+	steamEmitter.Speed = NumberRange.new(3, 6)
+	steamEmitter.SpreadAngle = Vector2.new(20, 20)
+	steamEmitter.EmissionDirection = Enum.NormalId.Right
+	steamEmitter.Parent = ventNozzle
+
+	-- 3. Palletized Industrial Salvage Oil Drum Cache
 	local drumCluster = Instance.new("Model")
 	drumCluster.Name = "OilDrumCluster"
 	drumCluster.Parent = props
 
-	local drumOffsets = {
-		Vector3.new(-8, 1.4, 46),
-		Vector3.new(-6, 1.4, 48),
-		Vector3.new(-7, 4.2, 47),
-		Vector3.new(8, 1.4, 46),
-		Vector3.new(6, 1.4, 48),
+	-- Submodel: Pallets
+	local pallets = Instance.new("Model")
+	pallets.Name = "WoodenPallets"
+	pallets.Parent = drumCluster
+
+	createPropPart(pallets, "PalletWest", Vector3.new(6.5, 0.7, 6.5), CFrame.new(center + Vector3.new(-7, 0.35, 47)), Color3.fromRGB(120, 85, 55), Enum.Material.Wood)
+	createPropPart(pallets, "PalletEast", Vector3.new(6.5, 0.7, 6.5), CFrame.new(center + Vector3.new(7, 0.35, 47)), Color3.fromRGB(120, 85, 55), Enum.Material.Wood)
+
+	-- Submodel: HazardDrums
+	local drums = Instance.new("Model")
+	drums.Name = "HazardDrums"
+	drums.Parent = drumCluster
+
+	local drumConfigs = {
+		{ Pos = Vector3.new(-8.2, 2.1, 46.0), Color = Color3.fromRGB(145, 60, 35), Rot = Vector3.new(90, 0, 0) },
+		{ Pos = Vector3.new(-6.0, 2.1, 48.0), Color = Color3.fromRGB(160, 75, 40), Rot = Vector3.new(90, 0, 0) },
+		{ Pos = Vector3.new(-7.0, 4.9, 47.0), Color = Color3.fromRGB(195, 135, 30), Rot = Vector3.new(90, 0, 0) },
+		{ Pos = Vector3.new(6.2, 2.1, 46.0), Color = Color3.fromRGB(45, 95, 140), Rot = Vector3.new(90, 0, 0) },
+		{ Pos = Vector3.new(8.0, 2.1, 48.0), Color = Color3.fromRGB(130, 55, 35), Rot = Vector3.new(90, 0, 0) },
+		{ Pos = Vector3.new(7.0, 1.6, 49.5), Color = Color3.fromRGB(140, 60, 35), Rot = Vector3.new(0, 30, 90) }, -- Tipped drum
 	}
-	for i, dOff in ipairs(drumOffsets) do
-		createPropPart(drumCluster, "Drum_" .. i, Vector3.new(2.8, 1.8, 1.8), CFrame.new(center + dOff) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(125, 65, 40), Enum.Material.CorrodedMetal, Enum.PartType.Cylinder)
+
+	for i, dc in ipairs(drumConfigs) do
+		local drum = createPropPart(drums, "DrumBarrel_" .. i, Vector3.new(3.0, 1.9, 1.9), CFrame.new(center + dc.Pos) * CFrame.Angles(math.rad(dc.Rot.X), math.rad(dc.Rot.Y), math.rad(dc.Rot.Z)), dc.Color, Enum.Material.CorrodedMetal, Enum.PartType.Cylinder)
+		-- Chime Ribs
+		createPropPart(drums, "ChimeRibA_" .. i, Vector3.new(0.2, 2.05, 2.05), drum.CFrame * CFrame.new(-0.8, 0, 0), Color3.fromRGB(30, 32, 38), Enum.Material.Metal, Enum.PartType.Cylinder)
+		createPropPart(drums, "ChimeRibB_" .. i, Vector3.new(0.2, 2.05, 2.05), drum.CFrame * CFrame.new(0.8, 0, 0), Color3.fromRGB(30, 32, 38), Enum.Material.Metal, Enum.PartType.Cylinder)
 	end
 end
 
--- Zone 2: Automotive Graveyard Props (Hydraulic Car-Crusher, Crushed Cyber-Car Stacks, Giant Tire Pyramids, Generator Block)
+-- Zone 2: Automotive Graveyard Props (Hydraulic Cyber-Car Crusher, Crushed Car Stacks, Heavy Mining Radial Tire Pyramids)
 function ZoneService.buildZone2Props(folder: Instance, center: Vector3)
 	local props = Instance.new("Model")
 	props.Name = "ThematicProps_Zone2"
 	props.Parent = folder
 
-	-- 1. Heavy Hydraulic Car-Crusher Press
+	-- 1. Heavy Industrial Hydraulic Cyber-Car Crusher Press (West Perimeter facing East)
 	local crusher = Instance.new("Model")
 	crusher.Name = "HydraulicCarCrusher"
 	crusher.Parent = props
 
-	local crusherFrame = Instance.new("Model")
-	crusherFrame.Name = "FrameStructure"
-	crusherFrame.Parent = crusher
+	local crusherCF = CFrame.new(center + Vector3.new(-38, 0, 0)) * CFrame.Angles(0, math.rad(90), 0)
 
-	local crusherPos = center + Vector3.new(0, 0, -36)
-	createPropPart(crusherFrame, "CrusherCol1", Vector3.new(2.2, 18, 2.2), CFrame.new(crusherPos + Vector3.new(-9, 9, -3)), Color3.fromRGB(70, 85, 100), Enum.Material.Metal)
-	createPropPart(crusherFrame, "CrusherCol2", Vector3.new(2.2, 18, 2.2), CFrame.new(crusherPos + Vector3.new(9, 9, -3)), Color3.fromRGB(70, 85, 100), Enum.Material.Metal)
-	createPropPart(crusherFrame, "CrusherCol3", Vector3.new(2.2, 18, 2.2), CFrame.new(crusherPos + Vector3.new(-9, 9, 3)), Color3.fromRGB(70, 85, 100), Enum.Material.Metal)
-	createPropPart(crusherFrame, "CrusherCol4", Vector3.new(2.2, 18, 2.2), CFrame.new(crusherPos + Vector3.new(9, 9, 3)), Color3.fromRGB(70, 85, 100), Enum.Material.Metal)
-	createPropPart(crusherFrame, "CrusherTop", Vector3.new(22, 3.5, 8), CFrame.new(crusherPos + Vector3.new(0, 18, 0)), Color3.fromRGB(45, 55, 65), Enum.Material.Metal)
+	-- Submodel: FoundationGrate
+	local foundation = Instance.new("Model")
+	foundation.Name = "FoundationGrate"
+	foundation.Parent = crusher
 
-	local crusherRam = Instance.new("Model")
-	crusherRam.Name = "PressRam"
-	crusherRam.Parent = crusher
+	createPropPart(foundation, "ConcreteFooting", Vector3.new(24, 1.4, 14), crusherCF * CFrame.new(0, 0.7, 0), Color3.fromRGB(44, 46, 52), Enum.Material.Concrete)
+	createPropPart(foundation, "DrainageGrate", Vector3.new(20, 0.4, 10), crusherCF * CFrame.new(0, 1.4, 0), Color3.fromRGB(32, 34, 40), Enum.Material.DiamondPlate)
 
-	createPropPart(crusherRam, "PistonL", Vector3.new(10, 1.8, 1.8), CFrame.new(crusherPos + Vector3.new(-4.5, 12, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(180, 190, 205), Enum.Material.Metal, Enum.PartType.Cylinder)
-	createPropPart(crusherRam, "PistonR", Vector3.new(10, 1.8, 1.8), CFrame.new(crusherPos + Vector3.new(4.5, 12, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(180, 190, 205), Enum.Material.Metal, Enum.PartType.Cylinder)
-	createPropPart(crusherRam, "CrushRam", Vector3.new(17, 2, 6.5), CFrame.new(crusherPos + Vector3.new(0, 7, 0)), Color3.fromRGB(100, 115, 130), Enum.Material.Metal)
+	-- Submodel: FrameColumns
+	local frame = Instance.new("Model")
+	frame.Name = "FrameColumns"
+	frame.Parent = crusher
 
-	-- 2. Crushed Cyber-Car Stack (North-West Border)
+	local colCoords = {
+		Vector3.new(-9.5, 0, -4.5),
+		Vector3.new(9.5, 0, -4.5),
+		Vector3.new(-9.5, 0, 4.5),
+		Vector3.new(9.5, 0, 4.5),
+	}
+	for i, cCoord in ipairs(colCoords) do
+		-- H-Beam vertical guide column
+		createPropPart(frame, "GuideColumn_" .. i, Vector3.new(2.4, 20, 2.4), crusherCF * CFrame.new(cCoord + Vector3.new(0, 10.7, 0)), Color3.fromRGB(60, 75, 92), Enum.Material.DiamondPlate)
+		-- Base Gusset Plate
+		createPropPart(frame, "GussetPlate_" .. i, Vector3.new(3.4, 1.8, 3.4), crusherCF * CFrame.new(cCoord + Vector3.new(0, 2.0, 0)), Color3.fromRGB(40, 48, 58), Enum.Material.Metal)
+	end
+
+	-- Heavy Box-Girder Headstock
+	createPropPart(frame, "HeadstockBeam", Vector3.new(24, 4.2, 12), crusherCF * CFrame.new(0, 21.5, 0), Color3.fromRGB(42, 52, 64), Enum.Material.Metal)
+	createPropPart(frame, "HazardTrimHead", Vector3.new(24.2, 0.8, 12.2), crusherCF * CFrame.new(0, 19.6, 0), Color3.fromRGB(245, 175, 25), Enum.Material.SmoothPlastic)
+
+	-- Submodel: HydraulicRamAssembly
+	local ramAssembly = Instance.new("Model")
+	ramAssembly.Name = "HydraulicRamAssembly"
+	ramAssembly.Parent = crusher
+
+	-- Twin Chrome Hydraulic Cylinders
+	createPropPart(ramAssembly, "HydraulicCylinderL", Vector3.new(10, 2.2, 2.2), crusherCF * CFrame.new(-5, 14.5, 0) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(195, 205, 218), Enum.Material.Metal, Enum.PartType.Cylinder)
+	createPropPart(ramAssembly, "HydraulicCylinderR", Vector3.new(10, 2.2, 2.2), crusherCF * CFrame.new(5, 14.5, 0) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(195, 205, 218), Enum.Material.Metal, Enum.PartType.Cylinder)
+
+	-- Reinforced Steel Crusher Ram Plate with Crushing Teeth
+	local ramPlate = createPropPart(ramAssembly, "CrusherRamPlate", Vector3.new(18, 2.4, 8), crusherCF * CFrame.new(0, 8.5, 0), Color3.fromRGB(80, 95, 110), Enum.Material.DiamondPlate)
+	for t = 1, 4 do
+		createPropPart(ramAssembly, "CrushTooth_" .. t, Vector3.new(1.4, 1.2, 1.4), crusherCF * CFrame.new(-6 + ((t - 1) * 4), 7.0, 0), Color3.fromRGB(50, 58, 68), Enum.Material.Metal)
+	end
+
+	-- Submodel: CrushedVehicleBed (Inside the crusher press)
+	local carBed = Instance.new("Model")
+	carBed.Name = "CrushedVehicleBed"
+	carBed.Parent = crusher
+
+	local crushedCar = createPropPart(carBed, "CrushedCarChassis", Vector3.new(16, 2.2, 7), crusherCF * CFrame.new(0, 2.5, 0), Color3.fromRGB(150, 48, 55), Enum.Material.Metal)
+	createPropPart(carBed, "BentCockpitRoof", Vector3.new(10, 1.4, 5.5), crusherCF * CFrame.new(1, 3.8, 0) * CFrame.Angles(math.rad(8), math.rad(-5), math.rad(4)), Color3.fromRGB(35, 40, 48), Enum.Material.Metal)
+
+	-- Grinding Metal Sparks Emitter
+	local grindSparks = Instance.new("ParticleEmitter")
+	grindSparks.Name = "MetalSparks"
+	grindSparks.Texture = "rbxassetid://258129523"
+	grindSparks.Color = ColorSequence.new(Color3.fromRGB(255, 220, 120), Color3.fromRGB(255, 120, 20))
+	grindSparks.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.4),
+		NumberSequenceKeypoint.new(1, 0.1),
+	})
+	grindSparks.Lifetime = NumberRange.new(0.6, 1.2)
+	grindSparks.Rate = 8
+	grindSparks.Speed = NumberRange.new(5, 12)
+	grindSparks.SpreadAngle = Vector2.new(45, 45)
+	grindSparks.EmissionDirection = Enum.NormalId.Top
+	grindSparks.Parent = crushedCar
+
+	-- Submodel: ControlStation
+	local cStation = Instance.new("Model")
+	cStation.Name = "ControlStation"
+	cStation.Parent = crusher
+
+	local panelCF = crusherCF * CFrame.new(13.5, 0, 4.5)
+	createPropPart(cStation, "Pedestal", Vector3.new(1.8, 4.2, 1.8), panelCF * CFrame.new(0, 2.1, 0), Color3.fromRGB(36, 40, 48), Enum.Material.Metal)
+	local console = createPropPart(cStation, "ConsoleHead", Vector3.new(2.4, 1.6, 2.2), panelCF * CFrame.new(0, 4.6, 0) * CFrame.Angles(math.rad(-25), 0, 0), Color3.fromRGB(50, 58, 68), Enum.Material.Metal)
+	local estop = createPropPart(cStation, "EmergencyStop", Vector3.new(0.8, 0.6, 0.8), console.CFrame * CFrame.new(0.6, 0.4, 0), Color3.fromRGB(230, 45, 45), Enum.Material.Neon, Enum.PartType.Cylinder)
+
+	-- 2. Crushed Cyber-Car Stack (North-West Perimeter)
 	local carStack1 = Instance.new("Model")
 	carStack1.Name = "CrushedCarStack_NorthWest"
 	carStack1.Parent = props
 
 	local carPos1 = center + Vector3.new(-26, 0, -26)
-	createPropPart(carStack1, "CarLower_1", Vector3.new(7.5, 2.2, 12), CFrame.new(carPos1 + Vector3.new(0, 1.1, 0)), Color3.fromRGB(60, 95, 120), Enum.Material.Metal)
-	createPropPart(carStack1, "CarLower_Windshield", Vector3.new(6.5, 1.0, 4), CFrame.new(carPos1 + Vector3.new(0, 2.7, -1)), Color3.fromRGB(20, 30, 40), Enum.Material.SmoothPlastic)
-	local rotCar2 = CFrame.Angles(math.rad(6), math.rad(14), math.rad(-4))
-	createPropPart(carStack1, "CarUpper_1", Vector3.new(7, 2, 11), CFrame.new(carPos1 + Vector3.new(0.4, 2.9, 0)) * rotCar2, Color3.fromRGB(140, 50, 60), Enum.Material.Metal)
 
-	-- 3. Crushed Cyber-Car Stack (North-East Border)
+	-- Tier 1: Bottom Heavy Cruiser
+	local c1Base = createPropPart(carStack1, "Car1_Chassis", Vector3.new(8.5, 2.4, 13), CFrame.new(carPos1 + Vector3.new(0, 1.2, 0)), Color3.fromRGB(52, 85, 115), Enum.Material.Metal)
+	createPropPart(carStack1, "Car1_ShatteredWindshield", Vector3.new(7.2, 1.2, 4.5), CFrame.new(carPos1 + Vector3.new(0, 2.6, -1)), Color3.fromRGB(22, 28, 38), Enum.Material.Glass)
+	createPropPart(carStack1, "Car1_WheelRimL", Vector3.new(1.4, 3.2, 3.2), CFrame.new(carPos1 + Vector3.new(-4.2, 1.6, 3)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(24, 25, 28), Enum.Material.Metal, Enum.PartType.Cylinder)
+	createPropPart(carStack1, "Car1_WheelRimR", Vector3.new(1.4, 3.2, 3.2), CFrame.new(carPos1 + Vector3.new(4.2, 1.6, 3)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(24, 25, 28), Enum.Material.Metal, Enum.PartType.Cylinder)
+
+	-- Tier 2: Middle Compact Speeder (Oxidized Crimson)
+	local rotCar2 = CFrame.Angles(math.rad(6), math.rad(14), math.rad(-5))
+	createPropPart(carStack1, "Car2_Chassis", Vector3.new(7.8, 2.0, 11.5), CFrame.new(carPos1 + Vector3.new(0.4, 3.4, 0)) * rotCar2, Color3.fromRGB(145, 52, 60), Enum.Material.CorrodedMetal)
+	createPropPart(carStack1, "Car2_CrushedCabin", Vector3.new(6.4, 1.2, 4.0), CFrame.new(carPos1 + Vector3.new(0.6, 4.8, -0.6)) * rotCar2, Color3.fromRGB(25, 26, 32), Enum.Material.Metal)
+
+	-- Tier 3: Top Hover Wedge (Angled and battered)
+	local rotCar3 = CFrame.Angles(math.rad(-8), math.rad(-22), math.rad(10))
+	createPropPart(carStack1, "Car3_Chassis", Vector3.new(6.8, 1.8, 9.8), CFrame.new(carPos1 + Vector3.new(-0.3, 5.2, 0.4)) * rotCar3, Color3.fromRGB(200, 140, 30), Enum.Material.Metal)
+
+	-- 3. Crushed Cyber-Car Stack (North-East Perimeter)
 	local carStack2 = Instance.new("Model")
 	carStack2.Name = "CrushedCarStack_NorthEast"
 	carStack2.Parent = props
 
 	local carPos2 = center + Vector3.new(26, 0, -26)
-	local rotCar3 = CFrame.Angles(math.rad(-5), math.rad(-16), math.rad(6))
-	createPropPart(carStack2, "CarStack2_Base", Vector3.new(8, 2.2, 12), CFrame.new(carPos2 + Vector3.new(0, 1.1, 0)), Color3.fromRGB(160, 120, 40), Enum.Material.Metal)
-	createPropPart(carStack2, "CarStack2_Top", Vector3.new(7.2, 2.0, 10.5), CFrame.new(carPos2 + Vector3.new(-0.3, 2.9, 0)) * rotCar3, Color3.fromRGB(75, 80, 95), Enum.Material.Metal)
 
-	-- 4. Giant Radial Tire Stacks (South Borders)
+	local rotCarB1 = CFrame.Angles(0, math.rad(-15), 0)
+	createPropPart(carStack2, "CarStack2_BaseChassis", Vector3.new(9.0, 2.5, 13.5), CFrame.new(carPos2 + Vector3.new(0, 1.25, 0)) * rotCarB1, Color3.fromRGB(165, 125, 38), Enum.Material.Metal)
+	createPropPart(carStack2, "CarStack2_FrontBumper", Vector3.new(9.4, 1.6, 1.4), CFrame.new(carPos2 + Vector3.new(0, 1.25, 6.8)) * rotCarB1, Color3.fromRGB(38, 40, 48), Enum.Material.DiamondPlate)
+
+	local rotCarB2 = CFrame.Angles(math.rad(-6), math.rad(-28), math.rad(8))
+	createPropPart(carStack2, "CarStack2_TopChassis", Vector3.new(7.6, 2.2, 11), CFrame.new(carPos2 + Vector3.new(-0.4, 3.4, 0)) * rotCarB2, Color3.fromRGB(72, 78, 94), Enum.Material.Metal)
+	createPropPart(carStack2, "CarStack2_ExhaustPipes", Vector3.new(3.2, 0.8, 0.8), CFrame.new(carPos2 + Vector3.new(-0.4, 2.8, -5.5)) * rotCarB2, Color3.fromRGB(25, 26, 30), Enum.Material.Metal)
+
+	-- 4. Giant Heavy-Equipment Radial Tire Pyramids (South-East & South Perimeter)
 	local tireClusters = {
 		{ Pos = Vector3.new(26, 0, 26), Name = "TireStack_SouthEast" },
 		{ Pos = Vector3.new(0, 0, 30), Name = "TireStack_South" },
@@ -1293,12 +2188,31 @@ function ZoneService.buildZone2Props(folder: Instance, center: Vector3)
 		tModel.Name = cluster.Name
 		tModel.Parent = props
 
-		local tPos = cluster.Pos
-		createPropPart(tModel, "Tire_1", Vector3.new(1.6, 5.0, 5.0), CFrame.new(center + tPos + Vector3.new(-2.6, 0.8, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(25, 26, 30), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
-		createPropPart(tModel, "Tire_2", Vector3.new(1.6, 5.0, 5.0), CFrame.new(center + tPos + Vector3.new(-2.6, 2.4, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(25, 26, 30), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
-		createPropPart(tModel, "Tire_3", Vector3.new(1.6, 5.0, 5.0), CFrame.new(center + tPos + Vector3.new(-2.6, 4.0, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(25, 26, 30), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
-		createPropPart(tModel, "Tire_4", Vector3.new(1.6, 4.6, 4.6), CFrame.new(center + tPos + Vector3.new(2.4, 0.8, 0.5)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(28, 28, 32), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
-		createPropPart(tModel, "Tire_5", Vector3.new(1.6, 4.6, 4.6), CFrame.new(center + tPos + Vector3.new(2.4, 2.4, 0.5)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(28, 28, 32), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+		local tPos = center + cluster.Pos
+
+		-- Bottom row of 3 giant tires
+		local tireBaseOffsets = {
+			Vector3.new(-4.5, 1.2, 0),
+			Vector3.new(0, 1.2, 0.6),
+			Vector3.new(4.5, 1.2, -0.2),
+		}
+		for ti, bOff in ipairs(tireBaseOffsets) do
+			local tire = createPropPart(tModel, "BaseTire_" .. ti, Vector3.new(2.2, 5.8, 5.8), CFrame.new(tPos + bOff) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(24, 25, 28), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+			-- Rusted Steel Wheel Hub
+			createPropPart(tModel, "WheelHub_" .. ti, Vector3.new(2.4, 2.6, 2.6), tire.CFrame, Color3.fromRGB(120, 75, 45), Enum.Material.CorrodedMetal, Enum.PartType.Cylinder)
+		end
+
+		-- Middle row of 2 tires
+		local tireMidOffsets = {
+			Vector3.new(-2.2, 3.4, 0.2),
+			Vector3.new(2.2, 3.4, 0.1),
+		}
+		for ti, mOff in ipairs(tireMidOffsets) do
+			createPropPart(tModel, "MidTire_" .. ti, Vector3.new(2.2, 5.6, 5.6), CFrame.new(tPos + mOff) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(26, 27, 30), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+		end
+
+		-- Apex tire on top
+		createPropPart(tModel, "ApexTire", Vector3.new(2.2, 5.4, 5.4), CFrame.new(tPos + Vector3.new(0, 5.6, 0.1)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(28, 29, 32), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 	end
 end
 
@@ -1308,7 +2222,7 @@ function ZoneService.buildZone3Props(folder: Instance, center: Vector3)
 	props.Name = "ThematicProps_Zone3"
 	props.Parent = folder
 
-	-- 1. Twin Blast Smelting Chimney Kilns (North Border Flanking Recycler)
+	-- 1. Twin Heavy Blast Smelting Chimney Kilns (North Border Flanking Recycler)
 	local chimneyOffsets = {
 		{ Off = Vector3.new(-18, 0, -34), Name = "SmeltingChimney_Left" },
 		{ Off = Vector3.new(18, 0, -34), Name = "SmeltingChimney_Right" },
@@ -1319,71 +2233,198 @@ function ZoneService.buildZone3Props(folder: Instance, center: Vector3)
 		chModel.Parent = props
 
 		local chPos = center + chData.Off
-		createPropPart(chModel, "ChimneyColumn", Vector3.new(24, 7, 7), CFrame.new(chPos + Vector3.new(0, 12, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(65, 48, 42), Enum.Material.Metal, Enum.PartType.Cylinder)
-		createPropPart(chModel, "ChimneyRim", Vector3.new(2, 8.2, 8.2), CFrame.new(chPos + Vector3.new(0, 23.5, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(45, 35, 32), Enum.Material.Metal, Enum.PartType.Cylinder)
-		local hatch = createPropPart(chModel, "FurnaceHatch", Vector3.new(3.5, 3, 0.6), CFrame.new(chPos + Vector3.new(0, 2.5, 3.6)), Color3.fromRGB(245, 110, 20), Enum.Material.SmoothPlastic)
-		local light = Instance.new("PointLight")
-		light.Color = Color3.fromRGB(255, 140, 30)
-		light.Brightness = 0.4
-		light.Range = 8
-		light.Parent = hatch
+
+		-- Submodel: RefractoryBase
+		local rBase = Instance.new("Model")
+		rBase.Name = "RefractoryBase"
+		rBase.Parent = chModel
+
+		createPropPart(rBase, "PlinthOctagon", Vector3.new(2.4, 10, 10), CFrame.new(chPos + Vector3.new(0, 1.2, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(48, 42, 40), Enum.Material.Slate, Enum.PartType.Cylinder)
+
+		-- Submodel: BandedStack
+		local bStack = Instance.new("Model")
+		bStack.Name = "BandedStack"
+		bStack.Parent = chModel
+
+		-- Main Tapered Kiln Stack
+		local stackCol = createPropPart(bStack, "ChimneyColumn", Vector3.new(26, 7.8, 7.8), CFrame.new(chPos + Vector3.new(0, 14.5, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(68, 50, 44), Enum.Material.CorrodedMetal, Enum.PartType.Cylinder)
+		
+		-- Circumferential Steel Structural Tension Bands
+		for band = 1, 4 do
+			local bY = 5 + (band * 5)
+			createPropPart(bStack, "TensionBand_" .. band, Vector3.new(0.8, 8.4, 8.4), CFrame.new(chPos + Vector3.new(0, bY, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(36, 34, 38), Enum.Material.Metal, Enum.PartType.Cylinder)
+		end
+
+		-- Flared Exhaust Crown Rim
+		local crown = createPropPart(bStack, "ExhaustCrown", Vector3.new(2.2, 9.2, 9.2), CFrame.new(chPos + Vector3.new(0, 27.5, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(42, 34, 32), Enum.Material.Metal, Enum.PartType.Cylinder)
+
+		-- Crown Interior Smoke & Heat Embers
+		local smokeEmitter = Instance.new("ParticleEmitter")
+		smokeEmitter.Name = "FurnaceSmoke"
+		smokeEmitter.Texture = "rbxassetid://243098098"
+		smokeEmitter.Color = ColorSequence.new(Color3.fromRGB(70, 65, 65), Color3.fromRGB(30, 28, 28))
+		smokeEmitter.Size = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1.5),
+			NumberSequenceKeypoint.new(0.5, 4.5),
+			NumberSequenceKeypoint.new(1, 8.0),
+		})
+		smokeEmitter.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.3),
+			NumberSequenceKeypoint.new(0.7, 0.6),
+			NumberSequenceKeypoint.new(1, 1.0),
+		})
+		smokeEmitter.Lifetime = NumberRange.new(3, 5)
+		smokeEmitter.Rate = 10
+		smokeEmitter.Speed = NumberRange.new(4, 8)
+		smokeEmitter.SpreadAngle = Vector2.new(15, 15)
+		smokeEmitter.EmissionDirection = Enum.NormalId.Top
+		smokeEmitter.Parent = crown
+
+		-- Submodel: FurnaceFirebox
+		local fBox = Instance.new("Model")
+		fBox.Name = "FurnaceFirebox"
+		fBox.Parent = chModel
+
+		local fireDoor = createPropPart(fBox, "StokeDoorFrame", Vector3.new(4.2, 4.5, 1.2), CFrame.new(chPos + Vector3.new(0, 3.2, 3.8)), Color3.fromRGB(35, 32, 36), Enum.Material.Metal)
+		local glowingInterior = createPropPart(fBox, "MoltenCoreGlow", Vector3.new(3.0, 3.2, 0.6), CFrame.new(chPos + Vector3.new(0, 3.2, 4.2)), Color3.fromRGB(255, 125, 25), Enum.Material.Neon)
+		
+		local fireLight = Instance.new("PointLight")
+		fireLight.Color = Color3.fromRGB(255, 140, 35)
+		fireLight.Brightness = 0.8
+		fireLight.Range = 14
+		fireLight.Parent = glowingInterior
 	end
 
-	-- 2. Molten Slag Crucible Cauldron (North-West Border)
+	-- 2. Heavy Molten Slag Crucible Cauldron (North-West Perimeter)
 	local crucible = Instance.new("Model")
 	crucible.Name = "MoltenSlagCrucible"
 	crucible.Parent = props
 
-	local crucStand = Instance.new("Model")
-	crucStand.Name = "SupportStand"
-	crucStand.Parent = crucible
-
 	local crucPos = center + Vector3.new(-26, 0, -24)
-	createPropPart(crucStand, "CrucibleStandL", Vector3.new(1.8, 8, 1.8), CFrame.new(crucPos + Vector3.new(-4.5, 4, 0)), Color3.fromRGB(50, 48, 55), Enum.Material.Metal)
-	createPropPart(crucStand, "CrucibleStandR", Vector3.new(1.8, 8, 1.8), CFrame.new(crucPos + Vector3.new(4.5, 4, 0)), Color3.fromRGB(50, 48, 55), Enum.Material.Metal)
 
-	local cauldron = Instance.new("Model")
-	cauldron.Name = "CauldronPot"
-	cauldron.Parent = crucible
+	-- Submodel: AFrameStands
+	local stands = Instance.new("Model")
+	stands.Name = "AFrameStands"
+	stands.Parent = crucible
 
-	createPropPart(cauldron, "CruciblePot", Vector3.new(6, 6.5, 6.5), CFrame.new(crucPos + Vector3.new(0, 4.5, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(40, 38, 45), Enum.Material.Metal, Enum.PartType.Cylinder)
-	createPropPart(cauldron, "MoltenSlag", Vector3.new(0.5, 5.5, 5.5), CFrame.new(crucPos + Vector3.new(0, 7.2, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(255, 105, 20), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+	createPropPart(stands, "BearingPedestalL", Vector3.new(2.4, 9, 2.4), CFrame.new(crucPos + Vector3.new(-5.2, 4.5, 0)), Color3.fromRGB(48, 45, 52), Enum.Material.DiamondPlate)
+	createPropPart(stands, "BearingPedestalR", Vector3.new(2.4, 9, 2.4), CFrame.new(crucPos + Vector3.new(5.2, 4.5, 0)), Color3.fromRGB(48, 45, 52), Enum.Material.DiamondPlate)
+	createPropPart(stands, "TrunnionShaftL", Vector3.new(1.8, 1.2, 1.2), CFrame.new(crucPos + Vector3.new(-4.2, 6.5, 0)), Color3.fromRGB(180, 185, 195), Enum.Material.Metal, Enum.PartType.Cylinder)
+	createPropPart(stands, "TrunnionShaftR", Vector3.new(1.8, 1.2, 1.2), CFrame.new(crucPos + Vector3.new(4.2, 6.5, 0)), Color3.fromRGB(180, 185, 195), Enum.Material.Metal, Enum.PartType.Cylinder)
 
-	-- 3. Overhead Conveyor Truss Span (South Border Perimeter)
+	-- Submodel: LadleCauldron
+	local ladle = Instance.new("Model")
+	ladle.Name = "LadleCauldron"
+	ladle.Parent = crucible
+
+	local tiltRot = CFrame.Angles(math.rad(22), 0, 0)
+	local pot = createPropPart(ladle, "CauldronVessel", Vector3.new(7.2, 7.5, 7.5), CFrame.new(crucPos + Vector3.new(0, 6.5, 0)) * tiltRot * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(42, 38, 44), Enum.Material.Metal, Enum.PartType.Cylinder)
+	createPropPart(ladle, "ReinforcementBand", Vector3.new(1.2, 8.2, 8.2), pot.CFrame, Color3.fromRGB(60, 52, 58), Enum.Material.Metal, Enum.PartType.Cylinder)
+	createPropPart(ladle, "PourSpout", Vector3.new(3.0, 1.8, 2.4), CFrame.new(crucPos + Vector3.new(0, 7.2, 3.4)) * tiltRot, Color3.fromRGB(38, 35, 40), Enum.Material.Metal)
+
+	-- Submodel: MoltenSlagSurface
+	local slagSurface = Instance.new("Model")
+	slagSurface.Name = "MoltenSlagSurface"
+	slagSurface.Parent = crucible
+
+	local moltenPool = createPropPart(slagSurface, "SlagPool", Vector3.new(0.6, 6.4, 6.4), pot.CFrame * CFrame.new(2.8, 0, 0), Color3.fromRGB(255, 115, 20), Enum.Material.Neon, Enum.PartType.Cylinder)
+	local slagLight = Instance.new("PointLight")
+	slagLight.Color = Color3.fromRGB(255, 120, 25)
+	slagLight.Brightness = 0.9
+	slagLight.Range = 16
+	slagLight.Parent = moltenPool
+
+	-- Submodel: PouringStream (Shower of Molten Sparks)
+	local streamGroup = Instance.new("Model")
+	streamGroup.Name = "PouringStream"
+	streamGroup.Parent = crucible
+
+	local pourStream = createPropPart(streamGroup, "MoltenStream", Vector3.new(1.0, 5.0, 1.0), CFrame.new(crucPos + Vector3.new(0, 3.5, 4.4)) * CFrame.Angles(math.rad(15), 0, 0), Color3.fromRGB(255, 140, 20), Enum.Material.Neon, Enum.PartType.Cylinder)
+	
+	local moltenSparks = Instance.new("ParticleEmitter")
+	moltenSparks.Name = "SlagSparks"
+	moltenSparks.Texture = "rbxassetid://258129523"
+	moltenSparks.Color = ColorSequence.new(Color3.fromRGB(255, 210, 80), Color3.fromRGB(255, 90, 10))
+	moltenSparks.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.4),
+		NumberSequenceKeypoint.new(1, 0.05),
+	})
+	moltenSparks.Lifetime = NumberRange.new(0.5, 1.0)
+	moltenSparks.Rate = 16
+	moltenSparks.Speed = NumberRange.new(6, 14)
+	moltenSparks.SpreadAngle = Vector2.new(35, 35)
+	moltenSparks.EmissionDirection = Enum.NormalId.Bottom
+	moltenSparks.Parent = pourStream
+
+	-- 3. Overhead Material Conveyor Truss Span (South Border Perimeter)
 	local conveyor = Instance.new("Model")
 	conveyor.Name = "OverheadConveyor"
 	conveyor.Parent = props
 
-	local convTowers = Instance.new("Model")
-	convTowers.Name = "SupportTowers"
-	convTowers.Parent = conveyor
-
 	local convPos = center + Vector3.new(0, 0, 30)
-	createPropPart(convTowers, "ConvTowerL", Vector3.new(2.5, 16, 2.5), CFrame.new(convPos + Vector3.new(-18, 8, 0)), Color3.fromRGB(180, 85, 25), Enum.Material.Metal)
-	createPropPart(convTowers, "ConvTowerR", Vector3.new(2.5, 16, 2.5), CFrame.new(convPos + Vector3.new(18, 8, 0)), Color3.fromRGB(180, 85, 25), Enum.Material.Metal)
 
-	local convTrackGroup = Instance.new("Model")
-	convTrackGroup.Name = "TrackSpan"
-	convTrackGroup.Parent = conveyor
+	-- Submodel: SupportPylons
+	local pylons = Instance.new("Model")
+	pylons.Name = "SupportPylons"
+	pylons.Parent = conveyor
 
-	createPropPart(convTrackGroup, "ConvTrack", Vector3.new(38, 2.5, 3.5), CFrame.new(convPos + Vector3.new(0, 16, 0)), Color3.fromRGB(190, 95, 30), Enum.Material.Metal)
+	local pylonXOffsets = { -18, 18 }
+	for pi, px in ipairs(pylonXOffsets) do
+		local pylonModel = Instance.new("Model")
+		pylonModel.Name = "PylonTower_" .. pi
+		pylonModel.Parent = pylons
 
-	-- 4. Titanium Ingot Pallet Stack (South-East Border)
+		createPropPart(pylonModel, "Footing", Vector3.new(4.2, 1.2, 4.2), CFrame.new(convPos + Vector3.new(px, 0.6, 0)), Color3.fromRGB(44, 46, 52), Enum.Material.Concrete)
+		createPropPart(pylonModel, "LegL", Vector3.new(1.4, 18, 1.4), CFrame.new(convPos + Vector3.new(px - 1.4, 9.5, 0)), Color3.fromRGB(185, 90, 30), Enum.Material.DiamondPlate)
+		createPropPart(pylonModel, "LegR", Vector3.new(1.4, 18, 1.4), CFrame.new(convPos + Vector3.new(px + 1.4, 9.5, 0)), Color3.fromRGB(185, 90, 30), Enum.Material.DiamondPlate)
+		createPropPart(pylonModel, "CrossBrace", Vector3.new(3.8, 1.0, 1.2), CFrame.new(convPos + Vector3.new(px, 12, 0)), Color3.fromRGB(140, 70, 24), Enum.Material.Metal)
+	end
+
+	-- Submodel: TrussSpan
+	local trussSpan = Instance.new("Model")
+	trussSpan.Name = "TrussSpan"
+	trussSpan.Parent = conveyor
+
+	createPropPart(trussSpan, "BottomChord", Vector3.new(40, 1.4, 4.2), CFrame.new(convPos + Vector3.new(0, 18, 0)), Color3.fromRGB(180, 85, 25), Enum.Material.DiamondPlate)
+	createPropPart(trussSpan, "TopChord", Vector3.new(40, 1.2, 4.2), CFrame.new(convPos + Vector3.new(0, 22, 0)), Color3.fromRGB(180, 85, 25), Enum.Material.Metal)
+
+	-- Submodel: ConveyorBelt
+	local beltGroup = Instance.new("Model")
+	beltGroup.Name = "ConveyorBelt"
+	beltGroup.Parent = conveyor
+
+	createPropPart(beltGroup, "RubberBelt", Vector3.new(39.6, 0.4, 2.8), CFrame.new(convPos + Vector3.new(0, 19, 0)), Color3.fromRGB(24, 25, 28), Enum.Material.SmoothPlastic)
+	-- Crushed ore/scrap chunks along belt
+	for chunk = 1, 8 do
+		createPropPart(beltGroup, "OreChunk_" .. chunk, Vector3.new(1.4, 0.8, 1.4), CFrame.new(convPos + Vector3.new(-16 + ((chunk - 1) * 4.5), 19.5, 0)), Color3.fromRGB(140, 80, 45), Enum.Material.Slate)
+	end
+
+	-- 4. Titanium/Tungsten Ingot Pallet Cache (South-East Perimeter)
 	local ingotStack = Instance.new("Model")
 	ingotStack.Name = "IngotPalletStack"
 	ingotStack.Parent = props
 
 	local palletPos = center + Vector3.new(26, 0, 26)
-	createPropPart(ingotStack, "WoodenPallet", Vector3.new(8, 0.8, 8), CFrame.new(palletPos + Vector3.new(0, 0.4, 0)), Color3.fromRGB(120, 85, 55), Enum.Material.Wood)
 
-	local barsGroup = Instance.new("Model")
-	barsGroup.Name = "IngotBars"
-	barsGroup.Parent = ingotStack
+	-- Submodel: HeavySteelPallet
+	local steelPallet = Instance.new("Model")
+	steelPallet.Name = "HeavySteelPallet"
+	steelPallet.Parent = ingotStack
+
+	createPropPart(steelPallet, "PalletPlatform", Vector3.new(8.5, 0.9, 8.5), CFrame.new(palletPos + Vector3.new(0, 0.45, 0)), Color3.fromRGB(48, 52, 60), Enum.Material.DiamondPlate)
+
+	-- Submodel: IngotTiers
+	local ingotTiers = Instance.new("Model")
+	ingotTiers.Name = "IngotTiers"
+	ingotTiers.Parent = ingotStack
 
 	for layer = 1, 3 do
 		for bar = 1, 3 do
-			local ingotY = 0.8 + ((layer - 0.5) * 0.8)
-			createPropPart(barsGroup, "Ingot_" .. layer .. "_" .. bar, Vector3.new(7.2, 0.8, 1.8), CFrame.new(palletPos + Vector3.new(0, ingotY, (bar - 2) * 2.2)), Color3.fromRGB(200, 205, 215), Enum.Material.Metal)
+			local ingotY = 0.9 + ((layer - 0.5) * 0.85)
+			local ingotCF = (layer % 2 == 1)
+				and CFrame.new(palletPos + Vector3.new(0, ingotY, (bar - 2) * 2.3))
+				or CFrame.new(palletPos + Vector3.new((bar - 2) * 2.3, ingotY, 0)) * CFrame.Angles(0, math.rad(90), 0)
+			createPropPart(ingotTiers, "Ingot_" .. layer .. "_" .. bar, Vector3.new(7.6, 0.8, 1.9), ingotCF, Color3.fromRGB(210, 215, 225), Enum.Material.Metal)
 		end
 	end
 end
@@ -1405,39 +2446,89 @@ function ZoneService.buildZone4Props(folder: Instance, center: Vector3)
 		sModel.Parent = props
 
 		local sPos = center + sData.Off
-		createPropPart(sModel, "ServerHousing", Vector3.new(10, 14, 4), CFrame.new(sPos + Vector3.new(0, 7, 0)), Color3.fromRGB(28, 32, 42), Enum.Material.Metal)
-		createPropPart(sModel, "GlassPanel", Vector3.new(9.2, 13, 0.4), CFrame.new(sPos + Vector3.new(0, 7, 2)), Color3.fromRGB(30, 200, 180), Enum.Material.Glass)
 
-		local bladesGroup = Instance.new("Model")
-		bladesGroup.Name = "ServerBlades"
-		bladesGroup.Parent = sModel
+		-- Submodel: CabinetHousing
+		local housing = Instance.new("Model")
+		housing.Name = "CabinetHousing"
+		housing.Parent = sModel
 
-		for row = 1, 4 do
-			createPropPart(bladesGroup, "ServerBlade_" .. row, Vector3.new(8.5, 0.5, 0.4), CFrame.new(sPos + Vector3.new(0, 2 + (row * 2.5), 1.9)), Color3.fromRGB(40, 190, 180), Enum.Material.SmoothPlastic)
+		createPropPart(housing, "PlinthPad", Vector3.new(11.2, 1.0, 5.2), CFrame.new(sPos + Vector3.new(0, 0.5, 0)), Color3.fromRGB(24, 28, 36), Enum.Material.DiamondPlate)
+		createPropPart(housing, "ChassisBody", Vector3.new(10.5, 15, 4.6), CFrame.new(sPos + Vector3.new(0, 8.5, 0)), Color3.fromRGB(22, 25, 34), Enum.Material.Metal)
+		createPropPart(housing, "TopExhaustCowl", Vector3.new(10.8, 0.8, 4.8), CFrame.new(sPos + Vector3.new(0, 16.4, 0)), Color3.fromRGB(35, 40, 52), Enum.Material.Metal)
+
+		-- Submodel: ServerBladeRacks
+		local bladeRacks = Instance.new("Model")
+		bladeRacks.Name = "ServerBladeRacks"
+		bladeRacks.Parent = sModel
+
+		for row = 1, 5 do
+			local bladeY = 2.5 + (row * 2.4)
+			local blade = createPropPart(bladeRacks, "ServerBlade_" .. row, Vector3.new(9.2, 1.8, 0.6), CFrame.new(sPos + Vector3.new(0, bladeY, 2.1)), Color3.fromRGB(36, 42, 56), Enum.Material.Metal)
+			
+			-- Array of Blinking Status LEDs
+			local ledA = createPropPart(bladeRacks, "LedA_" .. row, Vector3.new(0.4, 0.4, 0.2), CFrame.new(sPos + Vector3.new(-3.8, bladeY, 2.45)), Color3.fromRGB(35, 235, 195), Enum.Material.Neon)
+			local ledB = createPropPart(bladeRacks, "LedB_" .. row, Vector3.new(0.4, 0.4, 0.2), CFrame.new(sPos + Vector3.new(-3.0, bladeY, 2.45)), Color3.fromRGB(45, 215, 95), Enum.Material.Neon)
+			local ledC = createPropPart(bladeRacks, "LedC_" .. row, Vector3.new(0.4, 0.4, 0.2), CFrame.new(sPos + Vector3.new(-2.2, bladeY, 2.45)), Color3.fromRGB(255, 185, 35), Enum.Material.Neon)
 		end
+
+		-- Submodel: FrontInspectionBay
+		local bay = Instance.new("Model")
+		bay.Name = "FrontInspectionBay"
+		bay.Parent = sModel
+
+		createPropPart(bay, "SmokedGlassDoor", Vector3.new(9.6, 13.5, 0.3), CFrame.new(sPos + Vector3.new(0, 8.5, 2.5)), Color3.fromRGB(35, 200, 185), Enum.Material.Glass)
+
+		-- Submodel: CableRaceways
+		local cables = Instance.new("Model")
+		cables.Name = "CableRaceways"
+		cables.Parent = sModel
+
+		createPropPart(cables, "OverheadTray", Vector3.new(11.5, 0.6, 1.8), CFrame.new(sPos + Vector3.new(0, 17.2, 0)), Color3.fromRGB(45, 52, 68), Enum.Material.DiamondPlate)
+		createPropPart(cables, "UmbilicalCableL", Vector3.new(0.8, 16, 0.8), CFrame.new(sPos + Vector3.new(-4.8, 8.5, -2.2)), Color3.fromRGB(18, 20, 26), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+		createPropPart(cables, "UmbilicalCableR", Vector3.new(0.8, 16, 0.8), CFrame.new(sPos + Vector3.new(4.8, 8.5, -2.2)), Color3.fromRGB(18, 20, 26), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 	end
 
-	-- 2. Quantum Transmitter Tower Spire (South Border Perimeter)
+	-- 2. Towering Quantum Transmitter Spire (South Border Perimeter)
 	local tower = Instance.new("Model")
 	tower.Name = "QuantumTransmitterTower"
 	tower.Parent = props
 
-	local towerStructure = Instance.new("Model")
-	towerStructure.Name = "SpireStructure"
-	towerStructure.Parent = tower
-
 	local towerPos = center + Vector3.new(0, 0, 30)
-	createPropPart(towerStructure, "TowerBase", Vector3.new(6, 2, 6), CFrame.new(towerPos + Vector3.new(0, 1, 0)), Color3.fromRGB(35, 40, 52), Enum.Material.Metal)
-	createPropPart(towerStructure, "TowerSpire", Vector3.new(3, 26, 3), CFrame.new(towerPos + Vector3.new(0, 14, 0)), Color3.fromRGB(45, 55, 70), Enum.Material.Metal)
 
-	local arrayGroup = Instance.new("Model")
-	arrayGroup.Name = "AntennaArray"
-	arrayGroup.Parent = tower
+	-- Submodel: LatticeSpire
+	local spire = Instance.new("Model")
+	spire.Name = "LatticeSpire"
+	spire.Parent = tower
 
-	createPropPart(arrayGroup, "ArrayRing_Lower", Vector3.new(0.6, 7.5, 7.5), CFrame.new(towerPos + Vector3.new(0, 20, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(35, 210, 190), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
-	createPropPart(arrayGroup, "ArrayRing_Upper", Vector3.new(0.6, 5.5, 5.5), CFrame.new(towerPos + Vector3.new(0, 24, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(35, 210, 190), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+	createPropPart(spire, "HexBasePlinth", Vector3.new(2.0, 9.0, 9.0), CFrame.new(towerPos + Vector3.new(0, 1.0, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(32, 36, 48), Enum.Material.Concrete, Enum.PartType.Cylinder)
+	createPropPart(spire, "LowerTowerMast", Vector3.new(4.5, 16, 4.5), CFrame.new(towerPos + Vector3.new(0, 10, 0)), Color3.fromRGB(42, 50, 66), Enum.Material.DiamondPlate)
+	createPropPart(spire, "UpperTowerMast", Vector3.new(2.8, 16, 2.8), CFrame.new(towerPos + Vector3.new(0, 24, 0)), Color3.fromRGB(52, 62, 80), Enum.Material.Metal)
 
-	-- 3. Slanted Data Consoles (North-West & North-East Perimeter)
+	-- Submodel: ParabolicDishes
+	local dishes = Instance.new("Model")
+	dishes.Name = "ParabolicDishes"
+	dishes.Parent = tower
+
+	local dishL = createPropPart(dishes, "DishLeft", Vector3.new(1.0, 5.5, 5.5), CFrame.new(towerPos + Vector3.new(-3.5, 18, 0)) * CFrame.Angles(0, 0, math.rad(90)) * CFrame.Angles(math.rad(-25), 0, 0), Color3.fromRGB(200, 210, 225), Enum.Material.Metal, Enum.PartType.Cylinder)
+	local dishR = createPropPart(dishes, "DishRight", Vector3.new(1.0, 5.5, 5.5), CFrame.new(towerPos + Vector3.new(3.5, 18, 0)) * CFrame.Angles(0, 0, math.rad(90)) * CFrame.Angles(math.rad(25), 0, 0), Color3.fromRGB(200, 210, 225), Enum.Material.Metal, Enum.PartType.Cylinder)
+
+	-- Submodel: ToroidalEmitters
+	local emitters = Instance.new("Model")
+	emitters.Name = "ToroidalEmitters"
+	emitters.Parent = tower
+
+	local ringLow = createPropPart(emitters, "ResonatorRingLow", Vector3.new(0.8, 8.2, 8.2), CFrame.new(towerPos + Vector3.new(0, 26, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(35, 220, 200), Enum.Material.Neon, Enum.PartType.Cylinder)
+	local ringHigh = createPropPart(emitters, "ResonatorRingHigh", Vector3.new(0.8, 6.0, 6.0), CFrame.new(towerPos + Vector3.new(0, 30, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(35, 220, 200), Enum.Material.Neon, Enum.PartType.Cylinder)
+
+	-- Apex Flashing Beacon
+	local beacon = createPropPart(emitters, "ApexStrobe", Vector3.new(1.2, 1.2, 1.2), CFrame.new(towerPos + Vector3.new(0, 33, 0)), Color3.fromRGB(40, 240, 215), Enum.Material.Neon, Enum.PartType.Ball)
+	local bLight = Instance.new("PointLight")
+	bLight.Color = Color3.fromRGB(40, 240, 215)
+	bLight.Brightness = 0.8
+	bLight.Range = 22
+	bLight.Parent = beacon
+
+	-- 3. Angled Holographic Data Workstations (North-West & North-East Perimeter)
 	local consoleOffsets = {
 		{ Off = Vector3.new(-26, 0, -24), Name = "DataConsole_West" },
 		{ Off = Vector3.new(26, 0, -24), Name = "DataConsole_East" },
@@ -1448,9 +2539,34 @@ function ZoneService.buildZone4Props(folder: Instance, center: Vector3)
 		cModel.Parent = props
 
 		local cPos = center + cData.Off
-		createPropPart(cModel, "ConsolePedestal", Vector3.new(5, 3.5, 3), CFrame.new(cPos + Vector3.new(0, 1.75, 0)), Color3.fromRGB(30, 35, 48), Enum.Material.Metal)
-		local scrRot = CFrame.Angles(math.rad(-30), 0, 0)
-		createPropPart(cModel, "ConsoleScreen", Vector3.new(4.5, 2.5, 0.4), CFrame.new(cPos + Vector3.new(0, 4.2, 0)) * scrRot, Color3.fromRGB(40, 220, 200), Enum.Material.SmoothPlastic)
+
+		-- Submodel: ConsolePedestal
+		local ped = Instance.new("Model")
+		ped.Name = "ConsolePedestal"
+		ped.Parent = cModel
+
+		createPropPart(ped, "Footing", Vector3.new(5.6, 0.8, 4.2), CFrame.new(cPos + Vector3.new(0, 0.4, 0)), Color3.fromRGB(28, 32, 44), Enum.Material.DiamondPlate)
+		createPropPart(ped, "RiserPillar", Vector3.new(4.2, 3.2, 3.0), CFrame.new(cPos + Vector3.new(0, 2.4, 0)), Color3.fromRGB(36, 42, 56), Enum.Material.Metal)
+
+		-- Submodel: PhysicalControls
+		local ctrls = Instance.new("Model")
+		ctrls.Name = "PhysicalControls"
+		ctrls.Parent = cModel
+
+		local desk = createPropPart(ctrls, "ControlDesk", Vector3.new(5.2, 0.6, 2.6), CFrame.new(cPos + Vector3.new(0, 4.2, 0.4)) * CFrame.Angles(math.rad(-20), 0, 0), Color3.fromRGB(24, 28, 38), Enum.Material.Metal)
+		createPropPart(ctrls, "KeyDeck", Vector3.new(3.8, 0.2, 1.4), desk.CFrame * CFrame.new(0, 0.35, 0), Color3.fromRGB(35, 200, 185), Enum.Material.Neon)
+
+		-- Submodel: HolographicDisplay
+		local holo = Instance.new("Model")
+		holo.Name = "HolographicDisplay"
+		holo.Parent = cModel
+
+		local screenPart = createPropPart(holo, "HoloScreen", Vector3.new(4.8, 3.0, 0.2), CFrame.new(cPos + Vector3.new(0, 6.2, -0.6)) * CFrame.Angles(math.rad(-30), 0, 0), Color3.fromRGB(30, 220, 200), Enum.Material.Glass)
+		local sLight = Instance.new("PointLight")
+		sLight.Color = Color3.fromRGB(35, 225, 205)
+		sLight.Brightness = 0.5
+		sLight.Range = 8
+		sLight.Parent = screenPart
 	end
 end
 
@@ -1460,51 +2576,141 @@ function ZoneService.buildZone5Props(folder: Instance, center: Vector3)
 	props.Name = "ThematicProps_Zone5"
 	props.Parent = folder
 
-	-- 1. Massive Starship Ion Thruster Bell (North-West Border, 28 deg Impact Tilt)
+	-- 1. Massive Derelict Starship Ion Thruster Bell (North-West Border, 28 deg Impact Tilt)
 	local thruster = Instance.new("Model")
 	thruster.Name = "StarshipIonThruster"
 	thruster.Parent = props
 
 	local thrustPos = center + Vector3.new(-18, 0, -32)
 	local thrustRot = CFrame.Angles(math.rad(28), math.rad(15), 0)
-	createPropPart(thruster, "ThrusterBell", Vector3.new(12, 11, 11), CFrame.new(thrustPos + Vector3.new(0, 6, 0)) * thrustRot * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(42, 36, 54), Enum.Material.Metal, Enum.PartType.Cylinder)
-	createPropPart(thruster, "ThrusterRing", Vector3.new(2, 12.5, 12.5), CFrame.new(thrustPos + Vector3.new(0, 8.5, 0)) * thrustRot * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(60, 50, 75), Enum.Material.Metal, Enum.PartType.Cylinder)
-	createPropPart(thruster, "ThrusterCore", Vector3.new(1, 8.5, 8.5), CFrame.new(thrustPos + Vector3.new(0, 4.5, 0)) * thrustRot * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(150, 50, 230), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+
+	-- Submodel: ImpactCrater
+	local crater = Instance.new("Model")
+	crater.Name = "ImpactCrater"
+	crater.Parent = thruster
+
+	createPropPart(crater, "CraterBerm", Vector3.new(20, 2.0, 20), CFrame.new(thrustPos + Vector3.new(0, 1.0, 0)), Color3.fromRGB(32, 28, 40), Enum.Material.Slate)
+	for shard = 1, 4 do
+		createPropPart(crater, "HullDebris_" .. shard, Vector3.new(4.5, 0.8, 3.0), CFrame.new(thrustPos + Vector3.new(-7 + (shard * 3.5), 1.5, 6)) * CFrame.Angles(math.rad(18), math.rad(shard * 45), 0), Color3.fromRGB(55, 45, 70), Enum.Material.Metal)
+	end
+
+	-- Submodel: ThrusterNozzleBell
+	local nozzle = Instance.new("Model")
+	nozzle.Name = "ThrusterNozzleBell"
+	nozzle.Parent = thruster
+
+	createPropPart(nozzle, "BellConical", Vector3.new(14, 12, 12), CFrame.new(thrustPos + Vector3.new(0, 7.5, 0)) * thrustRot * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(46, 38, 58), Enum.Material.Metal, Enum.PartType.Cylinder)
+	-- Multi-segment titanium heat shield rings
+	createPropPart(nozzle, "HeatShieldRingA", Vector3.new(1.8, 13.4, 13.4), CFrame.new(thrustPos + Vector3.new(0, 9.5, 0)) * thrustRot * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(80, 50, 110), Enum.Material.Metal, Enum.PartType.Cylinder)
+	createPropPart(nozzle, "HeatShieldRingB", Vector3.new(1.8, 14.2, 14.2), CFrame.new(thrustPos + Vector3.new(0, 11.5, 0)) * thrustRot * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(65, 55, 90), Enum.Material.Metal, Enum.PartType.Cylinder)
+
+	-- Submodel: MagneticInjectionChamber
+	local chamber = Instance.new("Model")
+	chamber.Name = "MagneticInjectionChamber"
+	chamber.Parent = thruster
+
+	local plasmaCore = createPropPart(chamber, "IonPlasmaCore", Vector3.new(1.2, 9.0, 9.0), CFrame.new(thrustPos + Vector3.new(0, 5.0, 0)) * thrustRot * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(175, 60, 255), Enum.Material.Neon, Enum.PartType.Cylinder)
+	
+	local plasmaLight = Instance.new("PointLight")
+	plasmaLight.Color = Color3.fromRGB(180, 65, 255)
+	plasmaLight.Brightness = 0.9
+	plasmaLight.Range = 18
+	plasmaLight.Parent = plasmaCore
+
+	local plasmaEmitter = Instance.new("ParticleEmitter")
+	plasmaEmitter.Name = "IonPlasmaVent"
+	plasmaEmitter.Texture = "rbxassetid://258129523"
+	plasmaEmitter.Color = ColorSequence.new(Color3.fromRGB(200, 100, 255), Color3.fromRGB(130, 40, 230))
+	plasmaEmitter.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.8),
+		NumberSequenceKeypoint.new(0.5, 2.5),
+		NumberSequenceKeypoint.new(1, 4.5),
+	})
+	plasmaEmitter.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.2),
+		NumberSequenceKeypoint.new(1, 1.0),
+	})
+	plasmaEmitter.Lifetime = NumberRange.new(1.0, 2.0)
+	plasmaEmitter.Rate = 12
+	plasmaEmitter.Speed = NumberRange.new(4, 9)
+	plasmaEmitter.SpreadAngle = Vector2.new(30, 30)
+	plasmaEmitter.EmissionDirection = Enum.NormalId.Top
+	plasmaEmitter.Parent = plasmaCore
 
 	-- 2. Warp Drive Antimatter Containment Housing (North-East Border)
 	local warpDrive = Instance.new("Model")
 	warpDrive.Name = "WarpDriveContainment"
 	warpDrive.Parent = props
 
-	local warpStructure = Instance.new("Model")
-	warpStructure.Name = "HousingStructure"
-	warpStructure.Parent = warpDrive
-
 	local warpPos = center + Vector3.new(18, 0, -32)
-	createPropPart(warpStructure, "WarpHousingBase", Vector3.new(8, 2, 8), CFrame.new(warpPos + Vector3.new(0, 1, 0)), Color3.fromRGB(38, 32, 48), Enum.Material.Metal)
-	createPropPart(warpStructure, "WarpHousingTop", Vector3.new(8, 2, 8), CFrame.new(warpPos + Vector3.new(0, 10, 0)), Color3.fromRGB(38, 32, 48), Enum.Material.Metal)
-	createPropPart(warpStructure, "WarpStrut1", Vector3.new(1.4, 8, 1.4), CFrame.new(warpPos + Vector3.new(-3, 5.5, -3)), Color3.fromRGB(55, 45, 70), Enum.Material.Metal)
-	createPropPart(warpStructure, "WarpStrut2", Vector3.new(1.4, 8, 1.4), CFrame.new(warpPos + Vector3.new(3, 5.5, -3)), Color3.fromRGB(55, 45, 70), Enum.Material.Metal)
-	createPropPart(warpStructure, "WarpStrut3", Vector3.new(1.4, 8, 1.4), CFrame.new(warpPos + Vector3.new(-3, 5.5, 3)), Color3.fromRGB(55, 45, 70), Enum.Material.Metal)
-	createPropPart(warpStructure, "WarpStrut4", Vector3.new(1.4, 8, 1.4), CFrame.new(warpPos + Vector3.new(3, 5.5, 3)), Color3.fromRGB(55, 45, 70), Enum.Material.Metal)
 
-	local coreModel = Instance.new("Model")
-	coreModel.Name = "AntimatterCore"
-	coreModel.Parent = warpDrive
+	-- Submodel: BasePlinth
+	local wBase = Instance.new("Model")
+	wBase.Name = "BasePlinth"
+	wBase.Parent = warpDrive
 
-	createPropPart(coreModel, "SingularityCore", Vector3.new(4, 4, 4), CFrame.new(warpPos + Vector3.new(0, 5.5, 0)), Color3.fromRGB(175, 60, 255), Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+	createPropPart(wBase, "OctagonPlinth", Vector3.new(9.5, 1.8, 9.5), CFrame.new(warpPos + Vector3.new(0, 0.9, 0)), Color3.fromRGB(36, 30, 46), Enum.Material.DiamondPlate)
+	createPropPart(wBase, "CircuitRing", Vector3.new(0.4, 7.8, 7.8), CFrame.new(warpPos + Vector3.new(0, 1.85, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(165, 55, 245), Enum.Material.Neon, Enum.PartType.Cylinder)
 
-	-- 3. Fractured Dreadnought Armor Bulkhead Slab (South Border Perimeter)
+	-- Submodel: MagneticPylons
+	local pylons = Instance.new("Model")
+	pylons.Name = "MagneticPylons"
+	pylons.Parent = warpDrive
+
+	local pylonOffsets = {
+		Vector3.new(-3.5, 0, -3.5),
+		Vector3.new(3.5, 0, -3.5),
+		Vector3.new(-3.5, 0, 3.5),
+		Vector3.new(3.5, 0, 3.5),
+	}
+	for pi, po in ipairs(pylonOffsets) do
+		createPropPart(pylons, "Pylon_" .. pi, Vector3.new(1.6, 9.5, 1.6), CFrame.new(warpPos + po + Vector3.new(0, 5.8, 0)), Color3.fromRGB(58, 48, 74), Enum.Material.Metal)
+		createPropPart(pylons, "FluxEmitter_" .. pi, Vector3.new(1.8, 1.4, 1.8), CFrame.new(warpPos + po + Vector3.new(0, 9.5, 0)), Color3.fromRGB(175, 60, 255), Enum.Material.Neon)
+	end
+	createPropPart(pylons, "TopContainmentCap", Vector3.new(9.5, 1.6, 9.5), CFrame.new(warpPos + Vector3.new(0, 11, 0)), Color3.fromRGB(36, 30, 46), Enum.Material.Metal)
+
+	-- Submodel: AntimatterSingularity
+	local singularity = Instance.new("Model")
+	singularity.Name = "AntimatterSingularity"
+	singularity.Parent = warpDrive
+
+	local coreSphere = createPropPart(singularity, "SingularityCore", Vector3.new(4.2, 4.2, 4.2), CFrame.new(warpPos + Vector3.new(0, 6.2, 0)), Color3.fromRGB(185, 70, 255), Enum.Material.Neon, Enum.PartType.Ball)
+	local singLight = Instance.new("PointLight")
+	singLight.Color = Color3.fromRGB(185, 70, 255)
+	singLight.Brightness = 0.9
+	singLight.Range = 14
+	singLight.Parent = coreSphere
+
+	-- Dual Counter-Rotating Magnetic Rings
+	createPropPart(singularity, "OrbitRingA", Vector3.new(0.5, 6.2, 6.2), CFrame.new(warpPos + Vector3.new(0, 6.2, 0)) * CFrame.Angles(math.rad(35), 0, math.rad(45)), Color3.fromRGB(210, 110, 255), Enum.Material.Neon, Enum.PartType.Cylinder)
+	createPropPart(singularity, "OrbitRingB", Vector3.new(0.5, 6.2, 6.2), CFrame.new(warpPos + Vector3.new(0, 6.2, 0)) * CFrame.Angles(math.rad(-35), 0, math.rad(-45)), Color3.fromRGB(210, 110, 255), Enum.Material.Neon, Enum.PartType.Cylinder)
+
+	-- 3. Fractured Dreadnought Hull Armor Bulkhead (South Border Perimeter)
 	local armorSlab = Instance.new("Model")
 	armorSlab.Name = "DreadnoughtArmorSlab"
 	armorSlab.Parent = props
 
 	local slabPos = center + Vector3.new(0, 0, 30)
 	local slabRot = CFrame.Angles(math.rad(-20), 0, math.rad(5))
-	createPropPart(armorSlab, "HullArmorSlab", Vector3.new(28, 8, 2.5), CFrame.new(slabPos + Vector3.new(0, 4, 0)) * slabRot, Color3.fromRGB(48, 42, 60), Enum.Material.Metal)
-	createPropPart(armorSlab, "HullArmorRib", Vector3.new(28.4, 1.5, 3.2), CFrame.new(slabPos + Vector3.new(0, 6, 0)) * slabRot, Color3.fromRGB(65, 55, 80), Enum.Material.Metal)
 
-	-- 4. Alien Void Crystal Formations (North-West & South-East Perimeter)
+	-- Submodel: CompositeArmorHull
+	local hullGroup = Instance.new("Model")
+	hullGroup.Name = "CompositeArmorHull"
+	hullGroup.Parent = armorSlab
+
+	createPropPart(hullGroup, "OuterArmorSlab", Vector3.new(30, 8.5, 2.6), CFrame.new(slabPos + Vector3.new(0, 4.2, 0)) * slabRot, Color3.fromRGB(45, 38, 56), Enum.Material.Metal)
+	createPropPart(hullGroup, "StructuralSpineRib", Vector3.new(30.4, 1.8, 3.4), CFrame.new(slabPos + Vector3.new(0, 6.5, 0)) * slabRot, Color3.fromRGB(68, 56, 84), Enum.Material.DiamondPlate)
+
+	-- Submodel: InternalHoneycombRibs (Exposed fracture edge)
+	local ribs = Instance.new("Model")
+	ribs.Name = "InternalHoneycombRibs"
+	ribs.Parent = armorSlab
+
+	for rib = 1, 6 do
+		createPropPart(ribs, "HoneycombRib_" .. rib, Vector3.new(1.2, 6.5, 2.2), CFrame.new(slabPos + Vector3.new(-12 + ((rib - 1) * 4.8), 4.2, 0.4)) * slabRot, Color3.fromRGB(150, 110, 185), Enum.Material.Metal)
+	end
+
+	-- 4. Alien Void Crystal Resonant Formations (North-West & South-East Perimeter)
 	local crystalClusters = {
 		{ Off = Vector3.new(-26, 0, -24), Name = "AlienVoidCrystals_NorthWest" },
 		{ Off = Vector3.new(26, 0, 26), Name = "AlienVoidCrystals_SouthEast" },
@@ -1515,9 +2721,45 @@ function ZoneService.buildZone5Props(folder: Instance, center: Vector3)
 		cModel.Parent = props
 
 		local crPos = center + crData.Off
-		createPropPart(cModel, "CrystalSpike_Large", Vector3.new(1.8, 8, 1.8), CFrame.new(crPos + Vector3.new(0, 3.5, 0)) * CFrame.Angles(math.rad(15), 0, math.rad(-10)), Color3.fromRGB(160, 50, 240), Enum.Material.SmoothPlastic)
-		createPropPart(cModel, "CrystalSpike_Medium", Vector3.new(1.4, 5.5, 1.4), CFrame.new(crPos + Vector3.new(2, 2.5, 1)) * CFrame.Angles(math.rad(-12), math.rad(20), math.rad(15)), Color3.fromRGB(180, 70, 255), Enum.Material.SmoothPlastic)
-		createPropPart(cModel, "CrystalSpike_Small", Vector3.new(1.2, 4, 1.2), CFrame.new(crPos + Vector3.new(-1.8, 1.8, -1)) * CFrame.Angles(math.rad(8), math.rad(-25), math.rad(-18)), Color3.fromRGB(140, 40, 220), Enum.Material.SmoothPlastic)
+
+		-- Submodel: ImpactFissures
+		local fiss = Instance.new("Model")
+		fiss.Name = "ImpactFissures"
+		fiss.Parent = cModel
+
+		createPropPart(fiss, "CrackedGround", Vector3.new(8.5, 0.6, 8.5), CFrame.new(crPos + Vector3.new(0, 0.3, 0)), Color3.fromRGB(34, 28, 42), Enum.Material.Slate)
+		createPropPart(fiss, "FissureGlow", Vector3.new(7.0, 0.7, 1.2), CFrame.new(crPos + Vector3.new(0, 0.35, 0)) * CFrame.Angles(0, math.rad(35), 0), Color3.fromRGB(160, 50, 240), Enum.Material.Neon)
+
+		-- Submodel: ResonantSpires
+		local spires = Instance.new("Model")
+		spires.Name = "ResonantSpires"
+		spires.Parent = cModel
+
+		local largeSpike = createPropPart(spires, "CrystalSpike_Large", Vector3.new(2.2, 9.5, 2.2), CFrame.new(crPos + Vector3.new(0, 4.2, 0)) * CFrame.Angles(math.rad(15), 0, math.rad(-10)), Color3.fromRGB(165, 50, 245), Enum.Material.Glass)
+		createPropPart(spires, "CrystalSpike_Medium", Vector3.new(1.6, 6.5, 1.6), CFrame.new(crPos + Vector3.new(2.4, 3.0, 1.2)) * CFrame.Angles(math.rad(-14), math.rad(25), math.rad(16)), Color3.fromRGB(185, 75, 255), Enum.Material.Glass)
+		createPropPart(spires, "CrystalSpike_Small", Vector3.new(1.3, 4.5, 1.3), CFrame.new(crPos + Vector3.new(-2.2, 2.0, -1.2)) * CFrame.Angles(math.rad(10), math.rad(-30), math.rad(-15)), Color3.fromRGB(145, 45, 225), Enum.Material.Glass)
+
+		-- Ambient Rising Void Sparkles
+		local voidSparkles = Instance.new("ParticleEmitter")
+		voidSparkles.Name = "VoidDust"
+		voidSparkles.Texture = "rbxassetid://258129523"
+		voidSparkles.Color = ColorSequence.new(Color3.fromRGB(220, 120, 255), Color3.fromRGB(140, 50, 230))
+		voidSparkles.Size = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.5),
+			NumberSequenceKeypoint.new(1, 0.1),
+		})
+		voidSparkles.Lifetime = NumberRange.new(1.5, 3.0)
+		voidSparkles.Rate = 6
+		voidSparkles.Speed = NumberRange.new(1, 3)
+		voidSparkles.SpreadAngle = Vector2.new(45, 45)
+		voidSparkles.EmissionDirection = Enum.NormalId.Top
+		voidSparkles.Parent = largeSpike
+
+		local crLight = Instance.new("PointLight")
+		crLight.Color = Color3.fromRGB(175, 60, 255)
+		crLight.Brightness = 0.6
+		crLight.Range = 12
+		crLight.Parent = largeSpike
 	end
 end
 

@@ -511,16 +511,67 @@ function EnvironmentService.constructBackgroundVistas()
 	}
 
 	for aIdx, a in ipairs(asteroidCoords) do
-		local asteroid = Instance.new("Part")
-		asteroid.Name = "DistantAsteroid_" .. tostring(aIdx)
-		asteroid.Size = a.Size
-		asteroid.CFrame = CFrame.new(a.Pos) * CFrame.Angles(math.rad(a.Rot.X), math.rad(a.Rot.Y), math.rad(a.Rot.Z))
-		asteroid.Anchored = true
-		asteroid.CanCollide = false
-		asteroid.CastShadow = false
-		asteroid.Material = Enum.Material.Slate
-		asteroid.Color = Color3.fromRGB(22, 24, 30)
-		asteroid.Parent = vistasFolder
+		local astModel = Instance.new("Model")
+		astModel.Name = "DistantAsteroid_" .. tostring(aIdx)
+
+		-- Central irregular rocky core
+		local mainRock = Instance.new("Part")
+		mainRock.Name = "CoreRock"
+		mainRock.Size = a.Size
+		mainRock.CFrame = CFrame.new(a.Pos) * CFrame.Angles(math.rad(a.Rot.X), math.rad(a.Rot.Y), math.rad(a.Rot.Z))
+		mainRock.Anchored = true
+		mainRock.CanCollide = false
+		mainRock.CastShadow = false
+		mainRock.Material = Enum.Material.Slate
+		mainRock.Color = Color3.fromRGB(35, 38, 46)
+		mainRock.Parent = astModel
+
+		-- Multi-angled rock facets to break up blocky silhouettes into organic jagged shapes
+		local facetOffsets = {
+			{ Offset = Vector3.new(a.Size.X * 0.25, a.Size.Y * 0.2, 0), Rot = Vector3.new(25, 35, 10), Scale = 0.7, Color = Color3.fromRGB(45, 48, 56) },
+			{ Offset = Vector3.new(-a.Size.X * 0.25, -a.Size.Y * 0.15, a.Size.Z * 0.2), Rot = Vector3.new(-20, 45, -25), Scale = 0.65, Color = Color3.fromRGB(30, 32, 38) },
+			{ Offset = Vector3.new(0, a.Size.Y * 0.25, -a.Size.Z * 0.25), Rot = Vector3.new(40, -15, 30), Scale = 0.6, Color = Color3.fromRGB(40, 42, 50) },
+		}
+		for fIdx, f in ipairs(facetOffsets) do
+			local facet = Instance.new("Part")
+			facet.Name = "RockFacet_" .. fIdx
+			facet.Size = a.Size * f.Scale
+			facet.CFrame = mainRock.CFrame * CFrame.new(f.Offset) * CFrame.Angles(math.rad(f.Rot.X), math.rad(f.Rot.Y), math.rad(f.Rot.Z))
+			facet.Anchored = true
+			facet.CanCollide = false
+			facet.CastShadow = false
+			facet.Material = Enum.Material.Rock
+			facet.Color = f.Color
+			facet.Parent = astModel
+		end
+
+		-- Metallic / mineral ore veins embedded in the asteroid
+		local oreVein = Instance.new("Part")
+		oreVein.Name = "OreVein"
+		oreVein.Size = Vector3.new(a.Size.X * 0.8, a.Size.Y * 0.15, a.Size.Z * 0.7)
+		oreVein.CFrame = mainRock.CFrame * CFrame.Angles(math.rad(15), math.rad(45), math.rad(-20))
+		oreVein.Anchored = true
+		oreVein.CanCollide = false
+		oreVein.CastShadow = false
+		oreVein.Material = Enum.Material.CorrodedMetal
+		oreVein.Color = Color3.fromRGB(160, 110, 60)
+		oreVein.Parent = astModel
+
+		-- Occasional derelict space junk wedged into the asteroid (girders, solar scraps)
+		if aIdx % 2 == 0 then
+			local scrapGirder = Instance.new("Part")
+			scrapGirder.Name = "EmbeddedScrapGirder"
+			scrapGirder.Size = Vector3.new(1.8, a.Size.Y * 1.2, 1.8)
+			scrapGirder.CFrame = mainRock.CFrame * CFrame.new(a.Size.X * 0.35, 0, 0) * CFrame.Angles(math.rad(30), 0, math.rad(45))
+			scrapGirder.Anchored = true
+			scrapGirder.CanCollide = false
+			scrapGirder.CastShadow = false
+			scrapGirder.Material = Enum.Material.DiamondPlate
+			scrapGirder.Color = Color3.fromRGB(75, 80, 95)
+			scrapGirder.Parent = astModel
+		end
+
+		astModel.Parent = vistasFolder
 	end
 
 	-- B. Zone 1 Vista: Towering Derelict Salvage Crane Silhouette in the background

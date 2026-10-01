@@ -33,257 +33,236 @@ function ActionService.buildTool(toolId: string): Tool
 	tool:SetAttribute("Cooldown", conf.Cooldown)
 	tool:SetAttribute("Range", conf.Range)
 
+	-- Helper to create welded tool parts
+	local function createToolPart(name: string, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material?, partType: Enum.PartType?): Part
+		local p = Instance.new("Part")
+		p.Name = name
+		if partType then
+			p.Shape = partType
+		end
+		p.Size = size
+		p.CFrame = cf
+		p.Color = color
+		p.Material = material or Enum.Material.Metal
+		p.CanCollide = false
+		p.CastShadow = true
+		p.Parent = tool
+
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = handle
+		weld.Part1 = p
+		weld.Parent = p
+		return p
+	end
+
 	-- Main Ergonomic Handle Grip
 	local handle = Instance.new("Part")
 	handle.Name = "Handle"
 	handle.Material = Enum.Material.Rubber
-	handle.Color = Color3.fromRGB(28, 30, 36)
+	handle.Color = Color3.fromRGB(24, 26, 32)
 	handle.CanCollide = false
 	handle.Parent = tool
 
 	if conf.Id == "OmniWrench" then
-		handle.Size = Vector3.new(0.65, 2.6, 0.65)
-		-- Shaft
-		local shaft = Instance.new("Part")
-		shaft.Name = "WrenchShaft"
-		shaft.Size = Vector3.new(0.8, 1.4, 0.5)
-		shaft.Position = handle.Position + Vector3.new(0, 1.6, 0)
-		shaft.Material = Enum.Material.Metal
-		shaft.Color = Color3.fromRGB(160, 165, 175)
-		shaft.CanCollide = false
-		shaft.Parent = tool
-		local wShaft = Instance.new("WeldConstraint")
-		wShaft.Part0 = handle; wShaft.Part1 = shaft; wShaft.Parent = shaft
+		handle.Size = Vector3.new(0.55, 2.4, 0.55)
 
-		-- Wrench Head (C-Jaw)
-		local head = Instance.new("Part")
-		head.Name = "WrenchHead"
-		head.Size = Vector3.new(1.6, 1.2, 0.6)
-		head.Position = handle.Position + Vector3.new(0, 2.6, 0)
-		head.Material = Enum.Material.CorrodedMetal
-		head.Color = conf.Color
-		head.CanCollide = false
-		head.Parent = tool
-		local wHead = Instance.new("WeldConstraint")
-		wHead.Part0 = handle; wHead.Part1 = head; wHead.Parent = head
+		-- Rubber Grip Ribs
+		for g = -2, 2 do
+			createToolPart("GripRib_" .. g, Vector3.new(0.62, 0.15, 0.62), handle.CFrame * CFrame.new(0, g * 0.4, 0), Color3.fromRGB(16, 18, 22), Enum.Material.Rubber)
+		end
 
+		-- Brass Pommel Cap
+		createToolPart("PommelCap", Vector3.new(0.4, 0.75, 0.75), handle.CFrame * CFrame.new(0, -1.3, 0) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(210, 160, 45), Enum.Material.Metal, Enum.PartType.Cylinder)
+
+		-- Hexagonal Shank Shaft with Insulated Sleeve
+		local shaft = createToolPart("WrenchShaft", Vector3.new(0.7, 1.8, 0.45), handle.CFrame * CFrame.new(0, 1.8, 0), Color3.fromRGB(175, 180, 192), Enum.Material.DiamondPlate)
+		createToolPart("InsulatedSleeve", Vector3.new(0.8, 0.8, 0.55), handle.CFrame * CFrame.new(0, 1.3, 0), Color3.fromRGB(225, 135, 25), Enum.Material.SmoothPlastic)
+
+		-- Heavy Forged Twin-Jaw Head
+		local head = createToolPart("WrenchHead", Vector3.new(1.8, 1.4, 0.65), handle.CFrame * CFrame.new(0, 3.0, 0), conf.Color, Enum.Material.Metal)
+		-- Fixed Jaw & Movable Jaw
+		createToolPart("FixedJaw", Vector3.new(0.6, 1.2, 0.65), head.CFrame * CFrame.new(-0.8, 0.9, 0), Color3.fromRGB(55, 58, 68), Enum.Material.DiamondPlate)
+		createToolPart("MovableJaw", Vector3.new(0.6, 1.0, 0.65), head.CFrame * CFrame.new(0.8, 0.8, 0), Color3.fromRGB(55, 58, 68), Enum.Material.DiamondPlate)
+
+		-- Knurled Adjustment Worm Gear Cylinder
+		createToolPart("AdjustmentGear", Vector3.new(0.7, 0.5, 0.5), head.CFrame * CFrame.new(0, 0.1, 0) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(210, 160, 45), Enum.Material.Metal, Enum.PartType.Cylinder)
+
+		-- Induction Spark Emitter in Throat
+		local throatCoil = createToolPart("InductionCoil", Vector3.new(0.8, 0.3, 0.3), head.CFrame * CFrame.new(0, 0.8, 0), Color3.fromRGB(255, 180, 40), Enum.Material.Neon)
 		local sparks = Instance.new("ParticleEmitter")
 		sparks.Name = "Sparks"
+		sparks.Texture = "rbxassetid://258129523"
 		sparks.Color = ColorSequence.new(conf.Color)
-		sparks.Size = NumberSequence.new(0.1, 0.25)
-		sparks.Rate = 5
-		sparks.Speed = NumberRange.new(1.0, 2.5)
-		sparks.Lifetime = NumberRange.new(0.2, 0.5)
-		sparks.Parent = head
+		sparks.Size = NumberSequence.new(0.08, 0.22)
+		sparks.Rate = 6
+		sparks.Speed = NumberRange.new(1.0, 3.0)
+		sparks.Lifetime = NumberRange.new(0.2, 0.4)
+		sparks.Parent = throatCoil
 
 	elseif conf.Id == "PneumaticDrill" then
-		handle.Size = Vector3.new(0.7, 2.2, 0.7)
-		-- Drill Chamber
-		local chamber = Instance.new("Part")
-		chamber.Name = "Chamber"
-		chamber.Size = Vector3.new(1.6, 2.2, 1.6)
-		chamber.Position = handle.Position + Vector3.new(0, 1.6, 0)
-		chamber.Material = Enum.Material.DiamondPlate
-		chamber.Color = conf.Color
-		chamber.CanCollide = false
-		chamber.Parent = tool
-		local wChamber = Instance.new("WeldConstraint")
-		wChamber.Part0 = handle; wChamber.Part1 = chamber; wChamber.Parent = chamber
+		handle.Size = Vector3.new(0.6, 2.2, 0.6)
 
-		-- Air Tanks
-		for _, xOff in ipairs({ -0.85, 0.85 }) do
-			local tank = Instance.new("Part")
-			tank.Shape = Enum.PartType.Cylinder
-			tank.Size = Vector3.new(1.8, 0.6, 0.6)
-			tank.Position = chamber.Position + Vector3.new(xOff, 0, 0)
-			tank.Orientation = Vector3.new(0, 0, 90)
-			tank.Material = Enum.Material.Metal
-			tank.Color = Color3.fromRGB(180, 190, 205)
-			tank.CanCollide = false
-			tank.Parent = tool
-			local wTank = Instance.new("WeldConstraint")
-			wTank.Part0 = chamber; wTank.Part1 = tank; wTank.Parent = tank
+		-- D-Ring Rear Trigger Guard
+		createToolPart("TriggerGuard", Vector3.new(0.2, 1.4, 0.8), handle.CFrame * CFrame.new(0, -0.1, -0.6), Color3.fromRGB(42, 46, 54), Enum.Material.Metal)
+		createToolPart("TriggerPneumatic", Vector3.new(0.25, 0.5, 0.3), handle.CFrame * CFrame.new(0, 0.2, -0.4), Color3.fromRGB(220, 50, 40), Enum.Material.SmoothPlastic)
+
+		-- Industrial Motor Chamber with Radiator Fins
+		local chamber = createToolPart("Chamber", Vector3.new(1.6, 2.2, 1.6), handle.CFrame * CFrame.new(0, 1.8, 0), conf.Color, Enum.Material.DiamondPlate)
+		for f = -1, 1 do
+			createToolPart("CoolingFin_" .. f, Vector3.new(1.75, 0.15, 1.75), chamber.CFrame * CFrame.new(0, f * 0.6, 0), Color3.fromRGB(36, 40, 48), Enum.Material.Metal)
 		end
 
-		-- Drill Bit
-		local bit = Instance.new("Part")
-		bit.Name = "DrillBit"
-		bit.Shape = Enum.PartType.Cylinder
-		bit.Size = Vector3.new(2.4, 1.0, 1.0)
-		bit.Position = chamber.Position + Vector3.new(0, 2.1, 0)
-		bit.Orientation = Vector3.new(0, 0, 90)
-		bit.Material = Enum.Material.Metal
-		bit.Color = Color3.fromRGB(75, 80, 90)
-		bit.CanCollide = false
-		bit.Parent = tool
-		local wBit = Instance.new("WeldConstraint")
-		wBit.Part0 = chamber; wBit.Part1 = bit; wBit.Parent = bit
+		-- Twin High-Pressure Air Tanks with Brass Regulators
+		for _, xOff in ipairs({ -0.95, 0.95 }) do
+			local tank = createToolPart("AirTank", Vector3.new(2.0, 0.65, 0.65), chamber.CFrame * CFrame.new(xOff, 0, 0) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(195, 205, 220), Enum.Material.Metal, Enum.PartType.Cylinder)
+			createToolPart("TankRegulator", Vector3.new(0.3, 0.4, 0.4), tank.CFrame * CFrame.new(0.9, 0, 0), Color3.fromRGB(210, 160, 45), Enum.Material.Metal)
+		end
 
+		-- Heavy Keyed Chuck & Stepped Fluted Carbide Drill Bit
+		local chuck = createToolPart("DrillChuck", Vector3.new(0.8, 1.3, 1.3), chamber.CFrame * CFrame.new(0, 1.4, 0) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(48, 52, 60), Enum.Material.Metal, Enum.PartType.Cylinder)
+		local bit1 = createToolPart("DrillBitBase", Vector3.new(1.4, 0.9, 0.9), chuck.CFrame * CFrame.new(0.9, 0, 0), Color3.fromRGB(75, 82, 95), Enum.Material.DiamondPlate, Enum.PartType.Cylinder)
+		local bit2 = createToolPart("DrillBitTip", Vector3.new(1.2, 0.55, 0.55), bit1.CFrame * CFrame.new(1.1, 0, 0), Color3.fromRGB(90, 98, 115), Enum.Material.Metal, Enum.PartType.Cylinder)
+
+		-- Compressed Air Exhaust Smoke
+		local exhaust = createToolPart("ExhaustMuffler", Vector3.new(0.5, 0.5, 0.4), chamber.CFrame * CFrame.new(0, 0.6, 0.9), Color3.fromRGB(40, 42, 50), Enum.Material.Metal)
 		local smoke = Instance.new("ParticleEmitter")
 		smoke.Name = "Exhaust"
-		smoke.Color = ColorSequence.new(Color3.fromRGB(190, 190, 200))
-		smoke.Size = NumberSequence.new(0.3, 0.8)
+		smoke.Texture = "rbxassetid://243098098"
+		smoke.Color = ColorSequence.new(Color3.fromRGB(200, 205, 215))
+		smoke.Size = NumberSequence.new(0.15, 0.55)
 		smoke.Transparency = NumberSequence.new(0.4, 1.0)
 		smoke.Rate = 8
-		smoke.Speed = NumberRange.new(2, 4)
-		smoke.Lifetime = NumberRange.new(0.4, 0.8)
-		smoke.Parent = chamber
+		smoke.Speed = NumberRange.new(2, 5)
+		smoke.Lifetime = NumberRange.new(0.3, 0.6)
+		smoke.Parent = exhaust
 
 	elseif conf.Id == "PlasmaCutter" then
-		handle.Size = Vector3.new(0.65, 2.8, 0.65)
-		-- Housing Head
-		local head = Instance.new("Part")
-		head.Name = "NozzleHousing"
-		head.Size = Vector3.new(1.2, 1.4, 1.2)
-		head.Position = handle.Position + Vector3.new(0, 1.8, 0)
-		head.Material = Enum.Material.DiamondPlate
-		head.Color = Color3.fromRGB(45, 50, 60)
-		head.CanCollide = false
-		head.Parent = tool
-		local wHead = Instance.new("WeldConstraint")
-		wHead.Part0 = handle; wHead.Part1 = head; wHead.Parent = head
+		handle.Size = Vector3.new(0.6, 2.8, 0.6)
 
-		-- Dual Plasma Cells
-		for _, xOff in ipairs({ -0.65, 0.65 }) do
-			local cell = Instance.new("Part")
-			cell.Size = Vector3.new(0.35, 1.2, 0.35)
-			cell.Position = head.Position + Vector3.new(xOff, -0.2, 0)
-			cell.Material = Enum.Material.SmoothPlastic
-			cell.Color = conf.Color
-			cell.CanCollide = false
-			cell.Parent = tool
-			local wCell = Instance.new("WeldConstraint")
-			wCell.Part0 = head; wCell.Part1 = cell; wCell.Parent = cell
+		-- Ergonomic Grip Ribs & Trigger
+		for r = -2, 2 do
+			createToolPart("HandleGrip_" .. r, Vector3.new(0.68, 0.15, 0.68), handle.CFrame * CFrame.new(0, r * 0.45, 0), Color3.fromRGB(20, 22, 26), Enum.Material.Rubber)
+		end
+		createToolPart("TorchTrigger", Vector3.new(0.2, 0.5, 0.35), handle.CFrame * CFrame.new(0, 0.6, 0.4), Color3.fromRGB(235, 55, 45), Enum.Material.SmoothPlastic)
+
+		-- Heatsink Barrel with Cooling Vanes
+		local heatsink = createToolPart("NozzleHousing", Vector3.new(1.3, 1.6, 1.3), handle.CFrame * CFrame.new(0, 2.0, 0), Color3.fromRGB(42, 46, 56), Enum.Material.DiamondPlate)
+		for v = 1, 4 do
+			createToolPart("CoolingVane_" .. v, Vector3.new(1.5, 0.1, 1.5), heatsink.CFrame * CFrame.new(0, -0.5 + (v * 0.25), 0), Color3.fromRGB(30, 32, 40), Enum.Material.Metal)
 		end
 
-		-- Concentrated Plasma Torch Beam
-		local beam = Instance.new("Part")
-		beam.Name = "PlasmaBeam"
-		beam.Size = Vector3.new(0.45, 2.2, 0.45)
-		beam.Position = head.Position + Vector3.new(0, 1.4, 0)
-		beam.Material = Enum.Material.SmoothPlastic
-		beam.Color = conf.Color
-		beam.CanCollide = false
-		beam.Parent = tool
-		local wBeam = Instance.new("WeldConstraint")
-		wBeam.Part0 = head; wBeam.Part1 = beam; wBeam.Parent = beam
+		-- Dual Slotted Plasma Power Cells
+		for _, xOff in ipairs({ -0.75, 0.75 }) do
+			local cell = createToolPart("PlasmaCell", Vector3.new(0.38, 1.4, 0.38), heatsink.CFrame * CFrame.new(xOff, -0.1, 0), conf.Color, Enum.Material.Neon)
+			createToolPart("CellBracket", Vector3.new(0.44, 0.3, 0.44), cell.CFrame * CFrame.new(0, 0.5, 0), Color3.fromRGB(210, 160, 45), Enum.Material.Metal)
+		end
 
-		local light = Instance.new("PointLight")
-		light.Color = conf.Color
-		light.Brightness = 2.5
-		light.Range = 12
-		light.Parent = beam
+		-- Focused Ceramic Nozzle & Arc Guide Prongs
+		local nozzle = createToolPart("CeramicNozzle", Vector3.new(0.6, 0.8, 0.8), heatsink.CFrame * CFrame.new(0, 1.1, 0) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(220, 215, 205), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+		for _, pOff in ipairs({ Vector3.new(0.4, 0.4, 0), Vector3.new(-0.4, 0.4, 0), Vector3.new(0, 0.4, 0.4) }) do
+			createToolPart("ArcProng", Vector3.new(0.15, 0.6, 0.15), nozzle.CFrame * CFrame.new(pOff.X, 0.4, pOff.Z), Color3.fromRGB(180, 185, 195), Enum.Material.Metal)
+		end
 
-		local fire = Instance.new("ParticleEmitter")
-		fire.Name = "PlasmaFire"
-		fire.Color = ColorSequence.new(conf.Color)
-		fire.Size = NumberSequence.new(0.2, 0.6)
-		fire.Rate = 12
-		fire.Speed = NumberRange.new(2, 5)
-		fire.Lifetime = NumberRange.new(0.2, 0.5)
-		fire.SpreadAngle = Vector2.new(45, 45)
-		fire.Parent = beam
-
-	elseif conf.Id == "CyberScythe" then
-		handle.Size = Vector3.new(0.55, 4.4, 0.55)
-		handle.Color = Color3.fromRGB(20, 22, 28)
-
-		-- Emitter Hub
-		local hub = Instance.new("Part")
-		hub.Name = "ScytheHub"
-		hub.Size = Vector3.new(1.1, 1.1, 1.1)
-		hub.Position = handle.Position + Vector3.new(0, 2.4, 0)
-		hub.Material = Enum.Material.Metal
-		hub.Color = Color3.fromRGB(40, 42, 52)
-		hub.CanCollide = false
-		hub.Parent = tool
-		local wHub = Instance.new("WeldConstraint")
-		wHub.Part0 = handle; wHub.Part1 = hub; wHub.Parent = hub
-
-		-- Curved Energy Blade
-		local blade = Instance.new("Part")
-		blade.Name = "EnergyBlade"
-		blade.Size = Vector3.new(2.8, 0.75, 0.3)
-		blade.Position = hub.Position + Vector3.new(1.3, 0.4, 0)
-		blade.Orientation = Vector3.new(0, 0, 30)
-		blade.Material = Enum.Material.SmoothPlastic
-		blade.Color = conf.Color
-		blade.CanCollide = false
-		blade.Parent = tool
-		local wBlade = Instance.new("WeldConstraint")
-		wBlade.Part0 = hub; wBlade.Part1 = blade; wBlade.Parent = blade
+		-- High-Temperature Plasma Flame Beam
+		local beam = createToolPart("PlasmaBeam", Vector3.new(2.4, 0.45, 0.45), nozzle.CFrame * CFrame.new(1.4, 0, 0), conf.Color, Enum.Material.Neon, Enum.PartType.Cylinder)
 
 		local light = Instance.new("PointLight")
 		light.Color = conf.Color
 		light.Brightness = 2.8
 		light.Range = 14
-		light.Parent = blade
+		light.Parent = beam
+
+		local fire = Instance.new("ParticleEmitter")
+		fire.Name = "PlasmaFire"
+		fire.Texture = "rbxassetid://258129523"
+		fire.Color = ColorSequence.new(conf.Color)
+		fire.Size = NumberSequence.new(0.15, 0.45)
+		fire.Rate = 14
+		fire.Speed = NumberRange.new(3, 7)
+		fire.Lifetime = NumberRange.new(0.15, 0.35)
+		fire.SpreadAngle = Vector2.new(20, 20)
+		fire.EmissionDirection = Enum.NormalId.Right
+		fire.Parent = beam
+
+	elseif conf.Id == "CyberScythe" then
+		handle.Size = Vector3.new(0.5, 4.2, 0.5)
+		handle.Color = Color3.fromRGB(18, 20, 26)
+
+		-- Carbon-Fiber Shaft Ring Grips
+		for s = -3, 3 do
+			createToolPart("StaffGrip_" .. s, Vector3.new(0.58, 0.2, 0.58), handle.CFrame * CFrame.new(0, s * 0.5, 0), Color3.fromRGB(35, 40, 52), Enum.Material.Metal)
+		end
+
+		-- Tungsten Pommel Grounding Spike
+		createToolPart("GroundSpike", Vector3.new(0.4, 0.8, 0.4), handle.CFrame * CFrame.new(0, -2.4, 0), Color3.fromRGB(75, 82, 95), Enum.Material.DiamondPlate)
+
+		-- Glowing Energy Conduit Raceway running along staff spine
+		createToolPart("SpineConduit", Vector3.new(0.15, 3.8, 0.15), handle.CFrame * CFrame.new(0, 0.1, 0.26), conf.Color, Enum.Material.Neon)
+
+		-- Articulated Hydraulic Scythe Hub
+		local hub = createToolPart("ScytheHub", Vector3.new(1.3, 1.3, 1.3), handle.CFrame * CFrame.new(0, 2.4, 0), Color3.fromRGB(38, 42, 54), Enum.Material.Metal)
+		createToolPart("GyroRing", Vector3.new(0.4, 1.4, 1.4), hub.CFrame * CFrame.Angles(0, 0, math.rad(90)), conf.Color, Enum.Material.Neon, Enum.PartType.Cylinder)
+
+		-- High-Frequency Segmented Energy Blade (Curving 3.5 studs outward)
+		local bladeSpine = createToolPart("BladeSpine", Vector3.new(3.2, 0.6, 0.35), hub.CFrame * CFrame.new(1.4, 0.5, 0) * CFrame.Angles(0, 0, math.rad(28)), Color3.fromRGB(24, 26, 34), Enum.Material.Metal)
+		local bladeEdge = createToolPart("EnergyBlade", Vector3.new(3.4, 0.4, 0.2), bladeSpine.CFrame * CFrame.new(0, -0.35, 0), conf.Color, Enum.Material.Neon)
+
+		local light = Instance.new("PointLight")
+		light.Color = conf.Color
+		light.Brightness = 3.0
+		light.Range = 16
+		light.Parent = bladeEdge
 
 		local sparks = Instance.new("ParticleEmitter")
 		sparks.Name = "CyberLightning"
+		sparks.Texture = "rbxassetid://258129523"
 		sparks.Color = ColorSequence.new(conf.Color)
-		sparks.Size = NumberSequence.new(0.15, 0.45)
+		sparks.Size = NumberSequence.new(0.12, 0.38)
 		sparks.Rate = 14
 		sparks.Speed = NumberRange.new(2, 6)
-		sparks.Lifetime = NumberRange.new(0.2, 0.5)
-		sparks.Parent = blade
+		sparks.Lifetime = NumberRange.new(0.15, 0.4)
+		sparks.Parent = bladeEdge
 
 	elseif conf.Id == "VoidRipper" then
-		handle.Size = Vector3.new(0.7, 3.4, 0.7)
-		handle.Color = Color3.fromRGB(15, 15, 20)
+		handle.Size = Vector3.new(0.65, 3.2, 0.65)
+		handle.Color = Color3.fromRGB(15, 14, 20)
 
-		-- Void Crossguard
-		local guard = Instance.new("Part")
-		guard.Name = "VoidGuard"
-		guard.Size = Vector3.new(2.4, 0.8, 0.7)
-		guard.Position = handle.Position + Vector3.new(0, 1.9, 0)
-		guard.Material = Enum.Material.DiamondPlate
-		guard.Color = Color3.fromRGB(35, 25, 45)
-		guard.CanCollide = false
-		guard.Parent = tool
-		local wGuard = Instance.new("WeldConstraint")
-		wGuard.Part0 = handle; wGuard.Part1 = guard; wGuard.Parent = guard
+		-- Runic Hilt Wrap
+		for w = -2, 2 do
+			createToolPart("RuneWrap_" .. w, Vector3.new(0.72, 0.25, 0.72), handle.CFrame * CFrame.new(0, w * 0.45, 0), Color3.fromRGB(38, 28, 52), Enum.Material.Slate)
+		end
 
-		-- Singularity Core Orb
-		local core = Instance.new("Part")
-		core.Name = "SingularityCore"
-		core.Shape = Enum.PartType.Ball
-		core.Size = Vector3.new(1.1, 1.1, 1.1)
-		core.Position = guard.Position + Vector3.new(0, 0.4, 0)
-		core.Material = Enum.Material.SmoothPlastic
-		core.Color = conf.Color
-		core.CanCollide = false
-		core.Parent = tool
-		local wCore = Instance.new("WeldConstraint")
-		wCore.Part0 = guard; wCore.Part1 = core; wCore.Parent = core
+		-- Heavy Angled Void Crossguard with Quad Stabilizer Fins
+		local guard = createToolPart("VoidGuard", Vector3.new(2.8, 0.9, 0.9), handle.CFrame * CFrame.new(0, 1.8, 0), Color3.fromRGB(42, 32, 58), Enum.Material.DiamondPlate)
+		for _, fx in ipairs({ -1.3, 1.3 }) do
+			createToolPart("StabilizerFin", Vector3.new(0.3, 1.2, 1.2), guard.CFrame * CFrame.new(fx, 0.2, 0), conf.Color, Enum.Material.Neon)
+		end
 
-		-- Dual Cleaver Blades
-		for _, xOff in ipairs({ -0.4, 0.4 }) do
-			local cBlade = Instance.new("Part")
-			cBlade.Name = "VoidBlade"
-			cBlade.Size = Vector3.new(0.35, 3.0, 0.8)
-			cBlade.Position = guard.Position + Vector3.new(xOff, 2.0, 0)
-			cBlade.Material = Enum.Material.CorrodedMetal
-			cBlade.Color = Color3.fromRGB(25, 20, 32)
-			cBlade.CanCollide = false
-			cBlade.Parent = tool
-			local wCBlade = Instance.new("WeldConstraint")
-			wCBlade.Part0 = guard; wCBlade.Part1 = cBlade; wCBlade.Parent = cBlade
+		-- Levitating Singularity Void Sphere
+		local core = createToolPart("SingularityCore", Vector3.new(1.3, 1.3, 1.3), guard.CFrame * CFrame.new(0, 0.5, 0), conf.Color, Enum.Material.Neon, Enum.PartType.Ball)
+		createToolPart("OrbitalHalo", Vector3.new(0.25, 1.8, 1.8), core.CFrame * CFrame.Angles(math.rad(45), 0, math.rad(30)), Color3.fromRGB(220, 130, 255), Enum.Material.Neon, Enum.PartType.Cylinder)
+
+		-- Twin Serrated Void Cleaver Blades
+		for _, xOff in ipairs({ -0.45, 0.45 }) do
+			local cBlade = createToolPart("VoidBlade", Vector3.new(0.35, 3.4, 1.1), guard.CFrame * CFrame.new(xOff, 2.2, 0), Color3.fromRGB(28, 22, 36), Enum.Material.Metal)
+			-- Glowing Serrated Edge
+			createToolPart("SerratedEdge", Vector3.new(0.18, 3.2, 0.35), cBlade.CFrame * CFrame.new(0, 0, 0.5), conf.Color, Enum.Material.Neon)
 		end
 
 		local light = Instance.new("PointLight")
 		light.Color = conf.Color
-		light.Brightness = 3.2
-		light.Range = 16
+		light.Brightness = 3.5
+		light.Range = 18
 		light.Parent = core
 
 		local vortex = Instance.new("ParticleEmitter")
 		vortex.Name = "VoidVortex"
+		vortex.Texture = "rbxassetid://258129523"
 		vortex.Color = ColorSequence.new(conf.Color)
-		vortex.Size = NumberSequence.new(0.2, 0.7)
+		vortex.Size = NumberSequence.new(0.15, 0.6)
 		vortex.Rate = 18
-		vortex.Speed = NumberRange.new(1.5, 4.5)
-		vortex.Lifetime = NumberRange.new(0.4, 0.9)
+		vortex.Speed = NumberRange.new(2, 5)
+		vortex.Lifetime = NumberRange.new(0.3, 0.7)
 		vortex.SpreadAngle = Vector2.new(180, 180)
 		vortex.Parent = core
 	end
