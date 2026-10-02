@@ -3490,258 +3490,920 @@ function MenuController.showHatchReveal(info: any)
 end
 
 -- Modern Custom 3D Simulator Navigation Docks (Inspired by Pet Sim 99, Mining Simulator 2, & Blox Fruits)
--- 1. Right Gameplay Dock: UPGRADE, SECTORS, ARMORY, DRONES, REBIRTH (Large, tactile, high-priority 3D pill buttons)
--- 2. Left System Dock: STORE, PRESTIGE, QUESTS, REWARDS, SETTINGS, CONSOLE (Juicy themed buttons with notification badges)
+-- 1. Right Gameplay Dock: UPGRADE (Hero), REBIRTH (Hero Orb), SECTORS (Logo), ARMORY (Logo), DRONES (Logo)
+-- 2. Left System Dock: STORE (Royal Hero Crest), REWARDS (Gift Vault), QUESTS (Logo), PRESTIGE (Logo)
+-- 3. Bottom-Left Utility Dock: SETTINGS, CONSOLE (Minimalist Frosted Glass Orbs)
+
+-- Procedural Eye-Catching Effects Emitters
+local function createParticleEmitter(parentFrame: GuiObject, isGold: boolean, tintColor: Color3)
+	local emitter = Instance.new("Frame")
+	emitter.Name = "EmittedParticleLayer"
+	emitter.Size = UDim2.new(1.4, 0, 1.4, 0)
+	emitter.Position = UDim2.new(0.5, 0, 0.5, 0)
+	emitter.AnchorPoint = Vector2.new(0.5, 0.5)
+	emitter.BackgroundTransparency = 1
+	emitter.BorderSizePixel = 0
+	emitter.ClipsDescendants = false
+	emitter.ZIndex = parentFrame.ZIndex + 6
+	emitter.Parent = parentFrame
+
+	local MAX_PARTICLES = 6
+	local count = 0
+
+	task.spawn(function()
+		while emitter and emitter.Parent do
+			if count < MAX_PARTICLES then
+				count = count + 1
+				task.spawn(function()
+					local p = Instance.new("ImageLabel")
+					local sz = math.random(11, 16)
+					p.Size = UDim2.new(0, sz, 0, sz)
+					p.Position = UDim2.new(math.random(15, 85) / 100, 0, math.random(55, 90) / 100, 0)
+					p.AnchorPoint = Vector2.new(0.5, 0.5)
+					p.BackgroundTransparency = 1
+					p.Image = "rbxasset://textures/sparkle.png"
+					p.ImageColor3 = isGold and (math.random() > 0.35 and Color3.fromRGB(255, 245, 140) or Color3.fromRGB(255, 210, 50)) or tintColor
+					p.ImageTransparency = 0.1
+					p.Rotation = math.random(0, 90)
+					p.ZIndex = emitter.ZIndex
+					p.Parent = emitter
+
+					local dur = math.random(12, 20) / 10
+					local targetY = p.Position.Y.Scale - (math.random(45, 75) / 100)
+					local targetX = p.Position.X.Scale + (math.random(-20, 20) / 100)
+
+					local tPos = TweenService:Create(p, TweenInfo.new(dur, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+						Position = UDim2.new(targetX, 0, targetY, 0),
+						Rotation = p.Rotation + math.random(90, 180),
+						ImageTransparency = 1,
+						Size = UDim2.new(0, math.floor(sz * 0.4), 0, math.floor(sz * 0.4)),
+					})
+					tPos:Play()
+					tPos.Completed:Wait()
+					p:Destroy()
+					count = count - 1
+				end)
+			end
+			task.wait(math.random(3, 6) / 10)
+		end
+	end)
+end
+
+local function createShockwaveEmitter(parentFrame: GuiObject, color: Color3, interval: number)
+	task.spawn(function()
+		while parentFrame and parentFrame.Parent do
+			task.wait(interval)
+			local wave = Instance.new("Frame")
+			wave.Name = "Shockwave"
+			wave.Size = UDim2.new(0.85, 0, 0.85, 0)
+			wave.Position = UDim2.new(0.5, 0, 0.5, 0)
+			wave.AnchorPoint = Vector2.new(0.5, 0.5)
+			wave.BackgroundTransparency = 1
+			wave.BorderSizePixel = 0
+			wave.ZIndex = parentFrame.ZIndex - 1
+			wave.Parent = parentFrame
+
+			local wc = Instance.new("UICorner")
+			wc.CornerRadius = UDim.new(1, 0)
+			wc.Parent = wave
+
+			local ws = Instance.new("UIStroke")
+			ws.Color = color
+			ws.Thickness = 2.8
+			ws.Transparency = 0.1
+			ws.Parent = wave
+
+			local tw = TweenService:Create(wave, TweenInfo.new(1.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				Size = UDim2.new(1.85, 0, 1.85, 0),
+			})
+			local tf = TweenService:Create(ws, TweenInfo.new(1.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				Transparency = 1,
+				Thickness = 0.4,
+			})
+			tw:Play()
+			tf:Play()
+			tw.Completed:Connect(function()
+				wave:Destroy()
+			end)
+		end
+	end)
+end
+
+-- Procedural Golden Sunburst God-Rays (100% Reliable, Zero Missing Asset Risk!)
+local function createSunburstRays(parentFrame: GuiObject, color: Color3)
+	local sunburst = Instance.new("Frame")
+	sunburst.Name = "SunburstRays"
+	sunburst.Size = UDim2.new(2.3, 0, 2.3, 0)
+	sunburst.Position = UDim2.new(0.5, 0, 0.5, 0)
+	sunburst.AnchorPoint = Vector2.new(0.5, 0.5)
+	sunburst.BackgroundTransparency = 1
+	sunburst.BorderSizePixel = 0
+	sunburst.ClipsDescendants = false
+	sunburst.ZIndex = parentFrame.ZIndex - 2
+	sunburst.Parent = parentFrame
+
+	-- Central soft radial glowing halo
+	local halo = Instance.new("ImageLabel")
+	halo.Name = "HaloGlow"
+	halo.Size = UDim2.new(1.2, 0, 1.2, 0)
+	halo.Position = UDim2.new(0.5, 0, 0.5, 0)
+	halo.AnchorPoint = Vector2.new(0.5, 0.5)
+	halo.BackgroundTransparency = 1
+	halo.Image = "rbxasset://textures/glow.png"
+	halo.ImageColor3 = color
+	halo.ImageTransparency = 0.45
+	halo.ZIndex = sunburst.ZIndex
+	halo.Parent = sunburst
+
+	-- 6 radiating sunburst beams (at 0, 30, 60, 90, 120, 150 deg)
+	for i = 0, 5 do
+		local beam = Instance.new("Frame")
+		beam.Name = "Beam_" .. i
+		beam.Size = UDim2.new(0, 16, 1.0, 0)
+		beam.Position = UDim2.new(0.5, 0, 0.5, 0)
+		beam.AnchorPoint = Vector2.new(0.5, 0.5)
+		beam.Rotation = i * 30
+		beam.BackgroundColor3 = color
+		beam.BorderSizePixel = 0
+		beam.ZIndex = sunburst.ZIndex
+		beam.Parent = sunburst
+
+		local bCorner = Instance.new("UICorner")
+		bCorner.CornerRadius = UDim.new(0.5, 0)
+		bCorner.Parent = beam
+
+		local bGrad = Instance.new("UIGradient")
+		bGrad.Rotation = 90
+		bGrad.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1.0),
+			NumberSequenceKeypoint.new(0.5, 0.45),
+			NumberSequenceKeypoint.new(1, 1.0),
+		})
+		bGrad.Parent = beam
+	end
+
+	task.spawn(function()
+		while sunburst and sunburst.Parent do
+			local spin = TweenService:Create(sunburst, TweenInfo.new(12, Enum.EasingStyle.Linear), {
+				Rotation = 360,
+			})
+			spin:Play()
+			spin.Completed:Wait()
+			sunburst.Rotation = 0
+		end
+	end)
+end
+
+local function createOrbitRing(parentFrame: GuiObject, color: Color3)
+	local orbit = Instance.new("Frame")
+	orbit.Name = "OrbitRing"
+	orbit.Size = UDim2.new(1.24, 0, 1.24, 0)
+	orbit.Position = UDim2.new(0.5, 0, 0.5, 0)
+	orbit.AnchorPoint = Vector2.new(0.5, 0.5)
+	orbit.BackgroundTransparency = 1
+	orbit.BorderSizePixel = 0
+	orbit.ZIndex = parentFrame.ZIndex - 1
+	orbit.Parent = parentFrame
+
+	local oc = Instance.new("UICorner")
+	oc.CornerRadius = UDim.new(1, 0)
+	oc.Parent = orbit
+
+	local os = Instance.new("UIStroke")
+	os.Color = color
+	os.Thickness = 1.8
+	os.Transparency = 0.35
+	os.Parent = orbit
+
+	local sat = Instance.new("Frame")
+	sat.Name = "Satellite"
+	sat.Size = UDim2.new(0, 7, 0, 7)
+	sat.Position = UDim2.new(0.5, 0, 0, -3.5)
+	sat.AnchorPoint = Vector2.new(0.5, 0.5)
+	sat.BackgroundColor3 = Color3.fromRGB(220, 255, 255)
+	sat.BorderSizePixel = 0
+	sat.ZIndex = parentFrame.ZIndex
+	sat.Parent = orbit
+
+	local satCorner = Instance.new("UICorner")
+	satCorner.CornerRadius = UDim.new(1, 0)
+	satCorner.Parent = sat
+
+	task.spawn(function()
+		while orbit and orbit.Parent do
+			local spin = TweenService:Create(orbit, TweenInfo.new(4.5, Enum.EasingStyle.Linear), {
+				Rotation = 360,
+			})
+			spin:Play()
+			spin.Completed:Wait()
+			orbit.Rotation = 0
+		end
+	end)
+end
+
+-- Custom High-Resolution Graphical Icon Builder (Bespoke Vector & Verified Built-in Textures, ZERO Broken Squares!)
+local function buildCustomIcon(parentEmblem: GuiObject, info: any)
+	if info.IconCustom == "RobuxShopIcon" then
+		-- Glowing golden halo
+		local halo = Instance.new("ImageLabel")
+		halo.Size = UDim2.new(1.35, 0, 1.35, 0)
+		halo.Position = UDim2.new(0.5, 0, 0.5, 0)
+		halo.AnchorPoint = Vector2.new(0.5, 0.5)
+		halo.BackgroundTransparency = 1
+		halo.Image = "rbxasset://textures/glow.png"
+		halo.ImageColor3 = Color3.fromRGB(255, 220, 50)
+		halo.ImageTransparency = 0.4
+		halo.ZIndex = parentEmblem.ZIndex
+		halo.Parent = parentEmblem
+
+		-- Official Verified High-Resolution Robux Coin
+		local coin = Instance.new("ImageLabel")
+		coin.Name = "RobuxCoin"
+		coin.Size = UDim2.new(0.85, 0, 0.85, 0)
+		coin.Position = UDim2.new(0.5, 0, 0.5, 0)
+		coin.AnchorPoint = Vector2.new(0.5, 0.5)
+		coin.BackgroundTransparency = 1
+		coin.Image = "rbxasset://textures/ui/common/robux_color.png"
+		coin.ZIndex = parentEmblem.ZIndex + 1
+		coin.Parent = parentEmblem
+
+		-- Sparkling Star Badge Accent
+		local star = Instance.new("ImageLabel")
+		star.Name = "StarBadge"
+		star.Size = UDim2.new(0, 14, 0, 14)
+		star.Position = UDim2.new(1, 0, 0, 0)
+		star.AnchorPoint = Vector2.new(1, 0)
+		star.BackgroundTransparency = 1
+		star.Image = "rbxasset://textures/sparkle.png"
+		star.ImageColor3 = Color3.fromRGB(255, 255, 220)
+		star.ZIndex = parentEmblem.ZIndex + 2
+		star.Parent = parentEmblem
+	elseif info.IconCustom == "PowerWrench" then
+		-- High-Tech Power Wrench with Rising Chevrons
+		local halo = Instance.new("ImageLabel")
+		halo.Size = UDim2.new(1.3, 0, 1.3, 0)
+		halo.Position = UDim2.new(0.5, 0, 0.5, 0)
+		halo.AnchorPoint = Vector2.new(0.5, 0.5)
+		halo.BackgroundTransparency = 1
+		halo.Image = "rbxasset://textures/glow.png"
+		halo.ImageColor3 = Color3.fromRGB(50, 255, 140)
+		halo.ImageTransparency = 0.55
+		halo.ZIndex = parentEmblem.ZIndex
+		halo.Parent = parentEmblem
+
+		-- Crossed Mechanical Shafts
+		for _, rot in ipairs({ 45, -45 }) do
+			local arm = Instance.new("Frame")
+			arm.Size = UDim2.new(0, 5, 0, 22)
+			arm.Position = UDim2.new(0.5, 0, 0.5, 0)
+			arm.AnchorPoint = Vector2.new(0.5, 0.5)
+			arm.Rotation = rot
+			arm.BackgroundColor3 = Color3.fromRGB(240, 255, 245)
+			arm.BorderSizePixel = 0
+			arm.ZIndex = parentEmblem.ZIndex + 1
+			arm.Parent = parentEmblem
+
+			local ac = Instance.new("UICorner")
+			ac.CornerRadius = UDim.new(0, 2)
+			ac.Parent = arm
+
+			local as = Instance.new("UIStroke")
+			as.Color = Color3.fromRGB(50, 220, 120)
+			as.Thickness = 1
+			as.Parent = arm
+		end
+
+		-- Center Power Core Node
+		local core = Instance.new("Frame")
+		core.Size = UDim2.new(0, 10, 0, 10)
+		core.Position = UDim2.new(0.5, 0, 0.5, 0)
+		core.AnchorPoint = Vector2.new(0.5, 0.5)
+		core.BackgroundColor3 = Color3.fromRGB(120, 255, 180)
+		core.BorderSizePixel = 0
+		core.ZIndex = parentEmblem.ZIndex + 2
+		core.Parent = parentEmblem
+
+		local cc = Instance.new("UICorner")
+		cc.CornerRadius = UDim.new(1, 0)
+		cc.Parent = core
+
+		-- Animated Rising Chevrons
+		local chev = Instance.new("TextLabel")
+		chev.Name = "Chevrons"
+		chev.Size = UDim2.new(1, 0, 0, 10)
+		chev.Position = UDim2.new(0.5, 0, 0, -4)
+		chev.AnchorPoint = Vector2.new(0.5, 1)
+		chev.BackgroundTransparency = 1
+		chev.Font = Enum.Font.GothamBlack
+		chev.TextSize = 9
+		chev.TextColor3 = Color3.fromRGB(160, 255, 205)
+		chev.Text = "▲▲"
+		chev.ZIndex = parentEmblem.ZIndex + 3
+		chev.Parent = parentEmblem
+
+		task.spawn(function()
+			while chev and chev.Parent do
+				chev.Position = UDim2.new(0.5, 0, 0, -2)
+				chev.TextTransparency = 0.1
+				local cUp = TweenService:Create(chev, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+					Position = UDim2.new(0.5, 0, 0, -7),
+					TextTransparency = 0.8,
+				})
+				cUp:Play()
+				cUp.Completed:Wait()
+				task.wait(0.3)
+			end
+		end)
+	elseif info.IconCustom == "SingularityCore" then
+		-- Quantum Singularity Core (Dual counter-rotating orbital arcs + glowing nucleus)
+		local halo = Instance.new("ImageLabel")
+		halo.Size = UDim2.new(1.35, 0, 1.35, 0)
+		halo.Position = UDim2.new(0.5, 0, 0.5, 0)
+		halo.AnchorPoint = Vector2.new(0.5, 0.5)
+		halo.BackgroundTransparency = 1
+		halo.Image = "rbxasset://textures/glow.png"
+		halo.ImageColor3 = Color3.fromRGB(40, 220, 255)
+		halo.ImageTransparency = 0.5
+		halo.ZIndex = parentEmblem.ZIndex
+		halo.Parent = parentEmblem
+
+		local nucleus = Instance.new("Frame")
+		nucleus.Size = UDim2.new(0, 12, 0, 12)
+		nucleus.Position = UDim2.new(0.5, 0, 0.5, 0)
+		nucleus.AnchorPoint = Vector2.new(0.5, 0.5)
+		nucleus.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		nucleus.BorderSizePixel = 0
+		nucleus.ZIndex = parentEmblem.ZIndex + 2
+		nucleus.Parent = parentEmblem
+
+		local nc = Instance.new("UICorner")
+		nc.CornerRadius = UDim.new(1, 0)
+		nc.Parent = nucleus
+
+		-- Ring 1 (Clockwise)
+		local ring1 = Instance.new("Frame")
+		ring1.Size = UDim2.new(0, 26, 0, 14)
+		ring1.Position = UDim2.new(0.5, 0, 0.5, 0)
+		ring1.AnchorPoint = Vector2.new(0.5, 0.5)
+		ring1.BackgroundTransparency = 1
+		ring1.Rotation = 35
+		ring1.ZIndex = parentEmblem.ZIndex + 1
+		ring1.Parent = parentEmblem
+
+		local r1c = Instance.new("UICorner")
+		r1c.CornerRadius = UDim.new(1, 0)
+		r1c.Parent = ring1
+
+		local r1s = Instance.new("UIStroke")
+		r1s.Color = Color3.fromRGB(110, 245, 255)
+		r1s.Thickness = 1.8
+		r1s.Parent = ring1
+
+		-- Ring 2 (Counter-Clockwise)
+		local ring2 = Instance.new("Frame")
+		ring2.Size = UDim2.new(0, 26, 0, 14)
+		ring2.Position = UDim2.new(0.5, 0, 0.5, 0)
+		ring2.AnchorPoint = Vector2.new(0.5, 0.5)
+		ring2.BackgroundTransparency = 1
+		ring2.Rotation = -35
+		ring2.ZIndex = parentEmblem.ZIndex + 1
+		ring2.Parent = parentEmblem
+
+		local r2c = Instance.new("UICorner")
+		r2c.CornerRadius = UDim.new(1, 0)
+		r2c.Parent = ring2
+
+		local r2s = Instance.new("UIStroke")
+		r2s.Color = Color3.fromRGB(200, 120, 255)
+		r2s.Thickness = 1.5
+		r2s.Parent = ring2
+
+		task.spawn(function()
+			while ring1 and ring1.Parent do
+				local t1 = TweenService:Create(ring1, TweenInfo.new(3.2, Enum.EasingStyle.Linear), { Rotation = 395 })
+				local t2 = TweenService:Create(ring2, TweenInfo.new(3.8, Enum.EasingStyle.Linear), { Rotation = -395 })
+				t1:Play()
+				t2:Play()
+				t1.Completed:Wait()
+				ring1.Rotation = 35
+				ring2.Rotation = -35
+			end
+		end)
+	elseif info.IconCustom == "GiftChest" then
+		-- Stylized 3D Gift Box with Gold Ribbon Cross & Bow
+		local box = Instance.new("Frame")
+		box.Size = UDim2.new(0, 20, 0, 20)
+		box.Position = UDim2.new(0.5, 0, 0.55, 0)
+		box.AnchorPoint = Vector2.new(0.5, 0.5)
+		box.BackgroundColor3 = Color3.fromRGB(255, 75, 140)
+		box.BorderSizePixel = 0
+		box.ZIndex = parentEmblem.ZIndex + 1
+		box.Parent = parentEmblem
+
+		local bc = Instance.new("UICorner")
+		bc.CornerRadius = UDim.new(0, 4)
+		bc.Parent = box
+
+		local bs = Instance.new("UIStroke")
+		bs.Color = Color3.fromRGB(255, 230, 90)
+		bs.Thickness = 1.2
+		bs.Parent = box
+
+		-- Vertical Ribbon
+		local vr = Instance.new("Frame")
+		vr.Size = UDim2.new(0, 4, 1, 0)
+		vr.Position = UDim2.new(0.5, 0, 0, 0)
+		vr.AnchorPoint = Vector2.new(0.5, 0)
+		vr.BackgroundColor3 = Color3.fromRGB(255, 230, 80)
+		vr.BorderSizePixel = 0
+		vr.ZIndex = box.ZIndex + 1
+		vr.Parent = box
+
+		-- Horizontal Ribbon
+		local hr = Instance.new("Frame")
+		hr.Size = UDim2.new(1, 0, 0, 4)
+		hr.Position = UDim2.new(0, 0, 0.5, 0)
+		hr.AnchorPoint = Vector2.new(0, 0.5)
+		hr.BackgroundColor3 = Color3.fromRGB(255, 230, 80)
+		hr.BorderSizePixel = 0
+		hr.ZIndex = box.ZIndex + 1
+		hr.Parent = box
+
+		-- Ribbon Bow
+		local bow = Instance.new("Frame")
+		bow.Size = UDim2.new(0, 9, 0, 5)
+		bow.Position = UDim2.new(0.5, 0, 0, -3)
+		bow.AnchorPoint = Vector2.new(0.5, 1)
+		bow.BackgroundColor3 = Color3.fromRGB(255, 245, 130)
+		bow.BorderSizePixel = 0
+		bow.ZIndex = box.ZIndex + 2
+		bow.Parent = box
+
+		local bowC = Instance.new("UICorner")
+		bowC.CornerRadius = UDim.new(1, 0)
+		bowC.Parent = bow
+	elseif info.IconCustom == "RocketWarp" then
+		-- Sleek Sci-Fi Rocket Silhouette with Pulsing Thruster
+		local body = Instance.new("Frame")
+		body.Size = UDim2.new(0, 9, 0, 18)
+		body.Position = UDim2.new(0.5, 0, 0.5, -2)
+		body.AnchorPoint = Vector2.new(0.5, 0.5)
+		body.BackgroundColor3 = Color3.new(1, 1, 1)
+		body.BorderSizePixel = 0
+		body.ZIndex = parentEmblem.ZIndex + 1
+		body.Parent = parentEmblem
+
+		local bc = Instance.new("UICorner")
+		bc.CornerRadius = UDim.new(0.5, 0)
+		bc.Parent = body
+
+		local finL = Instance.new("Frame")
+		finL.Size = UDim2.new(0, 3, 0, 7)
+		finL.Position = UDim2.new(0, -2, 1, -6)
+		finL.BackgroundColor3 = Color3.fromRGB(195, 95, 255)
+		finL.BorderSizePixel = 0
+		finL.ZIndex = body.ZIndex - 1
+		finL.Parent = body
+
+		local finR = Instance.new("Frame")
+		finR.Size = UDim2.new(0, 3, 0, 7)
+		finR.Position = UDim2.new(1, -1, 1, -6)
+		finR.BackgroundColor3 = Color3.fromRGB(195, 95, 255)
+		finR.BorderSizePixel = 0
+		finR.ZIndex = body.ZIndex - 1
+		finR.Parent = body
+
+		local flare = Instance.new("Frame")
+		flare.Size = UDim2.new(0, 7, 0, 8)
+		flare.Position = UDim2.new(0.5, 0, 1, 0)
+		flare.AnchorPoint = Vector2.new(0.5, 0)
+		flare.BackgroundColor3 = Color3.fromRGB(255, 140, 40)
+		flare.BorderSizePixel = 0
+		flare.ZIndex = body.ZIndex
+		flare.Parent = body
+
+		local fc = Instance.new("UICorner")
+		fc.CornerRadius = UDim.new(1, 0)
+		fc.Parent = flare
+	elseif info.IconCustom == "ArmoryBlades" then
+		-- Dual Crossed Plasma Energy Sabers
+		for _, rot in ipairs({ 45, -45 }) do
+			local b = Instance.new("Frame")
+			b.Size = UDim2.new(0, 4.5, 0, 22)
+			b.Position = UDim2.new(0.5, 0, 0.5, 0)
+			b.AnchorPoint = Vector2.new(0.5, 0.5)
+			b.Rotation = rot
+			b.BackgroundColor3 = Color3.fromRGB(255, 240, 210)
+			b.BorderSizePixel = 0
+			b.ZIndex = parentEmblem.ZIndex + 1
+			b.Parent = parentEmblem
+
+			local bc = Instance.new("UICorner")
+			bc.CornerRadius = UDim.new(0, 2)
+			bc.Parent = b
+
+			local bs = Instance.new("UIStroke")
+			bs.Color = Color3.fromRGB(255, 120, 20)
+			bs.Thickness = 1.2
+			bs.Parent = b
+		end
+	elseif info.IconCustom == "DroneCore" then
+		-- Robotic Sentinel Eye Drone with Optic Scanner
+		local drone = Instance.new("Frame")
+		drone.Size = UDim2.new(0, 18, 0, 18)
+		drone.Position = UDim2.new(0.5, 0, 0.5, 0)
+		drone.AnchorPoint = Vector2.new(0.5, 0.5)
+		drone.BackgroundColor3 = Color3.fromRGB(255, 225, 70)
+		drone.BorderSizePixel = 0
+		drone.ZIndex = parentEmblem.ZIndex + 1
+		drone.Parent = parentEmblem
+
+		local dc = Instance.new("UICorner")
+		dc.CornerRadius = UDim.new(1, 0)
+		dc.Parent = drone
+
+		local eye = Instance.new("Frame")
+		eye.Size = UDim2.new(0, 10, 0, 10)
+		eye.Position = UDim2.new(0.5, 0, 0.5, 0)
+		eye.AnchorPoint = Vector2.new(0.5, 0.5)
+		eye.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
+		eye.BorderSizePixel = 0
+		eye.ZIndex = drone.ZIndex + 1
+		eye.Parent = drone
+
+		local ec = Instance.new("UICorner")
+		ec.CornerRadius = UDim.new(1, 0)
+		ec.Parent = eye
+
+		local pupil = Instance.new("Frame")
+		pupil.Size = UDim2.new(0, 5, 0, 5)
+		pupil.Position = UDim2.new(0.5, 0, 0.5, 0)
+		pupil.AnchorPoint = Vector2.new(0.5, 0.5)
+		pupil.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+		pupil.BorderSizePixel = 0
+		pupil.ZIndex = eye.ZIndex + 1
+		pupil.Parent = eye
+
+		local puc = Instance.new("UICorner")
+		puc.CornerRadius = UDim.new(1, 0)
+		puc.Parent = pupil
+	elseif info.IconCustom == "TargetCore" then
+		-- Bullseye Cyber Reticle with 4 Crosshair Ticks
+		local outer = Instance.new("Frame")
+		outer.Size = UDim2.new(0, 20, 0, 20)
+		outer.Position = UDim2.new(0.5, 0, 0.5, 0)
+		outer.AnchorPoint = Vector2.new(0.5, 0.5)
+		outer.BackgroundTransparency = 1
+		outer.ZIndex = parentEmblem.ZIndex + 1
+		outer.Parent = parentEmblem
+
+		local oc = Instance.new("UICorner")
+		oc.CornerRadius = UDim.new(1, 0)
+		oc.Parent = outer
+
+		local os = Instance.new("UIStroke")
+		os.Color = Color3.fromRGB(255, 220, 40)
+		os.Thickness = 1.6
+		os.Parent = outer
+
+		local dot = Instance.new("Frame")
+		dot.Size = UDim2.new(0, 6, 0, 6)
+		dot.Position = UDim2.new(0.5, 0, 0.5, 0)
+		dot.AnchorPoint = Vector2.new(0.5, 0.5)
+		dot.BackgroundColor3 = Color3.fromRGB(255, 235, 100)
+		dot.BorderSizePixel = 0
+		dot.ZIndex = outer.ZIndex + 1
+		dot.Parent = outer
+
+		local dc = Instance.new("UICorner")
+		dc.CornerRadius = UDim.new(1, 0)
+		dc.Parent = dot
+	elseif info.IconCustom == "PrestigeGear" then
+		-- 8-Tooth Cyber Cog with Central Jewel
+		local cog = Instance.new("Frame")
+		cog.Size = UDim2.new(0, 18, 0, 18)
+		cog.Position = UDim2.new(0.5, 0, 0.5, 0)
+		cog.AnchorPoint = Vector2.new(0.5, 0.5)
+		cog.BackgroundColor3 = Color3.fromRGB(60, 195, 255)
+		cog.BorderSizePixel = 0
+		cog.ZIndex = parentEmblem.ZIndex + 1
+		cog.Parent = parentEmblem
+
+		local cc = Instance.new("UICorner")
+		cc.CornerRadius = UDim.new(0, 4)
+		cc.Parent = cog
+
+		local inner = Instance.new("Frame")
+		inner.Size = UDim2.new(0, 8, 0, 8)
+		inner.Position = UDim2.new(0.5, 0, 0.5, 0)
+		inner.AnchorPoint = Vector2.new(0.5, 0.5)
+		inner.BackgroundColor3 = Color3.fromRGB(15, 30, 55)
+		inner.BorderSizePixel = 0
+		inner.ZIndex = cog.ZIndex + 1
+		inner.Parent = cog
+
+		local ic = Instance.new("UICorner")
+		ic.CornerRadius = UDim.new(1, 0)
+		ic.Parent = inner
+	elseif info.IconCustom == "TerminalPrompt" then
+		-- Developer Terminal Prompt >_
+		local prompt = Instance.new("TextLabel")
+		prompt.Size = UDim2.new(1, 0, 1, 0)
+		prompt.BackgroundTransparency = 1
+		prompt.Font = Enum.Font.Code
+		prompt.TextSize = 16
+		prompt.TextColor3 = Color3.fromRGB(255, 100, 130)
+		prompt.Text = ">_"
+		prompt.ZIndex = parentEmblem.ZIndex + 1
+		prompt.Parent = parentEmblem
+	elseif info.IconImage then
+		local img = Instance.new("ImageLabel")
+		img.Name = "CustomIconImage"
+		img.Size = UDim2.new(0.75, 0, 0.75, 0)
+		img.Position = UDim2.new(0.5, 0, 0.5, 0)
+		img.AnchorPoint = Vector2.new(0.5, 0.5)
+		img.BackgroundTransparency = 1
+		img.Image = info.IconImage
+		img.ImageColor3 = info.IconColor or Color3.new(1, 1, 1)
+		img.ZIndex = parentEmblem.ZIndex + 1
+		img.Parent = parentEmblem
+	end
+end
+
+-- Modern Floating Non-Uniform Navigation Docks (Zero black boxes! Bespoke varied geometry!)
 function MenuController.buildIconBar()
 	local gameplayButtons = {
 		{
 			Name = "Upgrades",
 			Label = "UPGRADE",
 			FullTitle = "UPGRADES WORKSHOP",
-			Icon = "🛠️",
-			Width = 84,
-			Height = 68,
-			BevelHeight = 4,
-			CornerRadius = 11,
-			TopColor = Color3.fromRGB(52, 235, 131),
-			BottomColor = Color3.fromRGB(16, 155, 72),
-			ShadowColor = Color3.fromRGB(6, 72, 32),
-			RimColor = Color3.fromRGB(110, 255, 175),
+			Shape = "CyberMech",
+			Width = 100,
+			Height = 78,
+			BevelHeight = 5,
+			CornerRadius = 10,
+			TopColor = Color3.fromRGB(50, 240, 130),
+			BottomColor = Color3.fromRGB(12, 155, 72),
+			ShadowColor = Color3.fromRGB(8, 95, 45),
+			RimColor = Color3.fromRGB(130, 255, 185),
+			StrokeThickness = 2.4,
 			AnimationType = "Heartbeat",
+			IconCustom = "PowerWrench",
+			HasShockwave = true,
+			ShockwaveColor = Color3.fromRGB(50, 255, 140),
 			EmblemSize = 34,
-			IconSize = 20,
-			TextSize = 11,
+			TextSize = 11.5,
 		},
 		{
 			Name = "Rebirth",
 			Label = "REBIRTH",
 			FullTitle = "QUANTUM REBIRTH",
-			Icon = "🔄",
+			Shape = "CircularOrb",
 			Width = 82,
-			Height = 64,
-			BevelHeight = 4,
-			CornerRadius = 11,
+			Height = 82,
+			BevelHeight = 4.5,
+			CornerRadius = 41,
+			IsCircle = true,
 			TopColor = Color3.fromRGB(38, 232, 255),
 			BottomColor = Color3.fromRGB(0, 119, 200),
-			ShadowColor = Color3.fromRGB(0, 56, 96),
-			RimColor = Color3.fromRGB(130, 245, 255),
+			ShadowColor = Color3.fromRGB(0, 70, 120),
+			RimColor = Color3.fromRGB(140, 245, 255),
+			StrokeThickness = 2.2,
 			AnimationType = "Aura",
-			EmblemSize = 32,
-			IconSize = 19,
-			TextSize = 10.5,
+			IconCustom = "SingularityCore",
+			HasOrbitRing = true,
+			HasShockwave = true,
+			ShockwaveColor = Color3.fromRGB(80, 230, 255),
+			EmblemSize = 34,
+			TextSize = 9.5,
 		},
 		{
 			Name = "Teleport",
-			Label = "SECTORS",
+			Label = "",
 			FullTitle = "SECTOR FAST-TRAVEL",
-			Icon = "🚀",
-			Width = 74,
-			Height = 52,
+			Shape = "TechTile",
+			Width = 50,
+			Height = 50,
 			BevelHeight = 3,
-			CornerRadius = 9,
-			TopColor = Color3.fromRGB(200, 100, 255),
-			BottomColor = Color3.fromRGB(120, 25, 200),
-			ShadowColor = Color3.fromRGB(58, 8, 100),
-			RimColor = Color3.fromRGB(223, 153, 255),
-			EmblemSize = 28,
-			IconSize = 16,
-			TextSize = 9.5,
+			CornerRadius = 12,
+			IsIconOnly = true,
+			TopColor = Color3.fromRGB(195, 95, 255),
+			BottomColor = Color3.fromRGB(125, 25, 195),
+			ShadowColor = Color3.fromRGB(80, 12, 130),
+			RimColor = Color3.fromRGB(225, 160, 255),
+			StrokeThickness = 1.6,
+			IconCustom = "RocketWarp",
+			EmblemSize = 30,
 		},
 		{
 			Name = "ToolArmory",
-			Label = "ARMORY",
+			Label = "",
 			FullTitle = "TOOL ARMORY",
-			Icon = "🔧",
-			Width = 74,
-			Height = 52,
+			Shape = "TechTile",
+			Width = 50,
+			Height = 50,
 			BevelHeight = 3,
-			CornerRadius = 9,
-			TopColor = Color3.fromRGB(255, 157, 59),
-			BottomColor = Color3.fromRGB(212, 74, 8),
-			ShadowColor = Color3.fromRGB(110, 32, 0),
-			RimColor = Color3.fromRGB(255, 189, 122),
-			EmblemSize = 28,
-			IconSize = 16,
-			TextSize = 9.5,
+			CornerRadius = 12,
+			IsIconOnly = true,
+			TopColor = Color3.fromRGB(255, 150, 50),
+			BottomColor = Color3.fromRGB(210, 70, 10),
+			ShadowColor = Color3.fromRGB(130, 38, 5),
+			RimColor = Color3.fromRGB(255, 185, 120),
+			StrokeThickness = 1.6,
+			IconCustom = "ArmoryBlades",
+			EmblemSize = 30,
 		},
 		{
 			Name = "Drones",
-			Label = "DRONES",
+			Label = "",
 			FullTitle = "DRONE HANGAR",
-			Icon = "🛸",
-			Width = 74,
-			Height = 52,
+			Shape = "TechTile",
+			Width = 50,
+			Height = 50,
 			BevelHeight = 3,
-			CornerRadius = 9,
-			TopColor = Color3.fromRGB(255, 209, 59),
-			BottomColor = Color3.fromRGB(217, 125, 9),
-			ShadowColor = Color3.fromRGB(110, 59, 0),
-			RimColor = Color3.fromRGB(255, 228, 128),
-			EmblemSize = 28,
-			IconSize = 16,
-			TextSize = 9.5,
+			CornerRadius = 12,
+			IsIconOnly = true,
+			TopColor = Color3.fromRGB(255, 205, 50),
+			BottomColor = Color3.fromRGB(215, 120, 10),
+			ShadowColor = Color3.fromRGB(130, 70, 5),
+			RimColor = Color3.fromRGB(255, 225, 120),
+			StrokeThickness = 1.6,
+			IconCustom = "DroneCore",
+			EmblemSize = 30,
 		},
 	}
 
 	local systemButtons = {
 		{
 			Name = "Store",
-			Label = "STORE",
+			Label = "SHOP",
 			FullTitle = "EXCLUSIVE ROBUX SHOP",
-			Icon = "⚡",
-			Width = 86,
-			Height = 72,
-			BevelHeight = 4.5,
-			CornerRadius = 12,
-			TopColor = Color3.fromRGB(255, 70, 150),
-			BottomColor = Color3.fromRGB(205, 0, 100),
-			ShadowColor = Color3.fromRGB(110, 0, 55),
-			RimColor = Color3.fromRGB(255, 225, 75),
+			Shape = "CrownedCrest",
+			Width = 106,
+			Height = 86,
+			BevelHeight = 5,
+			CornerRadius = 14,
+			TiltAngle = -3,
+			TopColor = Color3.fromRGB(255, 50, 140),
+			BottomColor = Color3.fromRGB(200, 0, 90),
+			ShadowColor = Color3.fromRGB(140, 0, 65),
+			RimColor = Color3.fromRGB(255, 230, 80),
+			StrokeThickness = 2.6,
+			HasSunburst = true,
+			HasParticles = true,
 			HasShimmer = true,
 			AnimationType = "ShimmerPulse",
 			BadgeText = "🔥 HOT",
 			BadgeColor = Color3.fromRGB(255, 45, 60),
-			EmblemSize = 34,
-			IconSize = 20,
-			TextSize = 11,
+			IconCustom = "RobuxShopIcon",
+			EmblemSize = 38,
+			TextSize = 12,
 		},
 		{
 			Name = "Rewards",
 			Label = "REWARDS",
 			FullTitle = "DAILY REWARDS & CODES",
-			Icon = "🎁",
-			Width = 78,
+			Shape = "VaultBox",
+			Width = 76,
 			Height = 60,
 			BevelHeight = 3.5,
 			CornerRadius = 10,
 			TopColor = Color3.fromRGB(255, 95, 160),
 			BottomColor = Color3.fromRGB(195, 25, 90),
-			ShadowColor = Color3.fromRGB(105, 10, 48),
-			RimColor = Color3.fromRGB(255, 160, 200),
+			ShadowColor = Color3.fromRGB(130, 12, 60),
+			RimColor = Color3.fromRGB(255, 170, 210),
+			StrokeThickness = 1.8,
 			AnimationType = "GiftWobble",
+			IconCustom = "GiftChest",
 			EmblemSize = 30,
-			IconSize = 18,
 			TextSize = 10,
 		},
 		{
-			Name = "GearsShop",
-			Label = "PRESTIGE",
-			FullTitle = "GEARS PRESTIGE SHOP",
-			Icon = "⚙️",
-			Width = 68,
+			Name = "Quests",
+			Label = "",
+			FullTitle = "DAILY OBJECTIVES",
+			Shape = "TechTile",
+			Width = 50,
 			Height = 50,
 			BevelHeight = 3,
-			CornerRadius = 9,
-			TopColor = Color3.fromRGB(61, 181, 255),
-			BottomColor = Color3.fromRGB(20, 98, 184),
-			ShadowColor = Color3.fromRGB(11, 51, 99),
-			RimColor = Color3.fromRGB(140, 211, 255),
-			EmblemSize = 26,
-			IconSize = 15,
-			TextSize = 9,
+			CornerRadius = 12,
+			IsIconOnly = true,
+			TopColor = Color3.fromRGB(255, 210, 20),
+			BottomColor = Color3.fromRGB(195, 135, 5),
+			ShadowColor = Color3.fromRGB(130, 85, 0),
+			RimColor = Color3.fromRGB(255, 230, 100),
+			StrokeThickness = 1.6,
+			IconCustom = "TargetCore",
+			EmblemSize = 30,
 		},
 		{
-			Name = "Quests",
-			Label = "QUESTS",
-			FullTitle = "DAILY OBJECTIVES",
-			Icon = "🎯",
-			Width = 68,
+			Name = "GearsShop",
+			Label = "",
+			FullTitle = "GEARS PRESTIGE SHOP",
+			Shape = "TechTile",
+			Width = 50,
 			Height = 50,
 			BevelHeight = 3,
-			CornerRadius = 9,
-			TopColor = Color3.fromRGB(255, 210, 20),
-			BottomColor = Color3.fromRGB(199, 138, 5),
-			ShadowColor = Color3.fromRGB(105, 69, 0),
-			RimColor = Color3.fromRGB(255, 227, 102),
-			EmblemSize = 26,
-			IconSize = 15,
-			TextSize = 9,
+			CornerRadius = 12,
+			IsIconOnly = true,
+			TopColor = Color3.fromRGB(55, 180, 255),
+			BottomColor = Color3.fromRGB(20, 100, 185),
+			ShadowColor = Color3.fromRGB(12, 65, 125),
+			RimColor = Color3.fromRGB(150, 215, 255),
+			StrokeThickness = 1.6,
+			IconCustom = "PrestigeGear",
+			EmblemSize = 30,
 		},
+	}
+
+	local utilityButtons = {
 		{
 			Name = "Settings",
 			Label = "",
 			FullTitle = "SYSTEM SETTINGS",
-			Icon = "⚙️",
-			Width = 46,
-			Height = 44,
+			Shape = "UtilityOrb",
+			Width = 38,
+			Height = 38,
 			BevelHeight = 2.5,
-			CornerRadius = 8,
+			CornerRadius = 19,
+			IsCircle = true,
 			IsIconOnly = true,
-			TopColor = Color3.fromRGB(140, 155, 175),
-			BottomColor = Color3.fromRGB(75, 85, 100),
-			ShadowColor = Color3.fromRGB(35, 42, 52),
-			RimColor = Color3.fromRGB(180, 195, 215),
+			TopColor = Color3.fromRGB(120, 135, 155),
+			BottomColor = Color3.fromRGB(65, 75, 90),
+			ShadowColor = Color3.fromRGB(40, 48, 60),
+			RimColor = Color3.fromRGB(190, 210, 235),
+			StrokeThickness = 1.4,
+			IconImage = "rbxasset://textures/ui/Settings/MenuBarIcons/GameSettingsTab.png",
+			EmblemSize = 22,
 		},
 	}
 
 	local isDev = RunService:IsStudio() or player.Name == "ExodusNeo" or (game.CreatorId ~= 0 and player.UserId == game.CreatorId)
 	if isDev then
-		table.insert(systemButtons, {
+		table.insert(utilityButtons, {
 			Name = "Debug",
 			Label = "",
 			FullTitle = "DEVELOPER CONSOLE",
-			Icon = "💻",
-			Width = 46,
-			Height = 44,
+			Shape = "UtilityOrb",
+			Width = 38,
+			Height = 38,
 			BevelHeight = 2.5,
-			CornerRadius = 8,
+			CornerRadius = 19,
+			IsCircle = true,
 			IsIconOnly = true,
-			TopColor = Color3.fromRGB(220, 70, 95),
+			TopColor = Color3.fromRGB(220, 65, 90),
 			BottomColor = Color3.fromRGB(130, 20, 40),
-			ShadowColor = Color3.fromRGB(70, 8, 20),
+			ShadowColor = Color3.fromRGB(80, 10, 25),
 			RimColor = Color3.fromRGB(255, 130, 155),
+			StrokeThickness = 1.4,
+			IconCustom = "TerminalPrompt",
+			EmblemSize = 22,
 		})
 	end
 
-	local function renderDock(dockName: string, anchorPoint: Vector2, position: UDim2, btnList: { any }, isRightSide: boolean)
+	local function renderDock(dockName: string, anchorPoint: Vector2, position: UDim2, btnList: { any }, isRightSide: boolean, isHorizontal: boolean?)
 		local count = #btnList
-		local pad = 7
+		local pad = 8
 		local maxBtnWidth = 0
 		local totalBtnHeight = 0
+		local totalBtnWidth = 0
 		for _, info in ipairs(btnList) do
-			local w = info.Width or (isRightSide and 74 or 62)
-			local h = info.Height or (isRightSide and 64 or 54)
-			if w > maxBtnWidth then
-				maxBtnWidth = w
-			end
+			local w = info.Width or 50
+			local h = info.Height or 50
+			if w > maxBtnWidth then maxBtnWidth = w end
 			totalBtnHeight = totalBtnHeight + h
+			totalBtnWidth = totalBtnWidth + w
 		end
 
-		local barWidth = maxBtnWidth + 14
-		local barHeight = 16 + totalBtnHeight + (count - 1) * pad
+		local barWidth = isHorizontal and (totalBtnWidth + (count - 1) * pad + 16) or (maxBtnWidth + 24)
+		local barHeight = isHorizontal and 50 or (totalBtnHeight + (count - 1) * pad + 16)
 
+		-- Floating Invisible Dock Container (NO BLACK BACKGROUND, NO ENCLOSING BOX BORDER!)
 		local bar = Instance.new("Frame")
 		bar.Name = dockName
 		bar.Size = UDim2.new(0, barWidth, 0, barHeight)
 		bar.AnchorPoint = anchorPoint
 		bar.Position = position
-		bar.BackgroundColor3 = Color3.fromRGB(10, 14, 22)
-		bar.BackgroundTransparency = 0.14
+		bar.BackgroundTransparency = 1
 		bar.BorderSizePixel = 0
+		bar.ClipsDescendants = false
 		bar.ZIndex = 20
 		bar.Parent = mainGui
 
-		local bCorner = Instance.new("UICorner")
-		bCorner.CornerRadius = UDim.new(0, 14)
-		bCorner.Parent = bar
-
-		local bStroke = Instance.new("UIStroke")
-		bStroke.Color = Color3.fromRGB(38, 50, 72)
-		bStroke.Thickness = 1.5
-		bStroke.Parent = bar
-
 		local list = Instance.new("UIListLayout")
 		list.Padding = UDim.new(0, pad)
-		list.HorizontalAlignment = Enum.HorizontalAlignment.Center
+		list.FillDirection = isHorizontal and Enum.FillDirection.Horizontal or Enum.FillDirection.Vertical
+		list.HorizontalAlignment = isHorizontal and Enum.HorizontalAlignment.Left or Enum.HorizontalAlignment.Center
 		list.VerticalAlignment = Enum.VerticalAlignment.Center
 		list.SortOrder = Enum.SortOrder.LayoutOrder
 		list.Parent = bar
 
 		for idx, info in ipairs(btnList) do
-			local btnWidth = info.Width or (isRightSide and 74 or 62)
-			local btnHeight = info.Height or (isRightSide and 64 or 54)
-			local bevelHeight = info.BevelHeight or (isRightSide and 4 or 3)
-			local cornerRadius = info.CornerRadius or (isRightSide and 11 or 9)
+			local btnWidth = info.Width or 50
+			local btnHeight = info.Height or 50
+			local bevelHeight = info.BevelHeight or 3
+			local cornerRadius = info.CornerRadius or 12
+			local isCircle = info.IsCircle or false
 
 			local container = Instance.new("Frame")
 			container.Name = info.Name .. "Container"
@@ -3749,6 +4411,8 @@ function MenuController.buildIconBar()
 			container.LayoutOrder = idx
 			container.BackgroundTransparency = 1
 			container.BorderSizePixel = 0
+			container.ClipsDescendants = false
+			container.Rotation = info.TiltAngle or 0
 			container.ZIndex = 21
 			container.Parent = bar
 
@@ -3761,13 +4425,13 @@ function MenuController.buildIconBar()
 			shadow.Name = "Shadow"
 			shadow.Size = UDim2.new(1, 0, 1, 0)
 			shadow.Position = UDim2.new(0, 0, 0, bevelHeight)
-			shadow.BackgroundColor3 = info.ShadowColor or Color3.fromRGB(15, 20, 30)
+			shadow.BackgroundColor3 = info.ShadowColor or Color3.fromRGB(20, 25, 35)
 			shadow.BorderSizePixel = 0
 			shadow.ZIndex = 21
 			shadow.Parent = container
 
 			local sCorner = Instance.new("UICorner")
-			sCorner.CornerRadius = UDim.new(0, cornerRadius)
+			sCorner.CornerRadius = isCircle and UDim.new(1, 0) or UDim.new(0, cornerRadius)
 			sCorner.Parent = shadow
 
 			-- Interactive Top Surface
@@ -3780,12 +4444,12 @@ function MenuController.buildIconBar()
 			btn.Text = ""
 			btn.AutoButtonColor = false
 			btn.Selectable = true
-			btn.ClipsDescendants = true
+			btn.ClipsDescendants = not (info.Shape == "CrownedCrest")
 			btn.ZIndex = 22
 			btn.Parent = container
 
 			local corner = Instance.new("UICorner")
-			corner.CornerRadius = UDim.new(0, cornerRadius)
+			corner.CornerRadius = isCircle and UDim.new(1, 0) or UDim.new(0, cornerRadius)
 			corner.Parent = btn
 
 			-- Rich Vertical Gradient (Vibrant saturated top to rich base bottom)
@@ -3802,14 +4466,14 @@ function MenuController.buildIconBar()
 			local stroke = Instance.new("UIStroke")
 			stroke.Name = "RimStroke"
 			stroke.Color = info.RimColor
-			stroke.Thickness = info.StrokeThickness or 1.5
+			stroke.Thickness = info.StrokeThickness or 1.6
 			stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 			stroke.Parent = btn
 
 			-- Specular Gloss Reflection (Top 42%)
 			local gloss = Instance.new("Frame")
 			gloss.Name = "GlossHighlight"
-			gloss.Size = UDim2.new(1, -4, 0.42, 0)
+			gloss.Size = isCircle and UDim2.new(1, -4, 0.48, 0) or UDim2.new(1, -4, 0.42, 0)
 			gloss.Position = UDim2.new(0, 2, 0, 2)
 			gloss.BackgroundColor3 = Color3.new(1, 1, 1)
 			gloss.BorderSizePixel = 0
@@ -3817,13 +4481,13 @@ function MenuController.buildIconBar()
 			gloss.Parent = btn
 
 			local gCorner = Instance.new("UICorner")
-			gCorner.CornerRadius = UDim.new(0, math.max(4, cornerRadius - 2))
+			gCorner.CornerRadius = isCircle and UDim.new(1, 0) or UDim.new(0, math.max(4, cornerRadius - 2))
 			gCorner.Parent = gloss
 
 			local gGrad = Instance.new("UIGradient")
 			gGrad.Rotation = 90
 			gGrad.Transparency = NumberSequence.new({
-				NumberSequenceKeypoint.new(0, 0.70),
+				NumberSequenceKeypoint.new(0, 0.68),
 				NumberSequenceKeypoint.new(1, 1.0),
 			})
 			gGrad.Parent = gloss
@@ -3867,74 +4531,130 @@ function MenuController.buildIconBar()
 				end)
 			end
 
-			-- Emblem & Label Creation
+			-- Unique Shape Enhancements
+			if info.Shape == "CrownedCrest" then
+				-- Extruded Top Plaque Banner for Store
+				local crown = Instance.new("Frame")
+				crown.Name = "CrownPlaque"
+				crown.Size = UDim2.new(1, -12, 0, 16)
+				crown.Position = UDim2.new(0.5, 0, 0, -8)
+				crown.AnchorPoint = Vector2.new(0.5, 0)
+				crown.BackgroundColor3 = Color3.fromRGB(255, 195, 20)
+				crown.BorderSizePixel = 0
+				crown.ZIndex = 26
+				crown.Parent = btn
+
+				local crCorner = Instance.new("UICorner")
+				crCorner.CornerRadius = UDim.new(0, 5)
+				crCorner.Parent = crown
+
+				local crStroke = Instance.new("UIStroke")
+				crStroke.Color = Color3.fromRGB(255, 240, 140)
+				crStroke.Thickness = 1
+				crStroke.Parent = crown
+
+				local crGrad = Instance.new("UIGradient")
+				crGrad.Rotation = 90
+				crGrad.Color = ColorSequence.new({
+					ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 245, 160)),
+					ColorSequenceKeypoint.new(1, Color3.fromRGB(210, 140, 10)),
+				})
+				crGrad.Parent = crown
+
+				local crText = Instance.new("TextLabel")
+				crText.Size = UDim2.new(1, 0, 1, 0)
+				crText.BackgroundTransparency = 1
+				crText.Font = Enum.Font.GothamBlack
+				crText.TextSize = 9
+				crText.TextColor3 = Color3.fromRGB(65, 25, 0)
+				crText.Text = "★ ROBUX ★"
+				crText.ZIndex = 27
+				crText.Parent = crown
+			elseif info.Shape == "CyberMech" then
+				-- Flanking Industrial Mech Brackets & Corner Rivets
+				for _, side in ipairs({ "Left", "Right" }) do
+					local bracket = Instance.new("Frame")
+					bracket.Name = side .. "Bracket"
+					bracket.Size = UDim2.new(0, 4, 0.65, 0)
+					bracket.Position = UDim2.new(side == "Left" and 0 or 1, side == "Left" and 2 or -6, 0.5, 0)
+					bracket.AnchorPoint = Vector2.new(0, 0.5)
+					bracket.BackgroundColor3 = Color3.fromRGB(130, 255, 190)
+					bracket.BorderSizePixel = 0
+					bracket.ZIndex = 26
+					bracket.Parent = btn
+
+					local brCorner = Instance.new("UICorner")
+					brCorner.CornerRadius = UDim.new(1, 0)
+					brCorner.Parent = bracket
+				end
+			elseif info.Shape == "VaultBox" then
+				-- Gold Ribbon Stripes crossing the vault box
+				local vRibbon = Instance.new("Frame")
+				vRibbon.Name = "GoldRibbonV"
+				vRibbon.Size = UDim2.new(0, 5, 1, 0)
+				vRibbon.Position = UDim2.new(0.5, 0, 0, 0)
+				vRibbon.AnchorPoint = Vector2.new(0.5, 0)
+				vRibbon.BackgroundColor3 = Color3.fromRGB(255, 215, 60)
+				vRibbon.BackgroundTransparency = 0.35
+				vRibbon.BorderSizePixel = 0
+				vRibbon.ZIndex = 23
+				vRibbon.Parent = btn
+
+				local hRibbon = Instance.new("Frame")
+				hRibbon.Name = "GoldRibbonH"
+				hRibbon.Size = UDim2.new(1, 0, 0, 5)
+				hRibbon.Position = UDim2.new(0, 0, 0.44, 0)
+				hRibbon.BackgroundColor3 = Color3.fromRGB(255, 215, 60)
+				hRibbon.BackgroundTransparency = 0.35
+				hRibbon.BorderSizePixel = 0
+				hRibbon.ZIndex = 23
+				hRibbon.Parent = btn
+			end
+
+			-- Emitted Eye-Catching Effects
+			if info.HasSunburst then
+				createSunburstRays(container, Color3.fromRGB(255, 215, 60))
+			end
+			if info.HasParticles then
+				createParticleEmitter(container, true, Color3.fromRGB(255, 220, 80))
+			end
+			if info.HasShockwave then
+				createShockwaveEmitter(container, info.ShockwaveColor or info.RimColor, 2.4)
+			end
+			if info.HasOrbitRing then
+				createOrbitRing(container, info.RimColor)
+			end
+
+			-- Emblem & Icon Creation (NO BLACK CIRCLE! Transparent backing with soft glow)
 			if info.IsIconOnly then
-				-- Compact Utility Icon (Centered Emblem, No Label)
-				local emblemDim = math.min(btnWidth - 14, btnHeight - 14)
+				-- Compact Icon-Only Tile (Centered Emblem, No Label)
+				local emblemDim = info.EmblemSize or math.min(btnWidth - 14, btnHeight - 14)
 				local emblem = Instance.new("Frame")
 				emblem.Name = "IconEmblem"
 				emblem.Size = UDim2.new(0, emblemDim, 0, emblemDim)
 				emblem.Position = UDim2.new(0.5, 0, 0.5, 0)
 				emblem.AnchorPoint = Vector2.new(0.5, 0.5)
-				emblem.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-				emblem.BackgroundTransparency = 0.45
+				emblem.BackgroundTransparency = 1
 				emblem.BorderSizePixel = 0
 				emblem.ZIndex = 25
 				emblem.Parent = btn
 
-				local eCorner = Instance.new("UICorner")
-				eCorner.CornerRadius = UDim.new(1, 0)
-				eCorner.Parent = emblem
-
-				local eStroke = Instance.new("UIStroke")
-				eStroke.Color = Color3.new(1, 1, 1)
-				eStroke.Transparency = 0.6
-				eStroke.Thickness = 1
-				eStroke.Parent = emblem
-
-				local iconLbl = Instance.new("TextLabel")
-				iconLbl.Name = "IconLabel"
-				iconLbl.Size = UDim2.new(1, 0, 1, 0)
-				iconLbl.BackgroundTransparency = 1
-				iconLbl.Font = Enum.Font.GothamBlack
-				iconLbl.TextSize = 18
-				iconLbl.Text = info.Icon
-				iconLbl.ZIndex = 26
-				iconLbl.Parent = emblem
+				buildCustomIcon(emblem, info)
 			else
-				-- Standard or Large Button (Icon Emblem + Stylized Label)
-				local emblemDim = info.EmblemSize or (btnHeight > 62 and 34 or 28)
-				local emblemTop = info.EmblemTop or (btnHeight > 62 and 6 or 4)
+				-- Hero Labeled Button (Icon Emblem + Bold Typography)
+				local emblemDim = info.EmblemSize or (btnHeight > 62 and 36 or 28)
+				local emblemTop = info.EmblemTop or (info.Shape == "CrownedCrest" and 9 or (btnHeight > 62 and 7 or 4))
 				local emblem = Instance.new("Frame")
 				emblem.Name = "IconEmblem"
 				emblem.Size = UDim2.new(0, emblemDim, 0, emblemDim)
 				emblem.Position = UDim2.new(0.5, 0, 0, emblemTop)
 				emblem.AnchorPoint = Vector2.new(0.5, 0)
-				emblem.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-				emblem.BackgroundTransparency = 0.45
+				emblem.BackgroundTransparency = 1
 				emblem.BorderSizePixel = 0
 				emblem.ZIndex = 25
 				emblem.Parent = btn
 
-				local eCorner = Instance.new("UICorner")
-				eCorner.CornerRadius = UDim.new(1, 0)
-				eCorner.Parent = emblem
-
-				local eStroke = Instance.new("UIStroke")
-				eStroke.Color = Color3.new(1, 1, 1)
-				eStroke.Transparency = 0.6
-				eStroke.Thickness = 1
-				eStroke.Parent = emblem
-
-				local iconLbl = Instance.new("TextLabel")
-				iconLbl.Name = "IconLabel"
-				iconLbl.Size = UDim2.new(1, 0, 1, 0)
-				iconLbl.BackgroundTransparency = 1
-				iconLbl.Font = Enum.Font.GothamBlack
-				iconLbl.TextSize = info.IconSize or (btnHeight > 62 and 20 or 16)
-				iconLbl.Text = info.Icon
-				iconLbl.ZIndex = 26
-				iconLbl.Parent = emblem
+				buildCustomIcon(emblem, info)
 
 				local labelTop = info.LabelTop or (emblemTop + emblemDim + 2)
 				local labelHeight = btnHeight - labelTop - bevelHeight - 2
@@ -3944,10 +4664,10 @@ function MenuController.buildIconBar()
 				textLbl.Position = UDim2.new(0, 2, 0, labelTop)
 				textLbl.BackgroundTransparency = 1
 				textLbl.Font = Enum.Font.GothamBlack
-				textLbl.TextSize = info.TextSize or (btnHeight > 62 and 11 or 9.5)
+				textLbl.TextSize = info.TextSize or (btnHeight > 62 and 11.5 or 9.5)
 				textLbl.TextColor3 = Color3.new(1, 1, 1)
 				textLbl.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-				textLbl.TextStrokeTransparency = 0.25
+				textLbl.TextStrokeTransparency = 0.2
 				textLbl.Text = info.Label
 				textLbl.ZIndex = 25
 				textLbl.Parent = btn
@@ -3957,8 +4677,8 @@ function MenuController.buildIconBar()
 			if info.BadgeText then
 				local cbBadge = Instance.new("Frame")
 				cbBadge.Name = "ClickbaitBadge"
-				cbBadge.Size = UDim2.new(0, #info.BadgeText > 2 and 34 or 24, 0, 16)
-				cbBadge.Position = UDim2.new(1, 3, 0, -4)
+				cbBadge.Size = UDim2.new(0, #info.BadgeText > 2 and 38 or 24, 0, 16)
+				cbBadge.Position = UDim2.new(1, 4, 0, -4)
 				cbBadge.AnchorPoint = Vector2.new(1, 0)
 				cbBadge.BackgroundColor3 = info.BadgeColor or Color3.fromRGB(255, 45, 60)
 				cbBadge.BorderSizePixel = 0
@@ -3997,12 +4717,12 @@ function MenuController.buildIconBar()
 				task.spawn(function()
 					while cbBadge and cbBadge.Parent do
 						local bUp = TweenService:Create(cbBadge, TweenInfo.new(0.65, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
-							Position = UDim2.new(1, 3, 0, -7),
+							Position = UDim2.new(1, 4, 0, -7),
 						})
 						bUp:Play()
 						bUp.Completed:Wait()
 						local bDown = TweenService:Create(cbBadge, TweenInfo.new(0.65, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
-							Position = UDim2.new(1, 3, 0, -4),
+							Position = UDim2.new(1, 4, 0, -4),
 						})
 						bDown:Play()
 						bDown.Completed:Wait()
@@ -4045,7 +4765,6 @@ function MenuController.buildIconBar()
 
 				dockNotificationBadges[info.Name] = badge
 
-				-- Bouncing badge loop when visible
 				task.spawn(function()
 					while badge and badge.Parent do
 						if badge.Visible then
@@ -4098,11 +4817,11 @@ function MenuController.buildIconBar()
 						task.wait(2.8)
 						if not isDown and not isHovered then
 							local p1 = TweenService:Create(uiScale, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-								Scale = 1.07,
+								Scale = 1.06,
 							})
 							local f1 = TweenService:Create(stroke, TweenInfo.new(0.12), {
 								Color = Color3.fromRGB(220, 255, 235),
-								Thickness = 2.4,
+								Thickness = 2.6,
 							})
 							p1:Play()
 							f1:Play()
@@ -4113,14 +4832,14 @@ function MenuController.buildIconBar()
 							})
 							local rf1 = TweenService:Create(stroke, TweenInfo.new(0.10), {
 								Color = info.RimColor,
-								Thickness = info.StrokeThickness or 1.5,
+								Thickness = info.StrokeThickness or 1.6,
 							})
 							r1:Play()
 							rf1:Play()
 							r1.Completed:Wait()
 
 							local p2 = TweenService:Create(uiScale, TweenInfo.new(0.09, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-								Scale = 1.04,
+								Scale = 1.03,
 							})
 							p2:Play()
 							p2.Completed:Wait()
@@ -4160,13 +4879,13 @@ function MenuController.buildIconBar()
 					while stroke and stroke.Parent do
 						local pulseOut = TweenService:Create(stroke, TweenInfo.new(1.0, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
 							Color = Color3.fromRGB(220, 250, 255),
-							Thickness = 2.6,
+							Thickness = 2.8,
 						})
 						pulseOut:Play()
 						pulseOut.Completed:Wait()
 						local pulseIn = TweenService:Create(stroke, TweenInfo.new(1.0, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
 							Color = info.RimColor,
-							Thickness = 1.5,
+							Thickness = info.StrokeThickness or 1.6,
 						})
 						pulseIn:Play()
 						pulseIn.Completed:Wait()
@@ -4174,60 +4893,70 @@ function MenuController.buildIconBar()
 				end)
 			end
 
-			-- Interactive Tooltip
+			-- Interactive Tooltip (Slides out on hover showing full name)
 			local tooltip = Instance.new("Frame")
 			tooltip.Name = "Tooltip"
-			tooltip.Size = UDim2.new(0, 140, 0, 30)
-			if isRightSide then
+			tooltip.Size = UDim2.new(0, 140, 0, 28)
+			if isHorizontal then
+				tooltip.Position = UDim2.new(0.5, 0, 0, -8)
+				tooltip.AnchorPoint = Vector2.new(0.5, 1)
+			elseif isRightSide then
 				tooltip.Position = UDim2.new(0, -12, 0.5, 0)
 				tooltip.AnchorPoint = Vector2.new(1, 0.5)
 			else
 				tooltip.Position = UDim2.new(1, 12, 0.5, 0)
 				tooltip.AnchorPoint = Vector2.new(0, 0.5)
 			end
-			tooltip.BackgroundColor3 = Color3.fromRGB(12, 16, 24)
+			tooltip.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
 			tooltip.BackgroundTransparency = 1
 			tooltip.BorderSizePixel = 0
-			tooltip.ZIndex = 35
+			tooltip.ZIndex = 40
 			tooltip.Parent = btn
 
 			local tipCorner = Instance.new("UICorner")
-			tipCorner.CornerRadius = UDim.new(0, 8)
+			tipCorner.CornerRadius = UDim.new(0, 7)
 			tipCorner.Parent = tooltip
 
 			local tipStroke = Instance.new("UIStroke")
 			tipStroke.Color = info.RimColor
-			tipStroke.Thickness = 1.5
+			tipStroke.Thickness = 1.2
 			tipStroke.Transparency = 1
 			tipStroke.Parent = tooltip
 
 			local tipText = Instance.new("TextLabel")
-			tipText.Size = UDim2.new(1, -10, 1, 0)
-			tipText.Position = UDim2.new(0, 5, 0, 0)
+			tipText.Size = UDim2.new(1, -8, 1, 0)
+			tipText.Position = UDim2.new(0, 4, 0, 0)
 			tipText.BackgroundTransparency = 1
 			tipText.Font = Enum.Font.GothamBlack
-			tipText.TextSize = 11
+			tipText.TextSize = 10.5
 			tipText.TextColor3 = info.TopColor
 			tipText.TextTransparency = 1
 			tipText.Text = info.FullTitle or info.Label
-			tipText.ZIndex = 36
+			tipText.ZIndex = 41
 			tipText.Parent = tooltip
 
 			-- Hover & Press Tactile Spring Animations
 			btn.MouseEnter:Connect(function()
 				isHovered = true
 				if not isDown then
+					local hoverRot = (info.TiltAngle or 0)
+					if info.TiltAngle then
+						hoverRot = 0
+					end
 					TweenService:Create(uiScale, TweenInfo.new(0.12, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
 						Scale = 1.08,
+					}):Play()
+					TweenService:Create(container, TweenInfo.new(0.12, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+						Rotation = hoverRot,
 					}):Play()
 					TweenService:Create(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 						Position = UDim2.new(0, 0, 0, -2),
 					}):Play()
 					TweenService:Create(stroke, TweenInfo.new(0.12), {
 						Color = Color3.new(1, 1, 1),
-						Thickness = 2.2,
+						Thickness = 2.4,
 					}):Play()
-					TweenService:Create(tooltip, TweenInfo.new(0.12), { BackgroundTransparency = 0.05 }):Play()
+					TweenService:Create(tooltip, TweenInfo.new(0.12), { BackgroundTransparency = 0.08 }):Play()
 					TweenService:Create(tipStroke, TweenInfo.new(0.12), { Transparency = 0 }):Play()
 					TweenService:Create(tipText, TweenInfo.new(0.12), { TextTransparency = 0 }):Play()
 				end
@@ -4239,28 +4968,31 @@ function MenuController.buildIconBar()
 				TweenService:Create(uiScale, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 					Scale = 1.0,
 				}):Play()
+				TweenService:Create(container, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+					Rotation = info.TiltAngle or 0,
+				}):Play()
 				TweenService:Create(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 					Position = UDim2.new(0, 0, 0, 0),
 				}):Play()
 				TweenService:Create(stroke, TweenInfo.new(0.12), {
 					Color = info.RimColor,
-					Thickness = info.StrokeThickness or 1.5,
+					Thickness = info.StrokeThickness or 1.6,
 				}):Play()
-				TweenService:Create(tooltip, TweenInfo.new(0.12), { BackgroundTransparency = 1 }):Play()
-				TweenService:Create(tipStroke, TweenInfo.new(0.12), { Transparency = 1 }):Play()
-				TweenService:Create(tipText, TweenInfo.new(0.12), { TextTransparency = 1 }):Play()
+				TweenService:Create(tooltip, TweenInfo.new(0.10), { BackgroundTransparency = 1 }):Play()
+				TweenService:Create(tipStroke, TweenInfo.new(0.10), { Transparency = 1 }):Play()
+				TweenService:Create(tipText, TweenInfo.new(0.10), { TextTransparency = 1 }):Play()
 			end)
 
 			btn.InputBegan:Connect(function(input)
 				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 					isDown = true
-					TweenService:Create(btn, TweenInfo.new(0.04, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-						Position = UDim2.new(0, 0, 0, bevelHeight),
+					playSound("rbxassetid://6895079853", 1.2)
+					TweenService:Create(btn, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+						Position = UDim2.new(0, 0, 0, bevelHeight - 1),
 					}):Play()
-					TweenService:Create(uiScale, TweenInfo.new(0.04, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-						Scale = 0.94,
+					TweenService:Create(uiScale, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+						Scale = 0.95,
 					}):Play()
-					playSound("rbxassetid://6895079853", 1.15)
 				end
 			end)
 
@@ -4285,11 +5017,14 @@ function MenuController.buildIconBar()
 		end
 	end
 
-	-- 1. Build Middle-Right Gameplay Dock (Big, high-priority gameplay controls)
-	renderDock("RightGameplayDock", Vector2.new(1, 0.5), UDim2.new(1, -16, 0.5, 10), gameplayButtons, true)
+	-- 1. Build Middle-Right Gameplay Dock (Big hero buttons: UPGRADE, REBIRTH; Logo-only tiles: SECTORS, ARMORY, DRONES)
+	renderDock("RightGameplayDock", Vector2.new(1, 0.5), UDim2.new(1, -16, 0.5, 15), gameplayButtons, true, false)
 
-	-- 2. Build Middle-Left System Dock (Compact, utility & shop controls)
-	renderDock("LeftSystemDock", Vector2.new(0, 0.5), UDim2.new(0, 16, 0.5, 0), systemButtons, false)
+	-- 2. Build Middle-Left System Dock (Royal Hero Crest: SHOP; Vault: REWARDS; Logo-only tiles: QUESTS, PRESTIGE)
+	renderDock("LeftSystemDock", Vector2.new(0, 0.5), UDim2.new(0, 16, 0.5, 0), systemButtons, false, false)
+
+	-- 3. Build Bottom-Left Utility Dock (Minimal frosted glass orbs: SETTINGS, CONSOLE)
+	renderDock("BottomUtilityDock", Vector2.new(0, 1), UDim2.new(0, 16, 1, -16), utilityButtons, false, true)
 end
 
 function MenuController.init()
