@@ -3499,56 +3499,87 @@ function MenuController.buildIconBar()
 			Label = "UPGRADE",
 			FullTitle = "UPGRADES WORKSHOP",
 			Icon = "🛠️",
-			TopColor = Color3.fromRGB(52, 232, 131),
-			BottomColor = Color3.fromRGB(18, 154, 74),
+			Width = 84,
+			Height = 68,
+			BevelHeight = 4,
+			CornerRadius = 11,
+			TopColor = Color3.fromRGB(52, 235, 131),
+			BottomColor = Color3.fromRGB(16, 155, 72),
 			ShadowColor = Color3.fromRGB(6, 72, 32),
-			RimColor = Color3.fromRGB(99, 245, 162),
-			Color = Color3.fromRGB(45, 215, 115),
-		},
-		{
-			Name = "Teleport",
-			Label = "SECTORS",
-			FullTitle = "SECTOR FAST-TRAVEL",
-			Icon = "🚀",
-			TopColor = Color3.fromRGB(200, 100, 255),
-			BottomColor = Color3.fromRGB(120, 25, 200),
-			ShadowColor = Color3.fromRGB(58, 8, 100),
-			RimColor = Color3.fromRGB(223, 153, 255),
-			Color = Color3.fromRGB(185, 80, 255),
-		},
-		{
-			Name = "ToolArmory",
-			Label = "ARMORY",
-			FullTitle = "TOOL ARMORY",
-			Icon = "🔧",
-			TopColor = Color3.fromRGB(255, 157, 59),
-			BottomColor = Color3.fromRGB(212, 74, 8),
-			ShadowColor = Color3.fromRGB(110, 32, 0),
-			RimColor = Color3.fromRGB(255, 189, 122),
-			Color = Color3.fromRGB(255, 140, 40),
-		},
-		{
-			Name = "Drones",
-			Label = "DRONES",
-			FullTitle = "DRONE HANGAR",
-			Icon = "🛸",
-			TopColor = Color3.fromRGB(255, 209, 59),
-			BottomColor = Color3.fromRGB(217, 125, 9),
-			ShadowColor = Color3.fromRGB(110, 59, 0),
-			RimColor = Color3.fromRGB(255, 228, 128),
-			Color = Color3.fromRGB(255, 180, 30),
+			RimColor = Color3.fromRGB(110, 255, 175),
+			AnimationType = "Heartbeat",
+			EmblemSize = 34,
+			IconSize = 20,
+			TextSize = 11,
 		},
 		{
 			Name = "Rebirth",
 			Label = "REBIRTH",
 			FullTitle = "QUANTUM REBIRTH",
 			Icon = "🔄",
+			Width = 82,
+			Height = 64,
+			BevelHeight = 4,
+			CornerRadius = 11,
 			TopColor = Color3.fromRGB(38, 232, 255),
 			BottomColor = Color3.fromRGB(0, 119, 200),
 			ShadowColor = Color3.fromRGB(0, 56, 96),
-			RimColor = Color3.fromRGB(125, 242, 255),
-			Color = Color3.fromRGB(80, 150, 255),
-			HasAura = true,
+			RimColor = Color3.fromRGB(130, 245, 255),
+			AnimationType = "Aura",
+			EmblemSize = 32,
+			IconSize = 19,
+			TextSize = 10.5,
+		},
+		{
+			Name = "Teleport",
+			Label = "SECTORS",
+			FullTitle = "SECTOR FAST-TRAVEL",
+			Icon = "🚀",
+			Width = 74,
+			Height = 52,
+			BevelHeight = 3,
+			CornerRadius = 9,
+			TopColor = Color3.fromRGB(200, 100, 255),
+			BottomColor = Color3.fromRGB(120, 25, 200),
+			ShadowColor = Color3.fromRGB(58, 8, 100),
+			RimColor = Color3.fromRGB(223, 153, 255),
+			EmblemSize = 28,
+			IconSize = 16,
+			TextSize = 9.5,
+		},
+		{
+			Name = "ToolArmory",
+			Label = "ARMORY",
+			FullTitle = "TOOL ARMORY",
+			Icon = "🔧",
+			Width = 74,
+			Height = 52,
+			BevelHeight = 3,
+			CornerRadius = 9,
+			TopColor = Color3.fromRGB(255, 157, 59),
+			BottomColor = Color3.fromRGB(212, 74, 8),
+			ShadowColor = Color3.fromRGB(110, 32, 0),
+			RimColor = Color3.fromRGB(255, 189, 122),
+			EmblemSize = 28,
+			IconSize = 16,
+			TextSize = 9.5,
+		},
+		{
+			Name = "Drones",
+			Label = "DRONES",
+			FullTitle = "DRONE HANGAR",
+			Icon = "🛸",
+			Width = 74,
+			Height = 52,
+			BevelHeight = 3,
+			CornerRadius = 9,
+			TopColor = Color3.fromRGB(255, 209, 59),
+			BottomColor = Color3.fromRGB(217, 125, 9),
+			ShadowColor = Color3.fromRGB(110, 59, 0),
+			RimColor = Color3.fromRGB(255, 228, 128),
+			EmblemSize = 28,
+			IconSize = 16,
+			TextSize = 9.5,
 		},
 	}
 
@@ -3556,57 +3587,90 @@ function MenuController.buildIconBar()
 		{
 			Name = "Store",
 			Label = "STORE",
-			FullTitle = "ROBUX SHOP",
+			FullTitle = "EXCLUSIVE ROBUX SHOP",
 			Icon = "⚡",
-			TopColor = Color3.fromRGB(255, 71, 163),
-			BottomColor = Color3.fromRGB(204, 0, 102),
-			ShadowColor = Color3.fromRGB(102, 0, 51),
-			RimColor = Color3.fromRGB(255, 133, 194),
-			Color = Color3.fromRGB(0, 220, 255),
-		},
-		{
-			Name = "GearsShop",
-			Label = "PRESTIGE",
-			FullTitle = "GEARS PRESTIGE SHOP",
-			Icon = "⚙️",
-			TopColor = Color3.fromRGB(61, 181, 255),
-			BottomColor = Color3.fromRGB(20, 98, 184),
-			ShadowColor = Color3.fromRGB(11, 51, 99),
-			RimColor = Color3.fromRGB(140, 211, 255),
-			Color = Color3.fromRGB(60, 190, 255),
-		},
-		{
-			Name = "Quests",
-			Label = "QUESTS",
-			FullTitle = "DAILY OBJECTIVES",
-			Icon = "🎯",
-			TopColor = Color3.fromRGB(255, 210, 20),
-			BottomColor = Color3.fromRGB(199, 138, 5),
-			ShadowColor = Color3.fromRGB(105, 69, 0),
-			RimColor = Color3.fromRGB(255, 227, 102),
-			Color = Color3.fromRGB(255, 215, 50),
+			Width = 86,
+			Height = 72,
+			BevelHeight = 4.5,
+			CornerRadius = 12,
+			TopColor = Color3.fromRGB(255, 70, 150),
+			BottomColor = Color3.fromRGB(205, 0, 100),
+			ShadowColor = Color3.fromRGB(110, 0, 55),
+			RimColor = Color3.fromRGB(255, 225, 75),
+			HasShimmer = true,
+			AnimationType = "ShimmerPulse",
+			BadgeText = "🔥 HOT",
+			BadgeColor = Color3.fromRGB(255, 45, 60),
+			EmblemSize = 34,
+			IconSize = 20,
+			TextSize = 11,
 		},
 		{
 			Name = "Rewards",
 			Label = "REWARDS",
 			FullTitle = "DAILY REWARDS & CODES",
 			Icon = "🎁",
-			TopColor = Color3.fromRGB(255, 92, 158),
-			BottomColor = Color3.fromRGB(194, 24, 91),
-			ShadowColor = Color3.fromRGB(106, 8, 47),
-			RimColor = Color3.fromRGB(255, 153, 196),
-			Color = Color3.fromRGB(245, 80, 140),
+			Width = 78,
+			Height = 60,
+			BevelHeight = 3.5,
+			CornerRadius = 10,
+			TopColor = Color3.fromRGB(255, 95, 160),
+			BottomColor = Color3.fromRGB(195, 25, 90),
+			ShadowColor = Color3.fromRGB(105, 10, 48),
+			RimColor = Color3.fromRGB(255, 160, 200),
+			AnimationType = "GiftWobble",
+			EmblemSize = 30,
+			IconSize = 18,
+			TextSize = 10,
+		},
+		{
+			Name = "GearsShop",
+			Label = "PRESTIGE",
+			FullTitle = "GEARS PRESTIGE SHOP",
+			Icon = "⚙️",
+			Width = 68,
+			Height = 50,
+			BevelHeight = 3,
+			CornerRadius = 9,
+			TopColor = Color3.fromRGB(61, 181, 255),
+			BottomColor = Color3.fromRGB(20, 98, 184),
+			ShadowColor = Color3.fromRGB(11, 51, 99),
+			RimColor = Color3.fromRGB(140, 211, 255),
+			EmblemSize = 26,
+			IconSize = 15,
+			TextSize = 9,
+		},
+		{
+			Name = "Quests",
+			Label = "QUESTS",
+			FullTitle = "DAILY OBJECTIVES",
+			Icon = "🎯",
+			Width = 68,
+			Height = 50,
+			BevelHeight = 3,
+			CornerRadius = 9,
+			TopColor = Color3.fromRGB(255, 210, 20),
+			BottomColor = Color3.fromRGB(199, 138, 5),
+			ShadowColor = Color3.fromRGB(105, 69, 0),
+			RimColor = Color3.fromRGB(255, 227, 102),
+			EmblemSize = 26,
+			IconSize = 15,
+			TextSize = 9,
 		},
 		{
 			Name = "Settings",
-			Label = "SETTINGS",
+			Label = "",
 			FullTitle = "SYSTEM SETTINGS",
 			Icon = "⚙️",
-			TopColor = Color3.fromRGB(166, 184, 204),
-			BottomColor = Color3.fromRGB(93, 110, 130),
-			ShadowColor = Color3.fromRGB(45, 53, 64),
-			RimColor = Color3.fromRGB(208, 220, 232),
-			Color = Color3.fromRGB(160, 175, 195),
+			Width = 46,
+			Height = 44,
+			BevelHeight = 2.5,
+			CornerRadius = 8,
+			IsIconOnly = true,
+			TopColor = Color3.fromRGB(140, 155, 175),
+			BottomColor = Color3.fromRGB(75, 85, 100),
+			ShadowColor = Color3.fromRGB(35, 42, 52),
+			RimColor = Color3.fromRGB(180, 195, 215),
 		},
 	}
 
@@ -3614,25 +3678,37 @@ function MenuController.buildIconBar()
 	if isDev then
 		table.insert(systemButtons, {
 			Name = "Debug",
-			Label = "CONSOLE",
+			Label = "",
 			FullTitle = "DEVELOPER CONSOLE",
 			Icon = "💻",
-			TopColor = Color3.fromRGB(255, 77, 109),
-			BottomColor = Color3.fromRGB(184, 20, 50),
-			ShadowColor = Color3.fromRGB(94, 6, 23),
-			RimColor = Color3.fromRGB(255, 143, 163),
-			Color = Color3.fromRGB(255, 65, 100),
+			Width = 46,
+			Height = 44,
+			BevelHeight = 2.5,
+			CornerRadius = 8,
+			IsIconOnly = true,
+			TopColor = Color3.fromRGB(220, 70, 95),
+			BottomColor = Color3.fromRGB(130, 20, 40),
+			ShadowColor = Color3.fromRGB(70, 8, 20),
+			RimColor = Color3.fromRGB(255, 130, 155),
 		})
 	end
 
 	local function renderDock(dockName: string, anchorPoint: Vector2, position: UDim2, btnList: { any }, isRightSide: boolean)
 		local count = #btnList
-		local btnWidth = isRightSide and 74 or 62
-		local btnHeight = isRightSide and 64 or 54
-		local bevelHeight = isRightSide and 4 or 3
-		local pad = 8
-		local barWidth = isRightSide and 86 or 74
-		local barHeight = 16 + count * btnHeight + (count - 1) * pad
+		local pad = 7
+		local maxBtnWidth = 0
+		local totalBtnHeight = 0
+		for _, info in ipairs(btnList) do
+			local w = info.Width or (isRightSide and 74 or 62)
+			local h = info.Height or (isRightSide and 64 or 54)
+			if w > maxBtnWidth then
+				maxBtnWidth = w
+			end
+			totalBtnHeight = totalBtnHeight + h
+		end
+
+		local barWidth = maxBtnWidth + 14
+		local barHeight = 16 + totalBtnHeight + (count - 1) * pad
 
 		local bar = Instance.new("Frame")
 		bar.Name = dockName
@@ -3640,7 +3716,7 @@ function MenuController.buildIconBar()
 		bar.AnchorPoint = anchorPoint
 		bar.Position = position
 		bar.BackgroundColor3 = Color3.fromRGB(10, 14, 22)
-		bar.BackgroundTransparency = 0.12
+		bar.BackgroundTransparency = 0.14
 		bar.BorderSizePixel = 0
 		bar.ZIndex = 20
 		bar.Parent = mainGui
@@ -3658,16 +3734,27 @@ function MenuController.buildIconBar()
 		list.Padding = UDim.new(0, pad)
 		list.HorizontalAlignment = Enum.HorizontalAlignment.Center
 		list.VerticalAlignment = Enum.VerticalAlignment.Center
+		list.SortOrder = Enum.SortOrder.LayoutOrder
 		list.Parent = bar
 
-		for _, info in ipairs(btnList) do
+		for idx, info in ipairs(btnList) do
+			local btnWidth = info.Width or (isRightSide and 74 or 62)
+			local btnHeight = info.Height or (isRightSide and 64 or 54)
+			local bevelHeight = info.BevelHeight or (isRightSide and 4 or 3)
+			local cornerRadius = info.CornerRadius or (isRightSide and 11 or 9)
+
 			local container = Instance.new("Frame")
 			container.Name = info.Name .. "Container"
 			container.Size = UDim2.new(0, btnWidth, 0, btnHeight)
+			container.LayoutOrder = idx
 			container.BackgroundTransparency = 1
 			container.BorderSizePixel = 0
 			container.ZIndex = 21
 			container.Parent = bar
+
+			local uiScale = Instance.new("UIScale")
+			uiScale.Scale = 1.0
+			uiScale.Parent = container
 
 			-- 3D Bottom Bevel Shadow
 			local shadow = Instance.new("Frame")
@@ -3680,7 +3767,7 @@ function MenuController.buildIconBar()
 			shadow.Parent = container
 
 			local sCorner = Instance.new("UICorner")
-			sCorner.CornerRadius = UDim.new(0, isRightSide and 11 or 9)
+			sCorner.CornerRadius = UDim.new(0, cornerRadius)
 			sCorner.Parent = shadow
 
 			-- Interactive Top Surface
@@ -3693,12 +3780,12 @@ function MenuController.buildIconBar()
 			btn.Text = ""
 			btn.AutoButtonColor = false
 			btn.Selectable = true
-			btn.ClipsDescendants = false
+			btn.ClipsDescendants = true
 			btn.ZIndex = 22
 			btn.Parent = container
 
 			local corner = Instance.new("UICorner")
-			corner.CornerRadius = UDim.new(0, isRightSide and 11 or 9)
+			corner.CornerRadius = UDim.new(0, cornerRadius)
 			corner.Parent = btn
 
 			-- Rich Vertical Gradient (Vibrant saturated top to rich base bottom)
@@ -3715,7 +3802,7 @@ function MenuController.buildIconBar()
 			local stroke = Instance.new("UIStroke")
 			stroke.Name = "RimStroke"
 			stroke.Color = info.RimColor
-			stroke.Thickness = 1.5
+			stroke.Thickness = info.StrokeThickness or 1.5
 			stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 			stroke.Parent = btn
 
@@ -3730,7 +3817,7 @@ function MenuController.buildIconBar()
 			gloss.Parent = btn
 
 			local gCorner = Instance.new("UICorner")
-			gCorner.CornerRadius = UDim.new(0, isRightSide and 9 or 7)
+			gCorner.CornerRadius = UDim.new(0, math.max(4, cornerRadius - 2))
 			gCorner.Parent = gloss
 
 			local gGrad = Instance.new("UIGradient")
@@ -3741,85 +3828,219 @@ function MenuController.buildIconBar()
 			})
 			gGrad.Parent = gloss
 
-			-- High-Tech Icon Emblem Container (Circular badge with dark glass & neon glow)
-			local emblemDim = isRightSide and 32 or 26
-			local emblem = Instance.new("Frame")
-			emblem.Name = "IconEmblem"
-			emblem.Size = UDim2.new(0, emblemDim, 0, emblemDim)
-			emblem.Position = UDim2.new(0.5, 0, 0, isRightSide and 6 or 4)
-			emblem.AnchorPoint = Vector2.new(0.5, 0)
-			emblem.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-			emblem.BackgroundTransparency = 0.45
-			emblem.BorderSizePixel = 0
-			emblem.ZIndex = 24
-			emblem.Parent = btn
+			-- Shimmer Light-Sweep Beam (For Revenue / High-Priority Buttons)
+			if info.HasShimmer then
+				local shimmer = Instance.new("Frame")
+				shimmer.Name = "ShimmerBeam"
+				shimmer.Size = UDim2.new(0, 36, 3.0, 0)
+				shimmer.Position = UDim2.new(-1.0, 0, 0.5, 0)
+				shimmer.AnchorPoint = Vector2.new(0.5, 0.5)
+				shimmer.Rotation = 25
+				shimmer.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+				shimmer.BorderSizePixel = 0
+				shimmer.ZIndex = 24
+				shimmer.Parent = btn
 
-			local eCorner = Instance.new("UICorner")
-			eCorner.CornerRadius = UDim.new(1, 0)
-			eCorner.Parent = emblem
+				local sGrad = Instance.new("UIGradient")
+				sGrad.Color = ColorSequence.new({
+					ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+					ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 250, 220)),
+					ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255)),
+				})
+				sGrad.Transparency = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 1.0),
+					NumberSequenceKeypoint.new(0.5, 0.30),
+					NumberSequenceKeypoint.new(1, 1.0),
+				})
+				sGrad.Parent = shimmer
 
-			local eStroke = Instance.new("UIStroke")
-			eStroke.Color = Color3.new(1, 1, 1)
-			eStroke.Transparency = 0.6
-			eStroke.Thickness = 1
-			eStroke.Parent = emblem
+				task.spawn(function()
+					while shimmer and shimmer.Parent do
+						shimmer.Position = UDim2.new(-1.0, 0, 0.5, 0)
+						local sweep = TweenService:Create(shimmer, TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {
+							Position = UDim2.new(2.0, 0, 0.5, 0),
+						})
+						sweep:Play()
+						sweep.Completed:Wait()
+						task.wait(2.4)
+					end
+				end)
+			end
 
-			-- Icon inside emblem
-			local iconLbl = Instance.new("TextLabel")
-			iconLbl.Name = "IconLabel"
-			iconLbl.Size = UDim2.new(1, 0, 1, 0)
-			iconLbl.BackgroundTransparency = 1
-			iconLbl.Font = Enum.Font.GothamBlack
-			iconLbl.TextSize = isRightSide and 19 or 15
-			iconLbl.Text = info.Icon
-			iconLbl.ZIndex = 25
-			iconLbl.Parent = emblem
+			-- Emblem & Label Creation
+			if info.IsIconOnly then
+				-- Compact Utility Icon (Centered Emblem, No Label)
+				local emblemDim = math.min(btnWidth - 14, btnHeight - 14)
+				local emblem = Instance.new("Frame")
+				emblem.Name = "IconEmblem"
+				emblem.Size = UDim2.new(0, emblemDim, 0, emblemDim)
+				emblem.Position = UDim2.new(0.5, 0, 0.5, 0)
+				emblem.AnchorPoint = Vector2.new(0.5, 0.5)
+				emblem.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+				emblem.BackgroundTransparency = 0.45
+				emblem.BorderSizePixel = 0
+				emblem.ZIndex = 25
+				emblem.Parent = btn
 
-			-- Stylized 3D Category Title
-			local textLbl = Instance.new("TextLabel")
-			textLbl.Name = "Label"
-			textLbl.Size = UDim2.new(1, -4, 0, isRightSide and 17 or 15)
-			textLbl.Position = UDim2.new(0, 2, 0, isRightSide and 41 or 33)
-			textLbl.BackgroundTransparency = 1
-			textLbl.Font = Enum.Font.GothamBlack
-			textLbl.TextSize = isRightSide and 10.5 or 9
-			textLbl.TextColor3 = Color3.new(1, 1, 1)
-			textLbl.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-			textLbl.TextStrokeTransparency = 0.25
-			textLbl.Text = info.Label
-			textLbl.ZIndex = 24
-			textLbl.Parent = btn
+				local eCorner = Instance.new("UICorner")
+				eCorner.CornerRadius = UDim.new(1, 0)
+				eCorner.Parent = emblem
+
+				local eStroke = Instance.new("UIStroke")
+				eStroke.Color = Color3.new(1, 1, 1)
+				eStroke.Transparency = 0.6
+				eStroke.Thickness = 1
+				eStroke.Parent = emblem
+
+				local iconLbl = Instance.new("TextLabel")
+				iconLbl.Name = "IconLabel"
+				iconLbl.Size = UDim2.new(1, 0, 1, 0)
+				iconLbl.BackgroundTransparency = 1
+				iconLbl.Font = Enum.Font.GothamBlack
+				iconLbl.TextSize = 18
+				iconLbl.Text = info.Icon
+				iconLbl.ZIndex = 26
+				iconLbl.Parent = emblem
+			else
+				-- Standard or Large Button (Icon Emblem + Stylized Label)
+				local emblemDim = info.EmblemSize or (btnHeight > 62 and 34 or 28)
+				local emblemTop = info.EmblemTop or (btnHeight > 62 and 6 or 4)
+				local emblem = Instance.new("Frame")
+				emblem.Name = "IconEmblem"
+				emblem.Size = UDim2.new(0, emblemDim, 0, emblemDim)
+				emblem.Position = UDim2.new(0.5, 0, 0, emblemTop)
+				emblem.AnchorPoint = Vector2.new(0.5, 0)
+				emblem.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+				emblem.BackgroundTransparency = 0.45
+				emblem.BorderSizePixel = 0
+				emblem.ZIndex = 25
+				emblem.Parent = btn
+
+				local eCorner = Instance.new("UICorner")
+				eCorner.CornerRadius = UDim.new(1, 0)
+				eCorner.Parent = emblem
+
+				local eStroke = Instance.new("UIStroke")
+				eStroke.Color = Color3.new(1, 1, 1)
+				eStroke.Transparency = 0.6
+				eStroke.Thickness = 1
+				eStroke.Parent = emblem
+
+				local iconLbl = Instance.new("TextLabel")
+				iconLbl.Name = "IconLabel"
+				iconLbl.Size = UDim2.new(1, 0, 1, 0)
+				iconLbl.BackgroundTransparency = 1
+				iconLbl.Font = Enum.Font.GothamBlack
+				iconLbl.TextSize = info.IconSize or (btnHeight > 62 and 20 or 16)
+				iconLbl.Text = info.Icon
+				iconLbl.ZIndex = 26
+				iconLbl.Parent = emblem
+
+				local labelTop = info.LabelTop or (emblemTop + emblemDim + 2)
+				local labelHeight = btnHeight - labelTop - bevelHeight - 2
+				local textLbl = Instance.new("TextLabel")
+				textLbl.Name = "Label"
+				textLbl.Size = UDim2.new(1, -4, 0, math.max(14, labelHeight))
+				textLbl.Position = UDim2.new(0, 2, 0, labelTop)
+				textLbl.BackgroundTransparency = 1
+				textLbl.Font = Enum.Font.GothamBlack
+				textLbl.TextSize = info.TextSize or (btnHeight > 62 and 11 or 9.5)
+				textLbl.TextColor3 = Color3.new(1, 1, 1)
+				textLbl.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+				textLbl.TextStrokeTransparency = 0.25
+				textLbl.Text = info.Label
+				textLbl.ZIndex = 25
+				textLbl.Parent = btn
+			end
+
+			-- Clickbait Corner Badge (For High-Priority Revenue / Special Options)
+			if info.BadgeText then
+				local cbBadge = Instance.new("Frame")
+				cbBadge.Name = "ClickbaitBadge"
+				cbBadge.Size = UDim2.new(0, #info.BadgeText > 2 and 34 or 24, 0, 16)
+				cbBadge.Position = UDim2.new(1, 3, 0, -4)
+				cbBadge.AnchorPoint = Vector2.new(1, 0)
+				cbBadge.BackgroundColor3 = info.BadgeColor or Color3.fromRGB(255, 45, 60)
+				cbBadge.BorderSizePixel = 0
+				cbBadge.ZIndex = 30
+				cbBadge.Parent = container
+
+				local cbCorner = Instance.new("UICorner")
+				cbCorner.CornerRadius = UDim.new(0, 6)
+				cbCorner.Parent = cbBadge
+
+				local cbStroke = Instance.new("UIStroke")
+				cbStroke.Color = Color3.fromRGB(255, 235, 120)
+				cbStroke.Thickness = 1.2
+				cbStroke.Parent = cbBadge
+
+				local cbGrad = Instance.new("UIGradient")
+				cbGrad.Rotation = 45
+				cbGrad.Color = ColorSequence.new({
+					ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 230, 50)),
+					ColorSequenceKeypoint.new(1, info.BadgeColor or Color3.fromRGB(255, 30, 60)),
+				})
+				cbGrad.Parent = cbBadge
+
+				local cbLbl = Instance.new("TextLabel")
+				cbLbl.Size = UDim2.new(1, 0, 1, 0)
+				cbLbl.BackgroundTransparency = 1
+				cbLbl.Font = Enum.Font.GothamBlack
+				cbLbl.TextSize = 9.5
+				cbLbl.TextColor3 = Color3.new(1, 1, 1)
+				cbLbl.TextStrokeColor3 = Color3.fromRGB(80, 0, 0)
+				cbLbl.TextStrokeTransparency = 0.2
+				cbLbl.Text = info.BadgeText
+				cbLbl.ZIndex = 31
+				cbLbl.Parent = cbBadge
+
+				task.spawn(function()
+					while cbBadge and cbBadge.Parent do
+						local bUp = TweenService:Create(cbBadge, TweenInfo.new(0.65, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+							Position = UDim2.new(1, 3, 0, -7),
+						})
+						bUp:Play()
+						bUp.Completed:Wait()
+						local bDown = TweenService:Create(cbBadge, TweenInfo.new(0.65, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+							Position = UDim2.new(1, 3, 0, -4),
+						})
+						bDown:Play()
+						bDown.Completed:Wait()
+					end
+				end)
+			end
 
 			-- Notification Badge (For Claimable Rewards / Quests)
 			if info.Name == "Rewards" or info.Name == "Quests" then
+				local isRewards = (info.Name == "Rewards")
 				local badge = Instance.new("Frame")
 				badge.Name = "NotifBadge"
-				badge.Size = UDim2.new(0, 18, 0, 18)
+				badge.Size = UDim2.new(0, isRewards and 38 or 18, 0, 18)
 				badge.Position = UDim2.new(1, 3, 0, -3)
 				badge.AnchorPoint = Vector2.new(1, 0)
 				badge.BackgroundColor3 = Color3.fromRGB(255, 45, 60)
 				badge.BorderSizePixel = 0
 				badge.Visible = false
-				badge.ZIndex = 30
-				badge.Parent = btn
+				badge.ZIndex = 32
+				badge.Parent = container
 
 				local bc = Instance.new("UICorner")
-				bc.CornerRadius = UDim.new(1, 0)
+				bc.CornerRadius = UDim.new(0, 9)
 				bc.Parent = badge
 
 				local bs = Instance.new("UIStroke")
 				bs.Color = Color3.new(1, 1, 1)
-				bs.Thickness = 1.5
+				bs.Thickness = 1.2
 				bs.Parent = badge
 
 				local bl = Instance.new("TextLabel")
 				bl.Size = UDim2.new(1, 0, 1, 0)
 				bl.BackgroundTransparency = 1
 				bl.Font = Enum.Font.GothamBlack
-				bl.TextSize = 12
+				bl.TextSize = isRewards and 9.5 or 12
 				bl.TextColor3 = Color3.new(1, 1, 1)
-				bl.Text = "!"
-				bl.ZIndex = 31
+				bl.Text = isRewards and "FREE!" or "!"
+				bl.ZIndex = 33
 				bl.Parent = badge
 
 				dockNotificationBadges[info.Name] = badge
@@ -3829,12 +4050,12 @@ function MenuController.buildIconBar()
 					while badge and badge.Parent do
 						if badge.Visible then
 							local popUp = TweenService:Create(badge, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-								Size = UDim2.new(0, 21, 0, 21),
+								Size = UDim2.new(0, isRewards and 42 or 22, 0, 22),
 							})
 							popUp:Play()
 							popUp.Completed:Wait()
 							local popDown = TweenService:Create(badge, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-								Size = UDim2.new(0, 18, 0, 18),
+								Size = UDim2.new(0, isRewards and 38 or 18, 0, 18),
 							})
 							popDown:Play()
 							popDown.Completed:Wait()
@@ -3846,13 +4067,100 @@ function MenuController.buildIconBar()
 				end)
 			end
 
-			-- Ambient Pulsing Energy for Rebirth Flagship Button
-			if info.HasAura then
+			local isHovered = false
+			local isDown = false
+
+			-- Idle Animations: ShimmerPulse, Heartbeat, GiftWobble, Aura
+			if info.AnimationType == "ShimmerPulse" then
+				task.spawn(function()
+					while container and container.Parent do
+						if not isDown and not isHovered then
+							local bUp = TweenService:Create(uiScale, TweenInfo.new(1.1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+								Scale = 1.04,
+							})
+							bUp:Play()
+							bUp.Completed:Wait()
+						end
+						if not isDown and not isHovered then
+							local bDown = TweenService:Create(uiScale, TweenInfo.new(1.1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+								Scale = 1.0,
+							})
+							bDown:Play()
+							bDown.Completed:Wait()
+						else
+							task.wait(0.2)
+						end
+					end
+				end)
+			elseif info.AnimationType == "Heartbeat" then
+				task.spawn(function()
+					while container and container.Parent do
+						task.wait(2.8)
+						if not isDown and not isHovered then
+							local p1 = TweenService:Create(uiScale, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+								Scale = 1.07,
+							})
+							local f1 = TweenService:Create(stroke, TweenInfo.new(0.12), {
+								Color = Color3.fromRGB(220, 255, 235),
+								Thickness = 2.4,
+							})
+							p1:Play()
+							f1:Play()
+							p1.Completed:Wait()
+
+							local r1 = TweenService:Create(uiScale, TweenInfo.new(0.10, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+								Scale = 1.0,
+							})
+							local rf1 = TweenService:Create(stroke, TweenInfo.new(0.10), {
+								Color = info.RimColor,
+								Thickness = info.StrokeThickness or 1.5,
+							})
+							r1:Play()
+							rf1:Play()
+							r1.Completed:Wait()
+
+							local p2 = TweenService:Create(uiScale, TweenInfo.new(0.09, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+								Scale = 1.04,
+							})
+							p2:Play()
+							p2.Completed:Wait()
+							local r2 = TweenService:Create(uiScale, TweenInfo.new(0.10, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+								Scale = 1.0,
+							})
+							r2:Play()
+							r2.Completed:Wait()
+						end
+					end
+				end)
+			elseif info.AnimationType == "GiftWobble" then
+				task.spawn(function()
+					while container and container.Parent do
+						task.wait(3.4)
+						if not isDown and not isHovered then
+							local w1 = TweenService:Create(container, TweenInfo.new(0.07, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Rotation = -7 })
+							w1:Play()
+							w1.Completed:Wait()
+							local w2 = TweenService:Create(container, TweenInfo.new(0.07, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Rotation = 7 })
+							w2:Play()
+							w2.Completed:Wait()
+							local w3 = TweenService:Create(container, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Rotation = -4 })
+							w3:Play()
+							w3.Completed:Wait()
+							local w4 = TweenService:Create(container, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Rotation = 4 })
+							w4:Play()
+							w4.Completed:Wait()
+							local w5 = TweenService:Create(container, TweenInfo.new(0.08, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Rotation = 0 })
+							w5:Play()
+							w5.Completed:Wait()
+						end
+					end
+				end)
+			elseif info.AnimationType == "Aura" then
 				task.spawn(function()
 					while stroke and stroke.Parent do
 						local pulseOut = TweenService:Create(stroke, TweenInfo.new(1.0, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
 							Color = Color3.fromRGB(220, 250, 255),
-							Thickness = 2.4,
+							Thickness = 2.6,
 						})
 						pulseOut:Play()
 						pulseOut.Completed:Wait()
@@ -3906,14 +4214,11 @@ function MenuController.buildIconBar()
 			tipText.Parent = tooltip
 
 			-- Hover & Press Tactile Spring Animations
-			local normalSize = UDim2.new(0, btnWidth, 0, btnHeight)
-			local hoverSize = UDim2.new(0, btnWidth + 6, 0, btnHeight + 4)
-			local isDown = false
-
 			btn.MouseEnter:Connect(function()
+				isHovered = true
 				if not isDown then
-					TweenService:Create(container, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-						Size = hoverSize,
+					TweenService:Create(uiScale, TweenInfo.new(0.12, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+						Scale = 1.08,
 					}):Play()
 					TweenService:Create(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 						Position = UDim2.new(0, 0, 0, -2),
@@ -3929,16 +4234,17 @@ function MenuController.buildIconBar()
 			end)
 
 			btn.MouseLeave:Connect(function()
+				isHovered = false
 				isDown = false
-				TweenService:Create(container, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-					Size = normalSize,
+				TweenService:Create(uiScale, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+					Scale = 1.0,
 				}):Play()
 				TweenService:Create(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 					Position = UDim2.new(0, 0, 0, 0),
 				}):Play()
 				TweenService:Create(stroke, TweenInfo.new(0.12), {
 					Color = info.RimColor,
-					Thickness = 1.5,
+					Thickness = info.StrokeThickness or 1.5,
 				}):Play()
 				TweenService:Create(tooltip, TweenInfo.new(0.12), { BackgroundTransparency = 1 }):Play()
 				TweenService:Create(tipStroke, TweenInfo.new(0.12), { Transparency = 1 }):Play()
@@ -3951,8 +4257,8 @@ function MenuController.buildIconBar()
 					TweenService:Create(btn, TweenInfo.new(0.04, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 						Position = UDim2.new(0, 0, 0, bevelHeight),
 					}):Play()
-					TweenService:Create(container, TweenInfo.new(0.04, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-						Size = UDim2.new(0, btnWidth - 2, 0, btnHeight - 2),
+					TweenService:Create(uiScale, TweenInfo.new(0.04, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+						Scale = 0.94,
 					}):Play()
 					playSound("rbxassetid://6895079853", 1.15)
 				end
@@ -3962,11 +4268,12 @@ function MenuController.buildIconBar()
 				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 					if isDown then
 						isDown = false
+						local targetScale = isHovered and 1.08 or 1.0
 						TweenService:Create(btn, TweenInfo.new(0.14, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-							Position = UDim2.new(0, 0, 0, 0),
+							Position = isHovered and UDim2.new(0, 0, 0, -2) or UDim2.new(0, 0, 0, 0),
 						}):Play()
-						TweenService:Create(container, TweenInfo.new(0.14, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-							Size = normalSize,
+						TweenService:Create(uiScale, TweenInfo.new(0.14, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+							Scale = targetScale,
 						}):Play()
 					end
 				end
@@ -3979,7 +4286,7 @@ function MenuController.buildIconBar()
 	end
 
 	-- 1. Build Middle-Right Gameplay Dock (Big, high-priority gameplay controls)
-	renderDock("RightGameplayDock", Vector2.new(1, 0.5), UDim2.new(1, -16, 0.5, 20), gameplayButtons, true)
+	renderDock("RightGameplayDock", Vector2.new(1, 0.5), UDim2.new(1, -16, 0.5, 10), gameplayButtons, true)
 
 	-- 2. Build Middle-Left System Dock (Compact, utility & shop controls)
 	renderDock("LeftSystemDock", Vector2.new(0, 0.5), UDim2.new(0, 16, 0.5, 0), systemButtons, false)
