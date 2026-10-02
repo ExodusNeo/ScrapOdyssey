@@ -208,6 +208,196 @@ MenuController.showToast = showToast
 
 local modalBackdrop: TextButton? = nil
 
+-- Tactile 3D Simulator-Style Button Generator (Inspired by Pet Sim 99, Mining Simulator, & Blox Fruits)
+local function createChunky3DButton(options: {
+	Name: string?,
+	Size: UDim2,
+	Position: UDim2?,
+	AnchorPoint: Vector2?,
+	Text: string?,
+	Font: Enum.Font?,
+	TextSize: number?,
+	TextColor3: Color3?,
+	BackgroundColor3: Color3,
+	CornerRadius: UDim?,
+	BevelHeight: number?,
+	StrokeColor: Color3?,
+	StrokeThickness: number?,
+	Parent: Instance?,
+	ZIndex: number?,
+	AutoClickSound: boolean?,
+}): (Frame, TextButton)
+	local bevel = options.BevelHeight or 4
+	local radius = options.CornerRadius or UDim.new(0, 8)
+	local baseZ = options.ZIndex or 25
+
+	local function darken(c: Color3, factor: number): Color3
+		return Color3.new(math.clamp(c.R * factor, 0, 1), math.clamp(c.G * factor, 0, 1), math.clamp(c.B * factor, 0, 1))
+	end
+
+	local function brighten(c: Color3, factor: number): Color3
+		return Color3.new(math.clamp(c.R * factor, 0, 1), math.clamp(c.G * factor, 0, 1), math.clamp(c.B * factor, 0, 1))
+	end
+
+	local container = Instance.new("Frame")
+	container.Name = (options.Name or "ChunkyButton") .. "Container"
+	container.Size = options.Size
+	container.Position = options.Position or UDim2.new(0, 0, 0, 0)
+	container.AnchorPoint = options.AnchorPoint or Vector2.new(0, 0)
+	container.BackgroundTransparency = 1
+	container.BorderSizePixel = 0
+	container.ZIndex = baseZ
+	if options.Parent then
+		container.Parent = options.Parent
+	end
+
+	-- 3D Bottom Bevel Lip (Drop Shadow)
+	local shadowFrame = Instance.new("Frame")
+	shadowFrame.Name = "Shadow"
+	shadowFrame.Size = UDim2.new(1, 0, 1, 0)
+	shadowFrame.Position = UDim2.new(0, 0, 0, bevel)
+	shadowFrame.BackgroundColor3 = darken(options.BackgroundColor3, 0.45)
+	shadowFrame.BorderSizePixel = 0
+	shadowFrame.ZIndex = baseZ
+	shadowFrame.Parent = container
+
+	local scCorner = Instance.new("UICorner")
+	scCorner.CornerRadius = radius
+	scCorner.Parent = shadowFrame
+
+	-- Top Interactive Surface
+	local topBtn = Instance.new("TextButton")
+	topBtn.Name = options.Name or "Button"
+	topBtn.Size = UDim2.new(1, 0, 1, -bevel)
+	topBtn.Position = UDim2.new(0, 0, 0, 0)
+	topBtn.BackgroundColor3 = options.BackgroundColor3
+	topBtn.BorderSizePixel = 0
+	topBtn.AutoButtonColor = false
+	topBtn.Font = options.Font or Enum.Font.GothamBlack
+	topBtn.TextSize = options.TextSize or 14
+	topBtn.TextColor3 = options.TextColor3 or Color3.new(1, 1, 1)
+	topBtn.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+	topBtn.TextStrokeTransparency = 0.35
+	topBtn.Text = options.Text or ""
+	topBtn.ZIndex = baseZ + 1
+	topBtn.Parent = container
+
+	local tbCorner = Instance.new("UICorner")
+	tbCorner.CornerRadius = radius
+	tbCorner.Parent = topBtn
+
+	-- Subtle Vertical Depth Gradient
+	local grad = Instance.new("UIGradient")
+	grad.Name = "DepthGradient"
+	grad.Rotation = 90
+	grad.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(195, 195, 195)),
+	})
+	grad.Parent = topBtn
+
+	-- Outer Crisp Rim
+	local stroke = Instance.new("UIStroke")
+	stroke.Name = "OuterRim"
+	stroke.Thickness = options.StrokeThickness or 1.5
+	stroke.Color = options.StrokeColor or brighten(options.BackgroundColor3, 1.35)
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Parent = topBtn
+
+	-- Gloss Specular Reflection (Top 44%)
+	local gloss = Instance.new("Frame")
+	gloss.Name = "GlossHighlight"
+	gloss.Size = UDim2.new(1, -4, 0.44, 0)
+	gloss.Position = UDim2.new(0, 2, 0, 2)
+	gloss.BackgroundColor3 = Color3.new(1, 1, 1)
+	gloss.BorderSizePixel = 0
+	gloss.ZIndex = baseZ + 2
+	gloss.Parent = topBtn
+
+	local gcCorner = Instance.new("UICorner")
+	gcCorner.CornerRadius = UDim.new(0, math.max(4, radius.Offset - 2))
+	gcCorner.Parent = gloss
+
+	local gcGrad = Instance.new("UIGradient")
+	gcGrad.Rotation = 90
+	gcGrad.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.72),
+		NumberSequenceKeypoint.new(1, 1.0),
+	})
+	gcGrad.Parent = gloss
+
+	-- Reactive color listener: updates shadow and stroke when BackgroundColor3 is changed by updateUI
+	topBtn:GetPropertyChangedSignal("BackgroundColor3"):Connect(function()
+		local curColor = topBtn.BackgroundColor3
+		shadowFrame.BackgroundColor3 = darken(curColor, 0.45)
+		stroke.Color = brighten(curColor, 1.35)
+	end)
+
+	-- Tactile Press & Bounce Springs
+	local originalSize = options.Size
+	local isPressed = false
+
+	topBtn.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			isPressed = true
+			TweenService:Create(topBtn, TweenInfo.new(0.04, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				Position = UDim2.new(0, 0, 0, bevel),
+			}):Play()
+			TweenService:Create(container, TweenInfo.new(0.04, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset * 0.96, originalSize.Y.Scale, originalSize.Y.Offset * 0.96),
+			}):Play()
+		end
+	end)
+
+	local function releaseBtn()
+		if not isPressed then return end
+		isPressed = false
+		TweenService:Create(topBtn, TweenInfo.new(0.14, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			Position = UDim2.new(0, 0, 0, 0),
+		}):Play()
+		TweenService:Create(container, TweenInfo.new(0.14, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			Size = originalSize,
+		}):Play()
+	end
+
+	topBtn.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			releaseBtn()
+		end
+	end)
+
+	topBtn.MouseEnter:Connect(function()
+		if not isPressed then
+			TweenService:Create(topBtn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				Position = UDim2.new(0, 0, 0, -1),
+			}):Play()
+			TweenService:Create(container, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset + 4, originalSize.Y.Scale, originalSize.Y.Offset + 2),
+			}):Play()
+			TweenService:Create(stroke, TweenInfo.new(0.12), {
+				Color = Color3.new(1, 1, 1),
+				Thickness = (options.StrokeThickness or 1.5) + 0.5,
+			}):Play()
+		end
+	end)
+
+	topBtn.MouseLeave:Connect(function()
+		releaseBtn()
+		TweenService:Create(topBtn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Position = UDim2.new(0, 0, 0, 0),
+		}):Play()
+		TweenService:Create(container, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Size = originalSize,
+		}):Play()
+		TweenService:Create(stroke, TweenInfo.new(0.12), {
+			Color = brighten(topBtn.BackgroundColor3, 1.35),
+			Thickness = options.StrokeThickness or 1.5,
+		}):Play()
+	end)
+
+	return container, topBtn
+end
+
 local function getOrCreateBackdrop(): TextButton
 	if not modalBackdrop then
 		modalBackdrop = Instance.new("TextButton")
@@ -313,39 +503,28 @@ local function createStyledPanel(titleText: string): (Frame, Frame)
 	title.ZIndex = 24
 	title.Parent = header
 
-	local closeBtn = Instance.new("TextButton")
-	closeBtn.Name = "CloseButton"
-	closeBtn.Size = UDim2.new(0, 30, 0, 30)
-	closeBtn.Position = UDim2.new(1, -44, 0, 12)
-	closeBtn.BackgroundColor3 = Color3.fromRGB(22, 26, 36)
-	closeBtn.Font = Enum.Font.GothamBold
-	closeBtn.TextSize = 13
-	closeBtn.TextColor3 = Color3.fromRGB(180, 195, 215)
-	closeBtn.Text = "X"
-	closeBtn.ZIndex = 30
-	closeBtn.AutoButtonColor = false
-	closeBtn.Parent = header
-
-	local btnCorner = Instance.new("UICorner")
-	btnCorner.CornerRadius = UDim.new(0, 5)
-	btnCorner.Parent = closeBtn
-
-	local btnStroke = Instance.new("UIStroke")
-	btnStroke.Color = Color3.fromRGB(45, 55, 75)
-	btnStroke.Thickness = 1
-	btnStroke.Parent = closeBtn
+	local closeContainer, closeBtn = createChunky3DButton({
+		Name = "CloseButton",
+		Size = UDim2.new(0, 32, 0, 32),
+		Position = UDim2.new(1, -44, 0, 11),
+		BackgroundColor3 = Color3.fromRGB(230, 45, 60),
+		Text = "✕",
+		TextSize = 15,
+		CornerRadius = UDim.new(1, 0),
+		BevelHeight = 3,
+		Parent = header,
+		ZIndex = 30,
+	})
 
 	closeBtn.MouseEnter:Connect(function()
-		TweenService:Create(closeBtn, TweenInfo.new(0.1), {
-			BackgroundColor3 = Color3.fromRGB(190, 45, 55),
-			TextColor3 = Color3.fromRGB(255, 255, 255),
+		TweenService:Create(closeBtn, TweenInfo.new(0.15, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			Rotation = 90,
 		}):Play()
 	end)
 
 	closeBtn.MouseLeave:Connect(function()
-		TweenService:Create(closeBtn, TweenInfo.new(0.1), {
-			BackgroundColor3 = Color3.fromRGB(22, 26, 36),
-			TextColor3 = Color3.fromRGB(180, 195, 215),
+		TweenService:Create(closeBtn, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Rotation = 0,
 		}):Play()
 	end)
 
@@ -518,21 +697,18 @@ function MenuController.buildUpgradesPanel()
 		levelLabel.ZIndex = 26
 		levelLabel.Parent = row
 
-		local buyBtn = Instance.new("TextButton")
-		buyBtn.Name = "BuyButton"
-		buyBtn.Size = UDim2.new(0, 130, 0, 48)
-		buyBtn.Position = UDim2.new(1, -145, 0.5, -24)
-		buyBtn.BackgroundColor3 = Color3.fromRGB(40, 190, 80)
-		buyBtn.Font = Enum.Font.GothamBlack
-		buyBtn.TextSize = 15
-		buyBtn.TextColor3 = Color3.new(1, 1, 1)
-		buyBtn.Text = "25 SCRAP"
-		buyBtn.ZIndex = 26
-		buyBtn.Parent = row
-
-		local btnCorner = Instance.new("UICorner")
-		btnCorner.CornerRadius = UDim.new(0, 10)
-		btnCorner.Parent = buyBtn
+		local buyContainer, buyBtn = createChunky3DButton({
+			Name = "BuyButton",
+			Size = UDim2.new(0, 135, 0, 46),
+			Position = UDim2.new(1, -148, 0.5, -23),
+			BackgroundColor3 = Color3.fromRGB(40, 190, 80),
+			Text = "25 SCRAP",
+			TextSize = 14,
+			CornerRadius = UDim.new(0, 10),
+			BevelHeight = 4,
+			Parent = row,
+			ZIndex = 26,
+		})
 
 		buyBtn.Activated:Connect(function()
 			playSound("rbxassetid://5153734608", 1.2)
@@ -649,21 +825,18 @@ function MenuController.buildGearsShopPanel()
 		descLbl.ZIndex = 26
 		descLbl.Parent = row
 
-		local buyBtn = Instance.new("TextButton")
-		buyBtn.Name = "BuyButton"
-		buyBtn.Size = UDim2.new(0, 115, 0, 44)
-		buyBtn.Position = UDim2.new(1, -125, 0.5, -22)
-		buyBtn.BackgroundColor3 = Color3.fromRGB(30, 150, 220)
-		buyBtn.Font = Enum.Font.GothamBlack
-		buyBtn.TextSize = 15
-		buyBtn.TextColor3 = Color3.new(1, 1, 1)
-		buyBtn.Text = string.format("%d GEARS", perk.Cost)
-		buyBtn.ZIndex = 26
-		buyBtn.Parent = row
-
-		local bCorner = Instance.new("UICorner")
-		bCorner.CornerRadius = UDim.new(0, 8)
-		bCorner.Parent = buyBtn
+		local buyContainer, buyBtn = createChunky3DButton({
+			Name = "BuyButton",
+			Size = UDim2.new(0, 125, 0, 44),
+			Position = UDim2.new(1, -135, 0.5, -22),
+			BackgroundColor3 = Color3.fromRGB(30, 150, 220),
+			Text = string.format("%d GEARS", perk.Cost),
+			TextSize = 14,
+			CornerRadius = UDim.new(0, 9),
+			BevelHeight = 4,
+			Parent = row,
+			ZIndex = 26,
+		})
 
 		buyBtn.Activated:Connect(function()
 			playSound("rbxassetid://5153734608", 1.2)
@@ -832,22 +1005,18 @@ function MenuController.buildStorePanel()
 		descLabel.ZIndex = 26
 		descLabel.Parent = card
 
-		local buyBtn = Instance.new("TextButton")
-		buyBtn.Name = "BuyBtn"
-		buyBtn.Size = UDim2.new(0, 120, 0, 36)
-		buyBtn.Position = UDim2.new(1, -128, 0.5, -18)
-		buyBtn.BackgroundColor3 = Color3.fromRGB(0, 160, 220)
-		buyBtn.Font = Enum.Font.GothamBold
-		buyBtn.TextSize = 12
-		buyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-		buyBtn.Text = string.format("R$ %d", item.Price)
-		buyBtn.AutoButtonColor = true
-		buyBtn.ZIndex = 27
-		buyBtn.Parent = card
-
-		local bCorner = Instance.new("UICorner")
-		bCorner.CornerRadius = UDim.new(0, 6)
-		bCorner.Parent = buyBtn
+		local buyContainer, buyBtn = createChunky3DButton({
+			Name = "BuyBtn",
+			Size = UDim2.new(0, 120, 0, 38),
+			Position = UDim2.new(1, -128, 0.5, -19),
+			BackgroundColor3 = Color3.fromRGB(0, 160, 220),
+			Text = string.format("R$ %d", item.Price),
+			TextSize = 13,
+			CornerRadius = UDim.new(0, 8),
+			BevelHeight = 3,
+			Parent = card,
+			ZIndex = 27,
+		})
 
 		storeRowRefs[item.Key] = { BuyButton = buyBtn }
 
@@ -962,22 +1131,18 @@ function MenuController.buildStorePanel()
 		descLabel.ZIndex = 26
 		descLabel.Parent = card
 
-		local buyBtn = Instance.new("TextButton")
-		buyBtn.Name = "BuyBtn"
-		buyBtn.Size = UDim2.new(0, 120, 0, 36)
-		buyBtn.Position = UDim2.new(1, -128, 0.5, -18)
-		buyBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 100)
-		buyBtn.Font = Enum.Font.GothamBold
-		buyBtn.TextSize = 12
-		buyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-		buyBtn.Text = string.format("R$ %d", prod.Price)
-		buyBtn.AutoButtonColor = true
-		buyBtn.ZIndex = 27
-		buyBtn.Parent = card
-
-		local bCorner = Instance.new("UICorner")
-		bCorner.CornerRadius = UDim.new(0, 6)
-		bCorner.Parent = buyBtn
+		local buyContainer, buyBtn = createChunky3DButton({
+			Name = "BuyBtn",
+			Size = UDim2.new(0, 120, 0, 38),
+			Position = UDim2.new(1, -128, 0.5, -19),
+			BackgroundColor3 = Color3.fromRGB(40, 180, 100),
+			Text = string.format("R$ %d", prod.Price),
+			TextSize = 13,
+			CornerRadius = UDim.new(0, 8),
+			BevelHeight = 3,
+			Parent = card,
+			ZIndex = 27,
+		})
 
 		buyBtn.MouseButton1Click:Connect(function()
 			playSound("rbxassetid://6895079853", 1.0)
@@ -1237,22 +1402,18 @@ function MenuController.buildDronesPanel()
 			costLbl.ZIndex = 26
 			costLbl.Parent = card
 
-			local hatchBtn = Instance.new("TextButton")
-			hatchBtn.Name = "HatchBtn"
-			hatchBtn.Size = UDim2.new(0, 130, 0, 42)
-			hatchBtn.Position = UDim2.new(1, -138, 0, 38)
-			hatchBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
-			hatchBtn.Font = Enum.Font.GothamBlack
-			hatchBtn.TextSize = 13
-			hatchBtn.TextColor3 = Color3.new(1, 1, 1)
-			hatchBtn.Text = "HATCH"
-			hatchBtn.ZIndex = 26
-			hatchBtn.AutoButtonColor = false
-			hatchBtn.Parent = card
-
-			local hbCorner = Instance.new("UICorner")
-			hbCorner.CornerRadius = UDim.new(0, 8)
-			hbCorner.Parent = hatchBtn
+			local hatchContainer, hatchBtn = createChunky3DButton({
+				Name = "HatchBtn",
+				Size = UDim2.new(0, 130, 0, 42),
+				Position = UDim2.new(1, -138, 0, 38),
+				BackgroundColor3 = Color3.fromRGB(40, 180, 80),
+				Text = "HATCH",
+				TextSize = 13,
+				CornerRadius = UDim.new(0, 8),
+				BevelHeight = 4,
+				Parent = card,
+				ZIndex = 26,
+			})
 
 			local capturedEggKey = eggKey
 			hatchBtn.Activated:Connect(function()
@@ -1363,21 +1524,18 @@ function MenuController.buildTeleportPanel()
 		descLbl.ZIndex = 26
 		descLbl.Parent = row
 
-		local warpBtn = Instance.new("TextButton")
-		warpBtn.Name = "WarpButton"
-		warpBtn.Size = UDim2.new(0, 115, 0, 44)
-		warpBtn.Position = UDim2.new(1, -125, 0.5, -22)
-		warpBtn.BackgroundColor3 = (zone.Id == 1) and Color3.fromRGB(40, 180, 90) or Color3.fromRGB(90, 95, 110)
-		warpBtn.Font = Enum.Font.GothamBlack
-		warpBtn.TextSize = 14
-		warpBtn.TextColor3 = Color3.new(1, 1, 1)
-		warpBtn.Text = (zone.Id == 1) and "TRAVEL" or string.format("LOCKED\n(%s SCRAP)", formatNumber(zone.UnlockCost))
-		warpBtn.ZIndex = 26
-		warpBtn.Parent = row
-
-		local bCorner = Instance.new("UICorner")
-		bCorner.CornerRadius = UDim.new(0, 8)
-		bCorner.Parent = warpBtn
+		local warpContainer, warpBtn = createChunky3DButton({
+			Name = "WarpButton",
+			Size = UDim2.new(0, 115, 0, 44),
+			Position = UDim2.new(1, -125, 0.5, -22),
+			BackgroundColor3 = (zone.Id == 1) and Color3.fromRGB(40, 180, 90) or Color3.fromRGB(90, 95, 110),
+			Text = (zone.Id == 1) and "TRAVEL" or string.format("LOCKED\n(%s SCRAP)", formatNumber(zone.UnlockCost)),
+			TextSize = 13,
+			CornerRadius = UDim.new(0, 8),
+			BevelHeight = 4,
+			Parent = row,
+			ZIndex = 26,
+		})
 
 		local zId = zone.Id
 		warpBtn.Activated:Connect(function()
@@ -1435,21 +1593,40 @@ function MenuController.buildRebirthPanel()
 	rebirthInfoLabel.ZIndex = 25
 	rebirthInfoLabel.Parent = statFrame
 
-	rebirthButton = Instance.new("TextButton")
-	rebirthButton.Name = "RebirthButton"
-	rebirthButton.Size = UDim2.new(1, 0, 0, 60)
-	rebirthButton.Position = UDim2.new(0, 0, 0, 256)
-	rebirthButton.BackgroundColor3 = Color3.fromRGB(80, 130, 255)
-	rebirthButton.Font = Enum.Font.GothamBlack
-	rebirthButton.TextSize = 18
-	rebirthButton.TextColor3 = Color3.new(1, 1, 1)
-	rebirthButton.Text = "QUANTUM REBIRTH"
-	rebirthButton.ZIndex = 25
-	rebirthButton.Parent = body
+	local rebirthContainer, rBtn = createChunky3DButton({
+		Name = "RebirthButton",
+		Size = UDim2.new(1, 0, 0, 62),
+		Position = UDim2.new(0, 0, 0, 256),
+		BackgroundColor3 = Color3.fromRGB(0, 160, 255),
+		Text = "⭐ QUANTUM REBIRTH ⭐",
+		TextSize = 18,
+		CornerRadius = UDim.new(0, 12),
+		BevelHeight = 5,
+		Parent = body,
+		ZIndex = 25,
+	})
+	rebirthButton = rBtn
 
-	local rCorner = Instance.new("UICorner")
-	rCorner.CornerRadius = UDim.new(0, 12)
-	rCorner.Parent = rebirthButton
+	-- Ambient glowing energy pulse on Rebirth flagship button
+	local rStroke = rBtn:FindFirstChild("OuterRim") :: UIStroke?
+	if rStroke then
+		task.spawn(function()
+			while rStroke and rStroke.Parent do
+				local pOut = TweenService:Create(rStroke, TweenInfo.new(1.0, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+					Color = Color3.fromRGB(220, 250, 255),
+					Thickness = 2.4,
+				})
+				pOut:Play()
+				pOut.Completed:Wait()
+				local pIn = TweenService:Create(rStroke, TweenInfo.new(1.0, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+					Color = Color3.fromRGB(80, 200, 255),
+					Thickness = 1.5,
+				})
+				pIn:Play()
+				pIn.Completed:Wait()
+			end
+		end)
+	end
 
 	rebirthButton.Activated:Connect(function()
 		local reqZone = Config.Rebirth.RequiredZone or 5
@@ -1593,23 +1770,19 @@ function MenuController.buildRewardsPanel()
 	end
 
 	-- Daily Claim Button
-	local dailyBtn = Instance.new("TextButton")
-	dailyBtn.Name = "DailyClaimBtn"
-	dailyBtn.Size = UDim2.new(1, -24, 0, 48)
-	dailyBtn.Position = UDim2.new(0, 12, 0, 144)
-	dailyBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
-	dailyBtn.Font = Enum.Font.GothamBlack
-	dailyBtn.TextSize = 15
-	dailyBtn.TextColor3 = Color3.new(1, 1, 1)
-	dailyBtn.Text = "CLAIM DAILY REWARD"
-	dailyBtn.AutoButtonColor = true
-	dailyBtn.ZIndex = 26
-	dailyBtn.Parent = dailySection
+	local dailyContainer, dailyBtn = createChunky3DButton({
+		Name = "DailyClaimBtn",
+		Size = UDim2.new(1, -24, 0, 48),
+		Position = UDim2.new(0, 12, 0, 144),
+		BackgroundColor3 = Color3.fromRGB(255, 160, 15),
+		Text = "🎁 CLAIM DAILY REWARD 🎁",
+		TextSize = 15,
+		CornerRadius = UDim.new(0, 10),
+		BevelHeight = 4,
+		Parent = dailySection,
+		ZIndex = 26,
+	})
 	dailyRewardBtnRef = dailyBtn
-
-	local dCorner = Instance.new("UICorner")
-	dCorner.CornerRadius = UDim.new(0, 8)
-	dCorner.Parent = dailyBtn
 
 	dailyBtn.Activated:Connect(function()
 		local now = os.time()
@@ -1689,20 +1862,18 @@ function MenuController.buildRewardsPanel()
 	cbStroke.Thickness = 1
 	cbStroke.Parent = codeBox
 
-	local redeemBtn = Instance.new("TextButton")
-	redeemBtn.Size = UDim2.new(0.30, -2, 0, 46)
-	redeemBtn.Position = UDim2.new(0.70, 8, 0, 278)
-	redeemBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
-	redeemBtn.Font = Enum.Font.GothamBlack
-	redeemBtn.TextSize = 15
-	redeemBtn.TextColor3 = Color3.new(1, 1, 1)
-	redeemBtn.Text = "REDEEM"
-	redeemBtn.ZIndex = 24
-	redeemBtn.Parent = body
-
-	local rbCorner = Instance.new("UICorner")
-	rbCorner.CornerRadius = UDim.new(0, 8)
-	rbCorner.Parent = redeemBtn
+	local redeemContainer, redeemBtn = createChunky3DButton({
+		Name = "RedeemBtn",
+		Size = UDim2.new(0.30, -2, 0, 46),
+		Position = UDim2.new(0.70, 8, 0, 278),
+		BackgroundColor3 = Color3.fromRGB(40, 180, 80),
+		Text = "REDEEM",
+		TextSize = 14,
+		CornerRadius = UDim.new(0, 8),
+		BevelHeight = 4,
+		Parent = body,
+		ZIndex = 24,
+	})
 
 	redeemBtn.Activated:Connect(function()
 		local text = codeBox.Text
@@ -1825,21 +1996,18 @@ function MenuController.buildQuestsPanel()
 		progLabel.ZIndex = 28
 		progLabel.Parent = barBg
 
-		local claimBtn = Instance.new("TextButton")
-		claimBtn.Name = "ClaimButton"
-		claimBtn.Size = UDim2.new(0.32, 0, 0, 36)
-		claimBtn.Position = UDim2.new(0.66, 0, 0, 46)
-		claimBtn.BackgroundColor3 = Color3.fromRGB(40, 48, 65)
-		claimBtn.Font = Enum.Font.GothamBlack
-		claimBtn.TextSize = 12
-		claimBtn.TextColor3 = Color3.new(1, 1, 1)
-		claimBtn.Text = "IN PROGRESS"
-		claimBtn.ZIndex = 26
-		claimBtn.Parent = row
-
-		local cbCorner = Instance.new("UICorner")
-		cbCorner.CornerRadius = UDim.new(0, 8)
-		cbCorner.Parent = claimBtn
+		local claimContainer, claimBtn = createChunky3DButton({
+			Name = "ClaimButton",
+			Size = UDim2.new(0.32, 0, 0, 38),
+			Position = UDim2.new(0.66, 0, 0, 45),
+			BackgroundColor3 = Color3.fromRGB(40, 48, 65),
+			Text = "IN PROGRESS",
+			TextSize = 12,
+			CornerRadius = UDim.new(0, 8),
+			BevelHeight = 3,
+			Parent = row,
+			ZIndex = 26,
+		})
 
 		local questId = quest.Id
 		claimBtn.Activated:Connect(function()
@@ -2299,21 +2467,18 @@ function MenuController.buildToolArmoryPanel()
 		descLbl.Parent = card
 
 		-- Action Button (BUY / EQUIP / EQUIPPED)
-		local actionBtn = Instance.new("TextButton")
-		actionBtn.Name = "ActionBtn"
-		actionBtn.Size = UDim2.new(0, 135, 0, 40)
-		actionBtn.Position = UDim2.new(1, -145, 0.5, -20)
-		actionBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
-		actionBtn.Font = Enum.Font.GothamBlack
-		actionBtn.TextSize = 13
-		actionBtn.TextColor3 = Color3.new(1, 1, 1)
-		actionBtn.Text = tool.Cost == 0 and "EQUIPPED" or string.format("BUY (%s SCRAP)", formatNumber(tool.Cost))
-		actionBtn.ZIndex = 26
-		actionBtn.Parent = card
-
-		local abCorner = Instance.new("UICorner")
-		abCorner.CornerRadius = UDim.new(0, 10)
-		abCorner.Parent = actionBtn
+		local actionContainer, actionBtn = createChunky3DButton({
+			Name = "ActionBtn",
+			Size = UDim2.new(0, 140, 0, 42),
+			Position = UDim2.new(1, -150, 0.5, -21),
+			BackgroundColor3 = Color3.fromRGB(40, 180, 80),
+			Text = tool.Cost == 0 and "EQUIPPED" or string.format("BUY (%s SCRAP)", formatNumber(tool.Cost)),
+			TextSize = 13,
+			CornerRadius = UDim.new(0, 10),
+			BevelHeight = 4,
+			Parent = card,
+			ZIndex = 26,
+		})
 
 		actionBtn.Activated:Connect(function()
 			if not currentData then return end
@@ -3162,21 +3327,18 @@ function MenuController.showHatchReveal(info: any)
 	stroke.Parent = card
 
 	-- Close 'X' Button
-	local closeHatchBtn = Instance.new("TextButton")
-	closeHatchBtn.Name = "CloseButton"
-	closeHatchBtn.Size = UDim2.new(0, 32, 0, 32)
-	closeHatchBtn.Position = UDim2.new(1, -40, 0, 10)
-	closeHatchBtn.BackgroundColor3 = Color3.fromRGB(225, 45, 55)
-	closeHatchBtn.Font = Enum.Font.GothamBlack
-	closeHatchBtn.TextSize = 16
-	closeHatchBtn.TextColor3 = Color3.new(1, 1, 1)
-	closeHatchBtn.Text = "X"
-	closeHatchBtn.ZIndex = 65
-	closeHatchBtn.Parent = card
-
-	local chCorner = Instance.new("UICorner")
-	chCorner.CornerRadius = UDim.new(1, 0)
-	chCorner.Parent = closeHatchBtn
+	local closeContainer, closeHatchBtn = createChunky3DButton({
+		Name = "CloseButton",
+		Size = UDim2.new(0, 34, 0, 34),
+		Position = UDim2.new(1, -42, 0, 10),
+		BackgroundColor3 = Color3.fromRGB(225, 45, 55),
+		Text = "✕",
+		TextSize = 16,
+		CornerRadius = UDim.new(1, 0),
+		BevelHeight = 3,
+		Parent = card,
+		ZIndex = 65,
+	})
 
 	closeHatchBtn.MouseButton1Click:Connect(function()
 		overlay:Destroy()
@@ -3286,35 +3448,31 @@ function MenuController.showHatchReveal(info: any)
 	descLabel.Parent = card
 
 	-- Action Buttons: EQUIP NOW & AWESOME
-	local equipBtn = Instance.new("TextButton")
-	equipBtn.Size = UDim2.new(0, 140, 0, 42)
-	equipBtn.Position = UDim2.new(0.5, -145, 1, -62)
-	equipBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
-	equipBtn.Font = Enum.Font.GothamBlack
-	equipBtn.TextSize = 14
-	equipBtn.TextColor3 = Color3.new(1, 1, 1)
-	equipBtn.Text = "EQUIP NOW"
-	equipBtn.ZIndex = 62
-	equipBtn.Parent = card
+	local equipContainer, equipBtn = createChunky3DButton({
+		Name = "EquipBtn",
+		Size = UDim2.new(0, 140, 0, 44),
+		Position = UDim2.new(0.5, -145, 1, -62),
+		BackgroundColor3 = Color3.fromRGB(40, 180, 80),
+		Text = "EQUIP NOW",
+		TextSize = 14,
+		CornerRadius = UDim.new(0, 9),
+		BevelHeight = 4,
+		Parent = card,
+		ZIndex = 62,
+	})
 
-	local ebCorner = Instance.new("UICorner")
-	ebCorner.CornerRadius = UDim.new(0, 8)
-	ebCorner.Parent = equipBtn
-
-	local okBtn = Instance.new("TextButton")
-	okBtn.Size = UDim2.new(0, 130, 0, 42)
-	okBtn.Position = UDim2.new(0.5, 5, 1, -62)
-	okBtn.BackgroundColor3 = template.Color
-	okBtn.Font = Enum.Font.GothamBlack
-	okBtn.TextSize = 14
-	okBtn.TextColor3 = Color3.new(1, 1, 1)
-	okBtn.Text = "AWESOME!"
-	okBtn.ZIndex = 62
-	okBtn.Parent = card
-
-	local okCorner = Instance.new("UICorner")
-	okCorner.CornerRadius = UDim.new(0, 8)
-	okCorner.Parent = okBtn
+	local okContainer, okBtn = createChunky3DButton({
+		Name = "OkBtn",
+		Size = UDim2.new(0, 130, 0, 44),
+		Position = UDim2.new(0.5, 5, 1, -62),
+		BackgroundColor3 = template.Color,
+		Text = "AWESOME!",
+		TextSize = 14,
+		CornerRadius = UDim.new(0, 9),
+		BevelHeight = 4,
+		Parent = card,
+		ZIndex = 62,
+	})
 
 	local petUuid = info.Pet and info.Pet.UUID
 	equipBtn.MouseButton1Click:Connect(function()
@@ -3331,56 +3489,169 @@ function MenuController.showHatchReveal(info: any)
 	end)
 end
 
--- Modern Split High-Tech Navigation Docks:
--- 1. Right Gameplay Dock: Upgrades, Sectors (Teleport), Armory, Drones, Rebirth (Prominent & Action-Oriented)
--- 2. Left System Dock: Store, Prestige, Quests, Rewards, Settings, Dev Console (Clean & Balanced)
+-- Modern Custom 3D Simulator Navigation Docks (Inspired by Pet Sim 99, Mining Simulator 2, & Blox Fruits)
+-- 1. Right Gameplay Dock: UPGRADE, SECTORS, ARMORY, DRONES, REBIRTH (Large, tactile, high-priority 3D pill buttons)
+-- 2. Left System Dock: STORE, PRESTIGE, QUESTS, REWARDS, SETTINGS, CONSOLE (Juicy themed buttons with notification badges)
 function MenuController.buildIconBar()
 	local gameplayButtons = {
-		{ Name = "Upgrades", Label = "UPGRADE", FullTitle = "UPGRADES WORKSHOP", Icon = "🛠️", Color = Color3.fromRGB(45, 215, 115) },
-		{ Name = "Teleport", Label = "SECTORS", FullTitle = "SECTOR FAST-TRAVEL", Icon = "🚀", Color = Color3.fromRGB(185, 80, 255) },
-		{ Name = "ToolArmory", Label = "ARMORY", FullTitle = "TOOL ARMORY", Icon = "🔧", Color = Color3.fromRGB(255, 140, 40) },
-		{ Name = "Drones", Label = "DRONES", FullTitle = "DRONE HANGAR", Icon = "🛸", Color = Color3.fromRGB(255, 180, 30) },
-		{ Name = "Rebirth", Label = "REBIRTH", FullTitle = "QUANTUM REBIRTH", Icon = "🔄", Color = Color3.fromRGB(80, 150, 255) },
+		{
+			Name = "Upgrades",
+			Label = "UPGRADE",
+			FullTitle = "UPGRADES WORKSHOP",
+			Icon = "🛠️",
+			TopColor = Color3.fromRGB(52, 232, 131),
+			BottomColor = Color3.fromRGB(18, 154, 74),
+			ShadowColor = Color3.fromRGB(6, 72, 32),
+			RimColor = Color3.fromRGB(99, 245, 162),
+			Color = Color3.fromRGB(45, 215, 115),
+		},
+		{
+			Name = "Teleport",
+			Label = "SECTORS",
+			FullTitle = "SECTOR FAST-TRAVEL",
+			Icon = "🚀",
+			TopColor = Color3.fromRGB(200, 100, 255),
+			BottomColor = Color3.fromRGB(120, 25, 200),
+			ShadowColor = Color3.fromRGB(58, 8, 100),
+			RimColor = Color3.fromRGB(223, 153, 255),
+			Color = Color3.fromRGB(185, 80, 255),
+		},
+		{
+			Name = "ToolArmory",
+			Label = "ARMORY",
+			FullTitle = "TOOL ARMORY",
+			Icon = "🔧",
+			TopColor = Color3.fromRGB(255, 157, 59),
+			BottomColor = Color3.fromRGB(212, 74, 8),
+			ShadowColor = Color3.fromRGB(110, 32, 0),
+			RimColor = Color3.fromRGB(255, 189, 122),
+			Color = Color3.fromRGB(255, 140, 40),
+		},
+		{
+			Name = "Drones",
+			Label = "DRONES",
+			FullTitle = "DRONE HANGAR",
+			Icon = "🛸",
+			TopColor = Color3.fromRGB(255, 209, 59),
+			BottomColor = Color3.fromRGB(217, 125, 9),
+			ShadowColor = Color3.fromRGB(110, 59, 0),
+			RimColor = Color3.fromRGB(255, 228, 128),
+			Color = Color3.fromRGB(255, 180, 30),
+		},
+		{
+			Name = "Rebirth",
+			Label = "REBIRTH",
+			FullTitle = "QUANTUM REBIRTH",
+			Icon = "🔄",
+			TopColor = Color3.fromRGB(38, 232, 255),
+			BottomColor = Color3.fromRGB(0, 119, 200),
+			ShadowColor = Color3.fromRGB(0, 56, 96),
+			RimColor = Color3.fromRGB(125, 242, 255),
+			Color = Color3.fromRGB(80, 150, 255),
+			HasAura = true,
+		},
 	}
 
 	local systemButtons = {
-		{ Name = "Store", Label = "STORE", FullTitle = "ROBUX SHOP", Icon = "⚡", Color = Color3.fromRGB(0, 220, 255) },
-		{ Name = "GearsShop", Label = "PRESTIGE", FullTitle = "GEARS PRESTIGE SHOP", Icon = "⚙️", Color = Color3.fromRGB(60, 190, 255) },
-		{ Name = "Quests", Label = "QUESTS", FullTitle = "DAILY OBJECTIVES", Icon = "🎯", Color = Color3.fromRGB(255, 215, 50) },
-		{ Name = "Rewards", Label = "REWARDS", FullTitle = "DAILY REWARDS & CODES", Icon = "🎁", Color = Color3.fromRGB(245, 80, 140) },
-		{ Name = "Settings", Label = "SETTINGS", FullTitle = "SYSTEM SETTINGS", Icon = "⚙️", Color = Color3.fromRGB(160, 175, 195) },
+		{
+			Name = "Store",
+			Label = "STORE",
+			FullTitle = "ROBUX SHOP",
+			Icon = "⚡",
+			TopColor = Color3.fromRGB(255, 71, 163),
+			BottomColor = Color3.fromRGB(204, 0, 102),
+			ShadowColor = Color3.fromRGB(102, 0, 51),
+			RimColor = Color3.fromRGB(255, 133, 194),
+			Color = Color3.fromRGB(0, 220, 255),
+		},
+		{
+			Name = "GearsShop",
+			Label = "PRESTIGE",
+			FullTitle = "GEARS PRESTIGE SHOP",
+			Icon = "⚙️",
+			TopColor = Color3.fromRGB(61, 181, 255),
+			BottomColor = Color3.fromRGB(20, 98, 184),
+			ShadowColor = Color3.fromRGB(11, 51, 99),
+			RimColor = Color3.fromRGB(140, 211, 255),
+			Color = Color3.fromRGB(60, 190, 255),
+		},
+		{
+			Name = "Quests",
+			Label = "QUESTS",
+			FullTitle = "DAILY OBJECTIVES",
+			Icon = "🎯",
+			TopColor = Color3.fromRGB(255, 210, 20),
+			BottomColor = Color3.fromRGB(199, 138, 5),
+			ShadowColor = Color3.fromRGB(105, 69, 0),
+			RimColor = Color3.fromRGB(255, 227, 102),
+			Color = Color3.fromRGB(255, 215, 50),
+		},
+		{
+			Name = "Rewards",
+			Label = "REWARDS",
+			FullTitle = "DAILY REWARDS & CODES",
+			Icon = "🎁",
+			TopColor = Color3.fromRGB(255, 92, 158),
+			BottomColor = Color3.fromRGB(194, 24, 91),
+			ShadowColor = Color3.fromRGB(106, 8, 47),
+			RimColor = Color3.fromRGB(255, 153, 196),
+			Color = Color3.fromRGB(245, 80, 140),
+		},
+		{
+			Name = "Settings",
+			Label = "SETTINGS",
+			FullTitle = "SYSTEM SETTINGS",
+			Icon = "⚙️",
+			TopColor = Color3.fromRGB(166, 184, 204),
+			BottomColor = Color3.fromRGB(93, 110, 130),
+			ShadowColor = Color3.fromRGB(45, 53, 64),
+			RimColor = Color3.fromRGB(208, 220, 232),
+			Color = Color3.fromRGB(160, 175, 195),
+		},
 	}
 
 	local isDev = RunService:IsStudio() or player.Name == "ExodusNeo" or (game.CreatorId ~= 0 and player.UserId == game.CreatorId)
 	if isDev then
-		table.insert(systemButtons, { Name = "Debug", Label = "CONSOLE", FullTitle = "DEVELOPER CONSOLE", Icon = "💻", Color = Color3.fromRGB(255, 65, 100) })
+		table.insert(systemButtons, {
+			Name = "Debug",
+			Label = "CONSOLE",
+			FullTitle = "DEVELOPER CONSOLE",
+			Icon = "💻",
+			TopColor = Color3.fromRGB(255, 77, 109),
+			BottomColor = Color3.fromRGB(184, 20, 50),
+			ShadowColor = Color3.fromRGB(94, 6, 23),
+			RimColor = Color3.fromRGB(255, 143, 163),
+			Color = Color3.fromRGB(255, 65, 100),
+		})
 	end
 
 	local function renderDock(dockName: string, anchorPoint: Vector2, position: UDim2, btnList: { any }, isRightSide: boolean)
 		local count = #btnList
-		local btnWidth = isRightSide and 66 or 56
-		local btnHeight = isRightSide and 52 or 46
-		local pad = 6
-		local barWidth = isRightSide and 76 or 66
-		local barHeight = 14 + count * btnHeight + (count - 1) * pad
+		local btnWidth = isRightSide and 74 or 62
+		local btnHeight = isRightSide and 64 or 54
+		local bevelHeight = isRightSide and 4 or 3
+		local pad = 8
+		local barWidth = isRightSide and 86 or 74
+		local barHeight = 16 + count * btnHeight + (count - 1) * pad
 
 		local bar = Instance.new("Frame")
 		bar.Name = dockName
 		bar.Size = UDim2.new(0, barWidth, 0, barHeight)
 		bar.AnchorPoint = anchorPoint
 		bar.Position = position
-		bar.BackgroundColor3 = Color3.fromRGB(12, 15, 22)
-		bar.BackgroundTransparency = 0.08
+		bar.BackgroundColor3 = Color3.fromRGB(10, 14, 22)
+		bar.BackgroundTransparency = 0.12
 		bar.BorderSizePixel = 0
+		bar.ZIndex = 20
 		bar.Parent = mainGui
 
 		local bCorner = Instance.new("UICorner")
-		bCorner.CornerRadius = UDim.new(0, 10)
+		bCorner.CornerRadius = UDim.new(0, 14)
 		bCorner.Parent = bar
 
 		local bStroke = Instance.new("UIStroke")
-		bStroke.Color = Color3.fromRGB(38, 48, 64)
-		bStroke.Thickness = 1
+		bStroke.Color = Color3.fromRGB(38, 50, 72)
+		bStroke.Thickness = 1.5
 		bStroke.Parent = bar
 
 		local list = Instance.new("UIListLayout")
@@ -3390,85 +3661,143 @@ function MenuController.buildIconBar()
 		list.Parent = bar
 
 		for _, info in ipairs(btnList) do
+			local container = Instance.new("Frame")
+			container.Name = info.Name .. "Container"
+			container.Size = UDim2.new(0, btnWidth, 0, btnHeight)
+			container.BackgroundTransparency = 1
+			container.BorderSizePixel = 0
+			container.ZIndex = 21
+			container.Parent = bar
+
+			-- 3D Bottom Bevel Shadow
+			local shadow = Instance.new("Frame")
+			shadow.Name = "Shadow"
+			shadow.Size = UDim2.new(1, 0, 1, 0)
+			shadow.Position = UDim2.new(0, 0, 0, bevelHeight)
+			shadow.BackgroundColor3 = info.ShadowColor or Color3.fromRGB(15, 20, 30)
+			shadow.BorderSizePixel = 0
+			shadow.ZIndex = 21
+			shadow.Parent = container
+
+			local sCorner = Instance.new("UICorner")
+			sCorner.CornerRadius = UDim.new(0, isRightSide and 11 or 9)
+			sCorner.Parent = shadow
+
+			-- Interactive Top Surface
 			local btn = Instance.new("TextButton")
 			btn.Name = info.Name .. "Btn"
-			btn.Size = UDim2.new(0, btnWidth, 0, btnHeight)
-			btn.BackgroundColor3 = Color3.fromRGB(18, 22, 32)
+			btn.Size = UDim2.new(1, 0, 1, -bevelHeight)
+			btn.Position = UDim2.new(0, 0, 0, 0)
+			btn.BackgroundColor3 = Color3.new(1, 1, 1)
+			btn.BorderSizePixel = 0
 			btn.Text = ""
 			btn.AutoButtonColor = false
 			btn.Selectable = true
 			btn.ClipsDescendants = false
-			btn.Parent = bar
+			btn.ZIndex = 22
+			btn.Parent = container
 
 			local corner = Instance.new("UICorner")
-			corner.CornerRadius = UDim.new(0, 8)
+			corner.CornerRadius = UDim.new(0, isRightSide and 11 or 9)
 			corner.Parent = btn
 
+			-- Rich Vertical Gradient (Vibrant saturated top to rich base bottom)
+			local grad = Instance.new("UIGradient")
+			grad.Name = "ButtonGradient"
+			grad.Rotation = 90
+			grad.Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, info.TopColor),
+				ColorSequenceKeypoint.new(1, info.BottomColor),
+			})
+			grad.Parent = btn
+
+			-- Glowing Outer Rim
 			local stroke = Instance.new("UIStroke")
-			stroke.Color = Color3.fromRGB(36, 44, 60)
-			stroke.Thickness = 1
+			stroke.Name = "RimStroke"
+			stroke.Color = info.RimColor
+			stroke.Thickness = 1.5
+			stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 			stroke.Parent = btn
 
-			-- Accent Edge Indicator
-			local ind = Instance.new("Frame")
-			ind.Name = "Indicator"
-			ind.Size = UDim2.new(0, 3, 0.65, 0)
-			ind.Position = isRightSide and UDim2.new(1, -4, 0.175, 0) or UDim2.new(0, 1, 0.175, 0)
-			ind.BackgroundColor3 = info.Color
-			ind.BorderSizePixel = 0
-			ind.Parent = btn
+			-- Specular Gloss Reflection (Top 42%)
+			local gloss = Instance.new("Frame")
+			gloss.Name = "GlossHighlight"
+			gloss.Size = UDim2.new(1, -4, 0.42, 0)
+			gloss.Position = UDim2.new(0, 2, 0, 2)
+			gloss.BackgroundColor3 = Color3.new(1, 1, 1)
+			gloss.BorderSizePixel = 0
+			gloss.ZIndex = 23
+			gloss.Parent = btn
 
-			local icCorner = Instance.new("UICorner")
-			icCorner.CornerRadius = UDim.new(0, 2)
-			icCorner.Parent = ind
+			local gCorner = Instance.new("UICorner")
+			gCorner.CornerRadius = UDim.new(0, isRightSide and 9 or 7)
+			gCorner.Parent = gloss
 
-			-- Top Icon
-			if info.ImageId then
-				local img = Instance.new("ImageLabel")
-				img.Name = "IconImage"
-				local imgDim = isRightSide and 22 or 18
-				img.Size = UDim2.new(0, imgDim, 0, imgDim)
-				img.Position = UDim2.new(0.5, 0, 0, isRightSide and 6 or 4)
-				img.AnchorPoint = Vector2.new(0.5, 0)
-				img.BackgroundTransparency = 1
-				img.Image = info.ImageId
-				img.ImageColor3 = info.Color
-				img.ZIndex = 2
-				img.Parent = btn
-			else
-				local iconLbl = Instance.new("TextLabel")
-				iconLbl.Name = "IconLabel"
-				iconLbl.Size = UDim2.new(1, 0, 0, isRightSide and 24 or 20)
-				iconLbl.Position = UDim2.new(0, 0, 0, isRightSide and 4 or 3)
-				iconLbl.BackgroundTransparency = 1
-				iconLbl.Font = Enum.Font.GothamBold
-				iconLbl.TextSize = isRightSide and 20 or 17
-				iconLbl.Text = info.Icon
-				iconLbl.ZIndex = 2
-				iconLbl.Parent = btn
-			end
+			local gGrad = Instance.new("UIGradient")
+			gGrad.Rotation = 90
+			gGrad.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.70),
+				NumberSequenceKeypoint.new(1, 1.0),
+			})
+			gGrad.Parent = gloss
 
-			-- Bottom Bold Label (Clearly identifies each button!)
+			-- High-Tech Icon Emblem Container (Circular badge with dark glass & neon glow)
+			local emblemDim = isRightSide and 32 or 26
+			local emblem = Instance.new("Frame")
+			emblem.Name = "IconEmblem"
+			emblem.Size = UDim2.new(0, emblemDim, 0, emblemDim)
+			emblem.Position = UDim2.new(0.5, 0, 0, isRightSide and 6 or 4)
+			emblem.AnchorPoint = Vector2.new(0.5, 0)
+			emblem.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+			emblem.BackgroundTransparency = 0.45
+			emblem.BorderSizePixel = 0
+			emblem.ZIndex = 24
+			emblem.Parent = btn
+
+			local eCorner = Instance.new("UICorner")
+			eCorner.CornerRadius = UDim.new(1, 0)
+			eCorner.Parent = emblem
+
+			local eStroke = Instance.new("UIStroke")
+			eStroke.Color = Color3.new(1, 1, 1)
+			eStroke.Transparency = 0.6
+			eStroke.Thickness = 1
+			eStroke.Parent = emblem
+
+			-- Icon inside emblem
+			local iconLbl = Instance.new("TextLabel")
+			iconLbl.Name = "IconLabel"
+			iconLbl.Size = UDim2.new(1, 0, 1, 0)
+			iconLbl.BackgroundTransparency = 1
+			iconLbl.Font = Enum.Font.GothamBlack
+			iconLbl.TextSize = isRightSide and 19 or 15
+			iconLbl.Text = info.Icon
+			iconLbl.ZIndex = 25
+			iconLbl.Parent = emblem
+
+			-- Stylized 3D Category Title
 			local textLbl = Instance.new("TextLabel")
 			textLbl.Name = "Label"
-			textLbl.Size = UDim2.new(1, -6, 0, isRightSide and 16 or 14)
-			textLbl.Position = UDim2.new(0, 3, 0, isRightSide and 31 or 27)
+			textLbl.Size = UDim2.new(1, -4, 0, isRightSide and 17 or 15)
+			textLbl.Position = UDim2.new(0, 2, 0, isRightSide and 41 or 33)
 			textLbl.BackgroundTransparency = 1
-			textLbl.Font = isRightSide and Enum.Font.GothamBlack or Enum.Font.GothamBold
-			textLbl.TextSize = isRightSide and 10 or 8.5
-			textLbl.TextColor3 = info.Color
+			textLbl.Font = Enum.Font.GothamBlack
+			textLbl.TextSize = isRightSide and 10.5 or 9
+			textLbl.TextColor3 = Color3.new(1, 1, 1)
+			textLbl.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+			textLbl.TextStrokeTransparency = 0.25
 			textLbl.Text = info.Label
-			textLbl.ZIndex = 2
+			textLbl.ZIndex = 24
 			textLbl.Parent = btn
 
 			-- Notification Badge (For Claimable Rewards / Quests)
 			if info.Name == "Rewards" or info.Name == "Quests" then
 				local badge = Instance.new("Frame")
 				badge.Name = "NotifBadge"
-				badge.Size = UDim2.new(0, 15, 0, 15)
-				badge.Position = UDim2.new(1, -2, 0, -2)
+				badge.Size = UDim2.new(0, 18, 0, 18)
+				badge.Position = UDim2.new(1, 3, 0, -3)
 				badge.AnchorPoint = Vector2.new(1, 0)
-				badge.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+				badge.BackgroundColor3 = Color3.fromRGB(255, 45, 60)
 				badge.BorderSizePixel = 0
 				badge.Visible = false
 				badge.ZIndex = 30
@@ -3479,95 +3808,171 @@ function MenuController.buildIconBar()
 				bc.Parent = badge
 
 				local bs = Instance.new("UIStroke")
-				bs.Color = Color3.fromRGB(255, 200, 200)
-				bs.Thickness = 1
+				bs.Color = Color3.new(1, 1, 1)
+				bs.Thickness = 1.5
 				bs.Parent = badge
 
 				local bl = Instance.new("TextLabel")
 				bl.Size = UDim2.new(1, 0, 1, 0)
 				bl.BackgroundTransparency = 1
 				bl.Font = Enum.Font.GothamBlack
-				bl.TextSize = 10
+				bl.TextSize = 12
 				bl.TextColor3 = Color3.new(1, 1, 1)
 				bl.Text = "!"
 				bl.ZIndex = 31
 				bl.Parent = badge
 
 				dockNotificationBadges[info.Name] = badge
+
+				-- Bouncing badge loop when visible
+				task.spawn(function()
+					while badge and badge.Parent do
+						if badge.Visible then
+							local popUp = TweenService:Create(badge, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+								Size = UDim2.new(0, 21, 0, 21),
+							})
+							popUp:Play()
+							popUp.Completed:Wait()
+							local popDown = TweenService:Create(badge, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+								Size = UDim2.new(0, 18, 0, 18),
+							})
+							popDown:Play()
+							popDown.Completed:Wait()
+							task.wait(1.5)
+						else
+							task.wait(0.5)
+						end
+					end
+				end)
 			end
 
-			-- Tooltip
+			-- Ambient Pulsing Energy for Rebirth Flagship Button
+			if info.HasAura then
+				task.spawn(function()
+					while stroke and stroke.Parent do
+						local pulseOut = TweenService:Create(stroke, TweenInfo.new(1.0, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+							Color = Color3.fromRGB(220, 250, 255),
+							Thickness = 2.4,
+						})
+						pulseOut:Play()
+						pulseOut.Completed:Wait()
+						local pulseIn = TweenService:Create(stroke, TweenInfo.new(1.0, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+							Color = info.RimColor,
+							Thickness = 1.5,
+						})
+						pulseIn:Play()
+						pulseIn.Completed:Wait()
+					end
+				end)
+			end
+
+			-- Interactive Tooltip
 			local tooltip = Instance.new("Frame")
 			tooltip.Name = "Tooltip"
-			tooltip.Size = UDim2.new(0, 130, 0, 28)
+			tooltip.Size = UDim2.new(0, 140, 0, 30)
 			if isRightSide then
-				tooltip.Position = UDim2.new(0, -10, 0.5, 0)
+				tooltip.Position = UDim2.new(0, -12, 0.5, 0)
 				tooltip.AnchorPoint = Vector2.new(1, 0.5)
 			else
-				tooltip.Position = UDim2.new(1, 10, 0.5, 0)
+				tooltip.Position = UDim2.new(1, 12, 0.5, 0)
 				tooltip.AnchorPoint = Vector2.new(0, 0.5)
 			end
-			tooltip.BackgroundColor3 = Color3.fromRGB(12, 15, 22)
+			tooltip.BackgroundColor3 = Color3.fromRGB(12, 16, 24)
 			tooltip.BackgroundTransparency = 1
 			tooltip.BorderSizePixel = 0
 			tooltip.ZIndex = 35
 			tooltip.Parent = btn
 
 			local tipCorner = Instance.new("UICorner")
-			tipCorner.CornerRadius = UDim.new(0, 6)
+			tipCorner.CornerRadius = UDim.new(0, 8)
 			tipCorner.Parent = tooltip
 
 			local tipStroke = Instance.new("UIStroke")
-			tipStroke.Color = info.Color
-			tipStroke.Thickness = 1
+			tipStroke.Color = info.RimColor
+			tipStroke.Thickness = 1.5
 			tipStroke.Transparency = 1
 			tipStroke.Parent = tooltip
 
 			local tipText = Instance.new("TextLabel")
-			tipText.Size = UDim2.new(1, -8, 1, 0)
-			tipText.Position = UDim2.new(0, 4, 0, 0)
+			tipText.Size = UDim2.new(1, -10, 1, 0)
+			tipText.Position = UDim2.new(0, 5, 0, 0)
 			tipText.BackgroundTransparency = 1
-			tipText.Font = Enum.Font.GothamBold
-			tipText.TextSize = 10
-			tipText.TextColor3 = info.Color
+			tipText.Font = Enum.Font.GothamBlack
+			tipText.TextSize = 11
+			tipText.TextColor3 = info.TopColor
 			tipText.TextTransparency = 1
 			tipText.Text = info.FullTitle or info.Label
 			tipText.ZIndex = 36
 			tipText.Parent = tooltip
 
-			-- Hover & Press Animations
+			-- Hover & Press Tactile Spring Animations
 			local normalSize = UDim2.new(0, btnWidth, 0, btnHeight)
-			local hoverSize = UDim2.new(0, btnWidth + 4, 0, btnHeight + 2)
-			local pressSize = UDim2.new(0, btnWidth - 2, 0, btnHeight - 2)
+			local hoverSize = UDim2.new(0, btnWidth + 6, 0, btnHeight + 4)
+			local isDown = false
 
 			btn.MouseEnter:Connect(function()
-				TweenService:Create(btn, TweenInfo.new(0.12), {
-					Size = hoverSize,
-					BackgroundColor3 = Color3.fromRGB(26, 32, 46),
-				}):Play()
-				TweenService:Create(stroke, TweenInfo.new(0.12), { Color = info.Color }):Play()
-				TweenService:Create(tooltip, TweenInfo.new(0.12), { BackgroundTransparency = 0.05 }):Play()
-				TweenService:Create(tipStroke, TweenInfo.new(0.12), { Transparency = 0 }):Play()
-				TweenService:Create(tipText, TweenInfo.new(0.12), { TextTransparency = 0 }):Play()
+				if not isDown then
+					TweenService:Create(container, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+						Size = hoverSize,
+					}):Play()
+					TweenService:Create(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+						Position = UDim2.new(0, 0, 0, -2),
+					}):Play()
+					TweenService:Create(stroke, TweenInfo.new(0.12), {
+						Color = Color3.new(1, 1, 1),
+						Thickness = 2.2,
+					}):Play()
+					TweenService:Create(tooltip, TweenInfo.new(0.12), { BackgroundTransparency = 0.05 }):Play()
+					TweenService:Create(tipStroke, TweenInfo.new(0.12), { Transparency = 0 }):Play()
+					TweenService:Create(tipText, TweenInfo.new(0.12), { TextTransparency = 0 }):Play()
+				end
 			end)
 
 			btn.MouseLeave:Connect(function()
-				TweenService:Create(btn, TweenInfo.new(0.12), {
+				isDown = false
+				TweenService:Create(container, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 					Size = normalSize,
-					BackgroundColor3 = Color3.fromRGB(18, 22, 32),
 				}):Play()
-				TweenService:Create(stroke, TweenInfo.new(0.12), { Color = Color3.fromRGB(36, 44, 60) }):Play()
+				TweenService:Create(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+					Position = UDim2.new(0, 0, 0, 0),
+				}):Play()
+				TweenService:Create(stroke, TweenInfo.new(0.12), {
+					Color = info.RimColor,
+					Thickness = 1.5,
+				}):Play()
 				TweenService:Create(tooltip, TweenInfo.new(0.12), { BackgroundTransparency = 1 }):Play()
 				TweenService:Create(tipStroke, TweenInfo.new(0.12), { Transparency = 1 }):Play()
 				TweenService:Create(tipText, TweenInfo.new(0.12), { TextTransparency = 1 }):Play()
 			end)
 
+			btn.InputBegan:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					isDown = true
+					TweenService:Create(btn, TweenInfo.new(0.04, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+						Position = UDim2.new(0, 0, 0, bevelHeight),
+					}):Play()
+					TweenService:Create(container, TweenInfo.new(0.04, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+						Size = UDim2.new(0, btnWidth - 2, 0, btnHeight - 2),
+					}):Play()
+					playSound("rbxassetid://6895079853", 1.15)
+				end
+			end)
+
+			btn.InputEnded:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					if isDown then
+						isDown = false
+						TweenService:Create(btn, TweenInfo.new(0.14, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+							Position = UDim2.new(0, 0, 0, 0),
+						}):Play()
+						TweenService:Create(container, TweenInfo.new(0.14, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+							Size = normalSize,
+						}):Play()
+					end
+				end
+			end)
+
 			btn.Activated:Connect(function()
-				local pTween = TweenService:Create(btn, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true), {
-					Size = pressSize,
-				})
-				pTween:Play()
-				playSound("rbxassetid://6895079853", 1.15)
 				MenuController.openPanel(info.Name)
 			end)
 		end
